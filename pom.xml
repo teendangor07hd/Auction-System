@@ -14,8 +14,6 @@
     <modules>
         <module>bidhub-server</module>
         <module>bidhub-client</module>
-        <module>bidhub-server</module>
-        <module>bidhub-client</module>
     </modules>
 
     <properties>
