@@ -1,0 +1,24 @@
+# Maven build output
+target/
+*.class
+
+# IntelliJ IDEA
+.idea/
+*.iml
+*.iws
+*.ipr
+out/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# SQLite database files (không commit data vào Git)
+*.db
+*.db-shm
+*.db-wal
+data/
+
+# Log files
+*.log
+logs/
