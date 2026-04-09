@@ -1,11 +1,33 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<?import javafx.scene.control.Label?>
-<?import javafx.scene.layout.VBox?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<?import javafx.geometry.Insets?>
 
+<?import java.awt.Insets?>
+<?import java.awt.TextField?>
+<VBox alignment="CENTER" spacing="20.0" xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1"
+      fx:controller="com.bidhub.client.controller.LoginController" styleClass="main-container">
 
-<VBox maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="538.0" prefWidth="509.0" xmlns="http://javafx.com/javafx/25" xmlns:fx="http://javafx.com/fxml/1">
-   <children>
-      <Label style="-fx-font-size: 36px; -fx-font-weight: bold; -fx-text-fill: #2c3e50;" text="🏦 BidHub" />
-   </children>
+   <padding>
+      <Insets bottom="40.0" left="40.0" right="40.0" top="40.0" />
+   </padding>
+
+   <Label text="🏦 BidHub" style="-fx-font-size: 36px; -fx-font-weight: bold; -fx-text-fill: #2c3e50;"/>
+   <Label text="Hệ thống đấu giá trực tuyến" style="-fx-font-size: 16px; -fx-text-fill: #7f8c8d;"/>
+
+   <VBox spacing="10" maxWidth="300" alignment="CENTER_LEFT">
+      <Label text="Tên đăng nhập:" />
+      <TextField fx:id="txtUsername" promptText="Nhập username..." />
+
+      <Label text="Mật khẩu:" />
+      <PasswordField fx:id="txtPassword" promptText="Nhập mật khẩu..." />
+   </VBox>
+
+   <Label fx:id="lblError" textFill="RED" />
+
+   <Button text="🚀 ĐĂNG NHẬP" defaultButton="true" onAction="#handleLogin"
+           prefWidth="300" style="-fx-font-size: 14px; -fx-padding: 10px; -fx-background-color: #3498db; -fx-text-fill: white; -fx-font-weight: bold;"/>
+
+   <Hyperlink text="Chưa có tài khoản? Đăng ký ngay" onAction="#switchToRegister"/>
 </VBox>
