@@ -12,6 +12,7 @@
     <name>BidHub Parent</name>
 
     <modules>
+        <module>bidhub-common</module>
         <module>bidhub-server</module>
         <module>bidhub-client</module>
     </modules>
