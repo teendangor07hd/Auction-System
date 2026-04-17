@@ -47,3 +47,4 @@ public final class VehicleCreator extends ItemCreator {
         return new Vehicle(name, description, startingPrice, sellerId, manufacturer, year, mileageKm);
     }
 }
+
