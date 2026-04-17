@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<?import javafx.scene.text.Text?>
+
+<!--
+    LoginView.fxml — Màn hình đăng nhập BidHub
+    Controller: com.bidhub.client.controller.LoginController
+
+    Cấu trúc layout:
+    VBox (root, căn giữa màn hình)
+      └── VBox (form card, tối đa 360px)
+            ├── Text (tiêu đề "BidHub")
+            ├── TextField (username)
+            ├── PasswordField (password)
+            ├── Label (hiển thị lỗi, ẩn mặc định)
+            ├── Button (Đăng nhập)
+            └── Hyperlink (Chưa có tài khoản? Đăng ký)
+-->
+<VBox alignment="CENTER"
+      spacing="0"
+      xmlns="http://javafx.com/javafx/21"
+      xmlns:fx="http://javafx.com/fxml/1"
+      fx:controller="com.bidhub.client.controller.LoginController">
+
+   <VBox alignment="TOP_CENTER"
+         spacing="16"
+         maxWidth="360"
+         style="-fx-background-color: white; -fx-padding: 40; -fx-background-radius: 8;
+               -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.15), 12, 0, 0, 4);">
+
+      <!-- Tiêu đề -->
+      <Text text="🔨 BidHub"
+            style="-fx-font-size: 28px; -fx-font-weight: bold; -fx-fill: #2563EB;"/>
+      <Text text="Hệ thống đấu giá trực tuyến"
+            style="-fx-font-size: 14px; -fx-fill: #6B7280;"/>
+
+      <VBox spacing="8" VBox.vgrow="NEVER">
+         <Label text="Tên đăng nhập" style="-fx-font-weight: bold; -fx-font-size: 13px;"/>
+         <!-- fx:id kết nối với @FXML field trong LoginController -->
+         <TextField fx:id="usernameField"
+                    promptText="Nhập tên đăng nhập"
+                    style="-fx-pref-height: 40px;"/>
+      </VBox>
+
+      <VBox spacing="8">
+         <Label text="Mật khẩu" style="-fx-font-weight: bold; -fx-font-size: 13px;"/>
+         <PasswordField fx:id="passwordField"
+                        promptText="Nhập mật khẩu"
+                        style="-fx-pref-height: 40px;"/>
+      </VBox>
+
+      <!-- Label lỗi: ẩn mặc định, hiện khi đăng nhập thất bại -->
+      <Label fx:id="errorLabel"
+             text=""
+             visible="false"
+             wrapText="true"
+             style="-fx-text-fill: #DC2626; -fx-font-size: 13px; -fx-padding: 8;
+                  -fx-background-color: #FEF2F2; -fx-background-radius: 4;"/>
+
+      <!-- Button đăng nhập -->
+      <Button fx:id="loginButton"
+              text="Đăng nhập"
+              onAction="#handleLogin"
+              maxWidth="Infinity"
+              style="-fx-background-color: #2563EB; -fx-text-fill: white;
+                   -fx-font-size: 14px; -fx-pref-height: 42px; -fx-cursor: hand;
+                   -fx-background-radius: 6;"/>
+
+      <Separator/>
+
+      <Hyperlink text="Chưa có tài khoản? Đăng ký"
+                 onAction="#handleRegister"
+                 style="-fx-font-size: 13px;"/>
+
+      <VBox.margin>
+         <Insets top="20"/>
+      </VBox.margin>
+   </VBox>
+
+   <!-- Background màu nhạt cho toàn màn hình -->
+   <style>
+      -fx-background-color: #F3F4F6;
+   </style>
+</VBox>
