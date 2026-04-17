@@ -12,7 +12,7 @@ class AuctionStatusTest {
     @DisplayName("Chỉ RUNNING.canBid() = true, các status khác false")
     void testCanBid_OnlyRunningReturnsTrue() {
         assertTrue(AuctionStatus.RUNNING.canBid(), "RUNNING phải cho phép đặt giá");
-        assertFalse(AuctionStatus.OPEN.canBid(), "OPEN chưa được đặt giá");
+        assertFalse(AuctionStatus.OPEN.canBid(), " OPEN chưa được đặt giá");
         assertFalse(AuctionStatus.FINISHED.canBid(), "FINISHED không còn đặt giá được");
         assertFalse(AuctionStatus.PAID.canBid(), "PAID là terminal");
         assertFalse(AuctionStatus.CANCELED.canBid(), "CANCELED là terminal");
