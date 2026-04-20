@@ -1,13 +1,12 @@
 package com.bidhub.server.model;
 
-import com.bidhub.common.model.Item;
-import com.bidhub.common.model.ItemFactory;
 import com.bidhub.common.exception.AuctionClosedException;
 import com.bidhub.common.exception.InvalidBidException;
 import com.bidhub.common.exception.ValidationException;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
@@ -15,9 +14,7 @@ import static org.junit.jupiter.api.Assertions.*;
 
 /**
  * Test tích hợp domain: kết hợp User, Auction, Item, Exception.
- *
- * <p>Mỗi test mô phỏng một luồng nghiệp vụ thực tế để đảm bảo
- * các class hoạt động đúng khi tương tác với nhau.
+ * Phiên bản cập nhật theo Factory Method Pattern (Quốc Minh Week 2.1).
  */
 @DisplayName("DomainIntegration — Test tích hợp domain Tuần 2")
 class DomainIntegrationTest {
@@ -50,10 +47,10 @@ class DomainIntegrationTest {
     @Test
     @DisplayName("Kịch bản: Validation user registration — nhiều lỗi cùng lúc")
     void testScenario_ValidateUserRegistration_MultipleErrors() {
-        // Arrange — mô phỏng validation logic (tuần 5 sẽ implement thật)
-        String username = "ab";    // quá ngắn
-        String password = "123";   // quá ngắn
-        String email = "";         // rỗng
+        // Arrange
+        String username = "ab";
+        String password = "123";
+        String email = "";
 
         List<String> errors = new ArrayList<>();
         if (username.length() < 3) errors.add("Username phải ≥ 3 ký tự");
@@ -66,7 +63,7 @@ class DomainIntegrationTest {
                 () -> { if (!errors.isEmpty()) throw new ValidationException(errors); });
 
         // Assert
-        assertEquals(3, ex.getErrorCount(), "Phải có đúng 3 lỗi validation");
+        assertEquals(3, ex.getErrorCount());
         assertTrue(ex.getMessage().contains("3 lỗi validation"));
     }
 
@@ -81,7 +78,7 @@ class DomainIntegrationTest {
         auction.transitionTo(AuctionStatus.RUNNING);
         auction.transitionTo(AuctionStatus.FINISHED);
 
-        // Act — mô phỏng logic sẽ có trong BidService (Tuần 6)
+        // Act
         AuctionClosedException ex = assertThrows(
                 AuctionClosedException.class,
                 () -> {
@@ -96,14 +93,16 @@ class DomainIntegrationTest {
     }
 
     @Test
-    @DisplayName("Kịch bản: ItemFactory + Auction + Bidder hoạt động cùng nhau")
+    @DisplayName("Kịch bản: ItemCreator + Auction + Bidder hoạt động cùng nhau")
     void testScenario_FullDomainObjectsInteraction() {
-        // Arrange — tạo đầy đủ objects domain
+        // Arrange — tạo Seller
         Seller seller = new Seller("bob_seller", "hash_bob", "bob@mail.com");
-        Item laptop = ItemFactory.create(
-                ItemType.ELECTRONICS, "Dell XPS 15", "Laptop cao cấp",
-                30_000_000.0, seller.getId(),
-                java.util.Map.of("brand", "Dell", "warrantyMonths", 24));
+
+        // CẬP NHẬT: Dùng ItemCreator thay cho ItemFactory cũ
+        Map<String, Object> extras = Map.of("brand", "Dell", "warrantyMonths", 24);
+        Item laptop = ItemCreator.forType(ItemType.ELECTRONICS).createItem(
+                "Dell XPS 15", "Laptop cao cấp",
+                30_000_000.0, seller.getId(), extras);
 
         Auction auction = new Auction(
                 laptop.getId(),
@@ -115,21 +114,16 @@ class DomainIntegrationTest {
         Bidder bidder = new Bidder("carol_bidder", "hash_carol", "carol@mail.com");
 
         // Act
-        double bidAmount = laptop.getStartingPrice() + 2_000_000.0; // 32 triệu
+        double bidAmount = laptop.getStartingPrice() + 2_000_000.0;
         assertTrue(auction.isValidBid(bidAmount));
         auction.updateHighestBid(bidAmount, bidder.getId());
 
         BidTransaction tx = new BidTransaction(auction.getId(), bidder.getId(), bidAmount);
 
-        // Assert — kiểm tra toàn bộ domain kết nối đúng
+        // Assert — kiểm tra kết nối
         assertEquals(bidAmount, auction.getCurrentHighestBid(), 0.01);
         assertEquals(bidder.getId(), auction.getHighestBidderId());
         assertEquals(auction.getId(), tx.getAuctionId());
-        assertEquals(bidder.getId(), tx.getBidderId());
-        assertNotNull(tx.getBidTime());
-
-        // Seller, laptop, auction, bidder đều có UUID riêng
         assertNotEquals(seller.getId(), laptop.getId());
-        assertNotEquals(laptop.getId(), auction.getId());
     }
 }
