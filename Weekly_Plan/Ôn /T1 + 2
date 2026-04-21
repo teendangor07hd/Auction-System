@@ -1,0 +1,241 @@
+# Tài Liệu Ôn Tập Dự Án BidHub (BidHub Project Review)
+
+Tài liệu này tổng hợp toàn bộ kiến thức về JavaFX, Object-Oriented Programming (OOP), System Design và các kịch bản trả lời vấn đáp (Q&A scripts) cho dự án Đấu giá trực tuyến - BidHub.
+
+---
+
+## PHẦN 1: KIẾN THỨC JAVAFX & UI (JAVAFX & USER INTERFACE)
+
+### 1. `LoginController.java` (Bộ Điều Khiển Đăng Nhập)
+
+**Q1: Annotation `@FXML` ở trên các biến và hàm có ý nghĩa gì? Nếu mình bỏ `@FXML` ở biến `usernameField` đi thì điều gì sẽ xảy ra khi chạy app?**
+* **Vai trò thực sự của `@FXML`:**
+    * Trong JavaFX, các biến điều khiển thường bị khóa lại bằng chữ `private` để đảm bảo an toàn.
+    * Lúc này, FXML hoạt động như một giấy phép ngoại lệ. Nó cấp quyền đặc biệt để hệ thống có thể thấy được các biến private này, sau đó tự động lấy các thành phần của giao diện (UI) bên file `.fxml` và ghép nối (bind) chúng vào file Java.
+    * *Tóm lại:* `@FXML` dùng để kết nối giao diện với code.
+* **Hậu quả nếu không có `@FXML`:**
+    * Khi xóa `@FXML` khỏi biến `private`:
+        * *Biên dịch (Compile time):* Không báo lỗi (No errors).
+        * *Lúc chạy (Runtime):* Biến bị `null` (do không được cấp quyền ghép nối với giao diện).
+        * *Hậu quả (Consequence):* Gây sập ứng dụng (App crash) với lỗi `NullPointerException` ngay khi bạn thao tác với biến đó.
+* **Lưu ý về thiết kế (Design Pro-tip):**
+    * Dùng biến `public` thì không cần `@FXML`. NHƯNG: Tuyệt đối không nên dùng vì đây là cách làm tồi (Bad practice), vi phạm tính Đóng gói (Encapsulation) trong lập trình hướng đối tượng.
+    * *Chuẩn mực (Best practice):* Luôn kết hợp `private` + `@FXML`.
+
+**Q2: Hàm `initialize()` được tự động gọi vào lúc nào trong lifecycle (vòng đời) của một Controller? Nó khác gì so với việc bạn khởi tạo giá trị trong một constructor thông thường?**
+* Hàm `initialize()` sẽ được gọi ngay sau khi giao diện đã kết nối thành công với code.
+* Còn hàm `constructor` (Khởi tạo): Tạo ra vỏ bọc Controller. Lúc này giao diện chưa được kết nối, các biến `@FXML` đều rỗng (`null`). Nếu đụng vào sẽ gây sập app.
+* **Data Binding (`.bind()`):** Là "phép thuật" chạy ngầm. Bạn cài đặt nó 1 lần bên trong `initialize()`, sau đó nó sẽ tự động túc trực để lắng nghe tương tác của người dùng và cập nhật giao diện, mà không cần `initialize()` phải chạy lại thêm bất kỳ lần nào nữa.
+
+**Q3: Bạn hãy giải thích dòng code `loginButton.disableProperty().bind(...)`. Cơ chế Data Binding này hoạt động như thế nào? Tại sao lại dùng nó thay vì kiểm tra thủ công bằng lệnh if-else mỗi khi người dùng gõ phím?**
+* **Bản chất thực sự (Observer Pattern):** Data Binding không dùng vòng lặp chạy ngầm liên tục (tránh ngốn CPU). Nó hoạt động theo cơ chế sự kiện (Event-driven): Nút bấm (Người quan sát) nằm im và chỉ tính toán lại trạng thái khi ô chữ (Người phát tín hiệu) báo cáo rằng dữ liệu vừa bị thay đổi.
+* **Sự vượt trội so với if-else thủ công:** * *Cách thủ công:* Code dài dòng, phải tự gán sự kiện bàn phím cho từng ô chữ và rất dễ lọt lỗi bug (ví dụ: click chuột phải để Paste sẽ không làm kích hoạt sự kiện bàn phím).
+* *Kết luận:* `.bind()` không chỉ giúp code gọn hơn mà còn tối ưu hiệu suất và dọn sạch các rủi ro lọt bug của việc bắt sự kiện thủ công!
+
+**Q4: Tại hàm `initialize()`, tại sao lại cần gọi cả hai hàm `setVisible(false)` và `setManaged(false)` cho `errorLabel`? Sự khác biệt giữa thuộc tính Visible và Managed trong UI của JavaFX là gì?**
+* **Visible (Hiển thị hay Ẩn đi):**
+    * *Chức năng:* Quyết định xem người dùng có nhìn thấy hàm đó hay không.
+    * *Nguyên lý:* Khi gọi `setVisible(false)`, JavaFX sẽ làm cho nó trở nên trong suốt. Tuy nhiên, cái label vẫn nằm ở đó và vẫn chiếm chỗ (occupy space).
+* **Managed (Có được quản lý bởi Layout hay không):**
+    * *Chức năng:* Quyết định xem Layout Engine có tính toán không gian cho thành phần này hay không.
+    * *Nguyên lý:* Khi gọi `setManaged(false)`, JavaFX sẽ kéo các thành phần khác lên thay thế chỗ nó như thể nó không hề tồn tại.
+
+**Q5: Trong comment, bạn có nhắc đến mô hình MVC. Theo bạn, class `LoginController` này đóng vai trò gì trong mô hình đó?**
+* **Vị trí "Trung gian" (The Mediator):**
+    * `LoginController` đóng vai trò là bộ não điều phối, đứng giữa để kết nối hai thành phần còn lại:
+    * *View (`LoginView.fxml`):* Nơi hiển thị giao diện. Nó "ngây thơ", không biết xử lý logic.
+    * *Model (Dữ liệu/Logic nghiệp vụ):* Nơi chứa thông tin User và xử lý database.
+    * *Controller (Class của bạn):* Lấy dữ liệu từ View, kiểm tra logic, rồi điều khiển Model hoặc cập nhật ngược lại View.
+* **Quy trình "Lắng nghe - Xử lý - Phản hồi":** Bạn có thể chứng minh qua hàm `handleLogin()`:
+    * *Lắng nghe:* Nhận sự kiện click chuột từ người dùng trên View.
+    * *Xử lý:* Lấy dữ liệu từ các ô nhập (`usernameField`), thực hiện kiểm tra cơ bản (như độ dài ký tự).
+    * *Phản hồi:* Ra lệnh cho View hiển thị lỗi (`showError`) hoặc chuyển màn hình nếu thành công.
+* **Ý nghĩa của việc tách rời (Separation of Concerns):** Việc tách Controller ra khỏi View và Model giúp:
+    * *Dễ bảo trì (Maintainable):* Khi muốn đổi giao diện (đổi file `.fxml`), bạn không cần sửa lại logic xử lý bên trong Controller.
+    * *Giảm sự phụ thuộc (Decoupling):* Giúp code sạch sẽ, dễ dàng kiểm thử (test) từng phần riêng biệt mà không làm ảnh hưởng đến toàn bộ hệ thống.
+* *Tóm lại:* Controller là người điều phối đảm bảo View và Model không cần "biết" quá sâu về nhau nhưng vẫn làm việc với nhau nhịp nhàng.
+
+---
+
+### 2. `BidHubApp.java` (Lớp Khởi Chạy Ứng Dụng)
+
+**Q1: Tại sao class `BidHubApp` lại phải `extends Application`? Nếu không có phần kế thừa này thì hàm `main` có thể chạy giao diện được không?**
+* **Tại sao phải `extends Application`?** Class `Application` chính là bộ khung xương (Framework) và động cơ (Engine) của JavaFX. Khi bạn kế thừa nó, class `BidHubApp` sẽ nhận được các "siêu năng lực" sau:
+    * *Khởi tạo UI Thread:* Đánh thức luồng (thread) chuyên biệt để vẽ giao diện và xử lý các sự kiện click chuột, gõ phím.
+    * *Giao tiếp với hệ điều hành:* Giúp Java xin phép Windows/macOS tạo ra một cửa sổ đồ họa.
+    * *Cung cấp vòng đời (Lifecycle):* Cho phép bạn sử dụng các hàm quan trọng như `start()`, `init()` và `stop()`.
+* **Nếu không kế thừa thì hàm main có chạy được giao diện không?** KHÔNG. Nếu bạn bỏ `extends Application`, hai rào cản lớn sẽ xuất hiện:
+    * *Lỗi Biên dịch (Compile Error):* Lệnh `launch(args)` là một hàm của class `Application`. Nếu không kế thừa, Java sẽ không hiểu lệnh này ở đâu ra và báo lỗi ngay lập tức.
+    * *Lỗi khi chạy (Runtime Error):* Dù bạn có tìm cách "lách luật" để chạy, JavaFX cũng sẽ báo lỗi `IllegalStateException` vì "Toolkit chưa được khởi tạo". Không có `Application`, cái "máy ảo" vẽ đồ họa sẽ không bao giờ khởi động.
+* *Tóm lại (Summary):* `extends Application` là tấm vé để biến một class Java bình thường thành một ứng dụng đồ họa chuyên nghiệp. Hàm `main` lúc này chỉ đóng vai trò "người bấm nút" để gọi lệnh `launch()`, kích hoạt toàn bộ hệ thống JavaFX chạy phía sau.
+
+**Q2: Trong hàm `start(Stage primaryStage)`, bạn hãy giải thích sự khác biệt giữa `Stage` và `Scene`. Nếu dùng hình ảnh "Sân khấu kịch" để ví von thì đâu là sân khấu, đâu là vở diễn?**
+* **Phân biệt `Stage` và `Scene` trong JavaFX:**
+    * `Stage` (Sân khấu): Là khung cửa sổ (Window). Chứa thanh tiêu đề, nút Close/Min/Max.
+    * `Scene` (Vở kịch): Là nội dung bên trong cửa sổ. Chứa bố cục, màu sắc và các linh kiện (Ví dụ như đăng nhập, đăng kí, trang đấu giá,...).
+    * `Nodes` (Diễn viên/Đạo cụ): Là các thành phần cụ thể (Button, TextField, Label) nằm trong Scene.
+* **Tại sao lại chia ra như vậy?** Điểm mấu chốt nằm ở sự linh hoạt (Flexibility):
+    * Giữ nguyên Stage: Bạn không cần tắt app đi mở lại (tránh giật lag, tốn tài nguyên).
+    * Thay đổi Scene: Khi bạn đăng nhập thành công, bạn chỉ cần "nhấc" vở diễn Login ra và "đặt" vở diễn Dashboard vào chính cái Stage đó.
+* **Dòng code quan trọng:** `primaryStage.setScene(scene);` - Lệnh này ra hiệu cho "Sân khấu" (`Stage`) bắt đầu trình chiếu "Nội dung" (`Scene`) mà bạn đã chuẩn bị.
+
+**Q3: Tại sao chúng ta lại gọi `launch(args)` trong hàm `main` mà không gọi trực tiếp hàm `start()`? Chuyện gì xảy ra "ngầm" bên dưới khi `launch()` được thực thi?**
+* **Bản chất của lệnh `launch(args)`:** Lệnh này không đơn thuần là một hàm gọi thông thường, mà là nút khởi động một dây chuyền sản xuất phức tạp. Nó kết nối code Java của bạn với phần cứng và hệ điều hành (Windows, macOS…) để chuẩn bị môi trường đồ họa.
+* **Vòng đời 5 bước của JavaFX (Lifecycle):** Khi bạn nhấn launch, hệ thống sẽ tự động thực hiện:
+    1.  *Init Toolkit:* Đánh thức bộ máy đồ họa của JavaFX.
+    2.  *Create UI Thread:* Tạo ra một luồng riêng chuyên để vẽ giao diện (tránh làm treo máy).
+    3.  *Instantiate:* Tạo ra một thực thể (instance) cho class ứng dụng của bạn.
+    4.  *Create Stage:* Xin phép hệ điều hành cấp một cái khung cửa sổ trống (`primaryStage`).
+    5.  *Call `start()`:* Ném cái khung trống đó vào hàm `start()` để bạn bắt đầu thiết kế nội dung.
+* **Tại sao không được tự ý gọi `start()`?** Nếu bạn cố tình gọi `new BidHubApp().start(new Stage())` trong hàm `main`, ứng dụng sẽ crash ngay lập tức vì lỗi `IllegalStateException`. Lý do: Bạn đang cố "diễn kịch" khi rạp hát chưa mở cửa, đèn chưa bật và nhân viên kỹ thuật (UI Thread) chưa đi làm. Chỉ có `launch()` mới đủ quyền hạn để chuẩn bị mọi thứ sẵn sàng.
+
+**Q4: Bạn dùng `getClass().getResource("/fxml/LoginView.fxml")` để lấy file giao diện. Tại sao không dùng đường dẫn trực tiếp như `C:/Users/Admin/Project/LoginView.fxml` cho nhanh? Việc dùng `getResource` có lợi ích gì khi bạn đóng gói ứng dụng thành file `.jar`?**
+* Việc tránh "gán cứng" (hardcode) đường dẫn chính là nguyên tắc sống còn để ứng dụng có tính **Portability** (Khả năng linh hoạt/di động). Máy bạn là ổ C:/, nhưng máy người khác có thể là ổ D:/ hoặc họ dùng macOS thì không có khái niệm ổ C.
+* **Sự khác biệt giữa `new File()` và `getResource()`:**
+    * `new File()` (Tìm đồ ngoài nhà): Nhờ hệ điều hành tìm file rời rạc trên ổ cứng. Khi đóng gói `.jar`, lệnh này sẽ báo lỗi File Not Found.
+    * `getResource()` (Tìm đồ trong vali): Hỏi Classpath (bộ quản lý nội bộ của Java). Classpath có "siêu năng lực" nhìn xuyên thấu vào trong file `.jar` để lấy chính xác thứ bạn cần.
+* **Tại sao đây là "Best Practice"?** Đảm bảo tính Portability: Lúc code (Development) app chạy ngon trên IDE. Lúc nộp bài (Production) app vẫn chạy ngon khi đóng gói `.jar` trên mọi hệ điều hành.
+
+**Q5: Đoạn code kiểm tra `if (fxmlUrl == null)` và `throw new IllegalStateException` có thực sự cần thiết không? Nếu thiếu nó, chương trình sẽ báo lỗi gì nếu bạn lỡ tay xóa nhầm file FXML?**
+* **Rất cần thiết vì:** Nếu không check, khi thiếu file, hàm `getResource` sẽ trả về `null`. Chương trình vẫn chạy tiếp cho đến khi gọi lệnh `load(null)`, dẫn đến lỗi `NullPointerException` cực kỳ khó hiểu. Nếu có check, chương trình dừng lại ngay lập tức và chỉ đích danh file nào đang bị thiếu.
+* **Thông báo lỗi có ý nghĩa:** Việc chủ động ném ra ngoại lệ kèm một thông báo tự viết giúp xác định vị trí file thiếu và hỗ trợ đồng đội dễ dàng debug (tìm lỗi) mà không cần phải hỏi.
+
+**Q6: Tại sao bạn lại khai báo `WINDOW_WIDTH` và `WINDOW_HEIGHT` là `private static final` thay vì viết thẳng con số 1024 và 720 vào trong hàm `new Scene(...)`?**
+* Thuật ngữ mang nghĩa tiêu cực khi viết số trực tiếp là **Magic Numbers** (Những con số ma thuật). Đây là những con số "nhảy" vào code một cách bất thình lình mà không có ngữ cảnh rõ ràng.
+* **Tại sao Magic Numbers lại là "đại kỵ"?**
+    * *Khó đọc (Poor Readability):* Đồng đội không hiểu 1024 đại diện cho cái gì.
+    * *Khó bảo trì (Fragile Code):* Muốn thay đổi kích thước phải đi tìm sửa thủ công khắp nơi, rất dễ sót.
+* **Sức mạnh của `private static final`:**
+    * *Tính rõ nghĩa (Self-documenting):* Thay vì 1024, ta có `WINDOW_WIDTH` – đọc vào hiểu ngay.
+    * *Quản lý tập trung (Single Source of Truth):* Khi cần thay đổi, chỉ sửa đúng 1 chỗ.
+* *Chốt lại:* Tránh Magic Numbers giúp code chuyên nghiệp và giúp quá trình Refactoring (chỉnh sửa code) nhàn nhã, an toàn.
+
+---
+
+### 3. `Views.java` (Lớp Chứa Hằng Số Giao Diện)
+
+**Q1: Nếu gõ trực tiếp chuỗi `"LoginView"` khắp code thì gọi là gì? Việc dùng class `Views` chứa các Constants giải quyết rủi ro nào khi team code chung?**
+* Viết trực tiếp chuỗi gọi là **Magic Strings**.
+* **Giải quyết rủi ro:**
+    * *Loại bỏ rủi ro sai chính tả (Typo Risk):* Gõ sai String sẽ gây lỗi Runtime (app crash). Dùng `Views.LOGIN`, nếu gõ sai IDE báo lỗi đỏ ngay (Compile-time error).
+    * *Tăng tốc độ (IDE Auto-complete):* Cả nhóm chỉ cần gõ `Views.` và nhấn Ctrl + Space để chọn màn hình.
+    * *Bảo trì cực nhanh (Easy Refactoring):* Muốn đổi tên file `.fxml` chỉ cần sửa 1 chỗ trong `Views.java`. Toàn dự án tự động cập nhật.
+
+**Q2: Giải thích ý nghĩa 3 từ khóa `public`, `static`, `final` trong `public static final String LOGIN`. Xóa `static` gây họa gì?**
+* Tạo ra **Hằng số toàn cục (Global Constant)**:
+    * `public` (Công khai): Global Visibility, ai cũng thấy.
+    * `static` (Tĩnh): Thuộc về khuôn `Views`, không tốn bộ nhớ sinh object, nằm đúng 1 ô nhớ trên RAM.
+    * `final` (Bất biến): Read-only, không ai sửa được.
+* **Thảm họa nếu xóa `static`:** Biến bị giáng cấp thành Instance variable (biến đối tượng). 
+    * *Lỗi biên dịch:* Vì có `private Views() {}` (cấm new), biến sẽ bị "nhốt" vĩnh viễn.
+    * *Lãng phí RAM:* Nếu mở khóa, cứ muốn chuyển cảnh lại phải `new Views()`, RAM phải gánh hàng trăm object vô ích chỉ để giữ 1 cái chuỗi String.
+* *Kết luận:* Đây là **Utility Class Pattern** - kho chứa hằng số tập trung, tiết kiệm và an toàn.
+
+**Q3: Tại sao lại viết constructor `private Views() {}`? Mang ý nghĩa ngăn chặn (prevent) điều gì?**
+* Đây là kỹ thuật **Prevent Instantiation** (Ngăn khởi tạo đối tượng) để biến class thành Utility Class.
+    * *Đóng cửa hậu:* Vô hiệu hóa Default Constructor tự động của Java.
+    * *Tránh vô nghĩa (Semantic Nonsense):* Class này chỉ là cái hộp chứa String, không cần tạo "thực thể hộp chứa" (`new Views()`) để lấy dữ liệu.
+    * *Fail-Fast:* Ai lỡ tay gõ `new Views()`, IDE báo lỗi ngay lập tức, tránh lãng phí RAM.
+
+**Q4: Từ khóa `final` ở cấp độ class (`public final class Views`) có tác dụng gì?**
+* **Chặn đứng Kế thừa (Prevent Inheritance):** Đóng đinh quy tắc "Không ai được phép kế thừa lớp này". Mọi nỗ lực `extends Views` sẽ bị báo lỗi.
+* **Bảo vệ Utility Class:** Class này không mang tính chất tiến hóa. Nếu không có `final`, ai đó có thể tạo class con để "lách luật" khởi tạo đối tượng.
+* **Combo Phong tỏa hoàn hảo (The Ultimate Lockdown):**
+    * `private constructor`: Cấm tạo thực thể (No Instantiation).
+    * `final class`: Cấm sinh con cháu (No Inheritance).
+
+---
+
+## PHẦN 2: KIẾN THỨC OOP & SYSTEM DESIGN TRONG BIDHUB
+
+### 1. Phân tích 4 Tính chất OOP (Dành cho phần vấn đáp)
+*Kịch bản trả lời: Nêu định nghĩa -> Chỉ class trong code -> Giải thích lợi ích.*
+
+> **📦 1. Tính Đóng gói (Encapsulation) thể hiện ở đâu?**
+> "Tính đóng gói thể hiện ở việc bảo vệ dữ liệu, không cho bên ngoài can thiệp trực tiếp:
+> * Tại `User.java`, `Item.java`, `Auction.java`: Các trường nhạy cảm (`passwordHash`, `currentPrice`) đều là `private`. Muốn truy cập phải qua getter/setter hợp lệ.
+> * Đặc biệt ở `BidTransaction.java` (Phần Công Minh): Thể hiện sự Đóng gói ở mức cao nhất là **Bất biến (Immutable)**. Các trường `bidAmount`, `bidderId` đều đánh dấu `final` và không có setter. Khi giá đã đặt, không một đoạn code nào có thể sửa lén con số đó."
+
+> **🧬 2. Tính Kế thừa (Inheritance) thể hiện ở đâu?**
+> "Thể hiện cực kỳ rõ qua 3 cây phân cấp (Hierarchy) chính của dự án:
+> * Cây Entity (Phần Đăng): `Entity` (chứa id UUID, createdAt) $\rightarrow$ `User` $\rightarrow$ `Bidder`, `Seller`, `Admin`. Các lớp con tự động có ID mà không cần code lại.
+> * Cây Item (Phần Quốc Minh): `Entity` $\rightarrow$ `Item` $\rightarrow$ `Electronics`, `Art`, `Vehicle`.
+> * Cây Exception (Phần Khoa): `RuntimeException` $\rightarrow$ `BidHubException` $\rightarrow$ 7 lớp lỗi con (VD: `InvalidBidException`)."
+
+> **☁️ 3. Tính Trừu tượng (Abstraction) thể hiện ở đâu?**
+> "Thể hiện qua việc tạo ra các 'bản thiết kế' và ép buộc lớp con tuân thủ:
+> * **Abstract Class** (`Entity.java`, `User.java`, `Item.java`, `ItemCreator.java`): Báo lỗi ngay nếu gõ `new User()` (vì User chung chung không tồn tại, phải cụ thể là Bidder/Seller).
+> * **Abstract Method**: `User` có `abstract String getInfo()`; `Item` có `abstract String getCategoryDetails()`.
+> * **Trong Enum (`AuctionStatus.java`)**: Định nghĩa abstract method như `canBid()`. Trạng thái RUNNING trả về true, CLOSED trả về false. Code ngoài không cần dùng if-else dài dòng để check."
+
+> **🎭 4. Tính Đa hình (Polymorphism) thể hiện ở đâu?**
+> "Thể hiện ở việc 'gọi lệnh chung, mỗi object tự biết cách làm riêng':
+> * *Method Overriding:* Khi duyệt `List<User>` gọi `user.getInfo()`, thằng Bidder tự in 'Tôi là người mua...', thằng Seller tự in 'Tôi là người bán...'.
+> * *Design Pattern (ItemCreator.java):* Khi gọi `creator.createItem()`, hệ thống không cần biết là đồ điện tử hay tranh vẽ. Đa hình tự kích hoạt hàm tạo của `ElectronicsCreator` hoặc `ArtCreator`.
+> * *Xử lý lỗi (RequestHandler):* Viết một khối `catch (BidHubException e)` duy nhất. Đa hình giúp tóm được mọi lỗi con như InvalidBidException hay AuthException để lấy ErrorCode."
+
+### 2. Thiết kế Hệ thống & Đa luồng (System Architecture & Multithreading)
+
+**Q: Các em có sử dụng đa luồng hay gì không? Đang đấu giá thì có hàng trăm nghìn người dùng, xử lý ra sao?**
+> "Dạ thưa thầy, dự án BidHub dùng đa luồng cho 2 việc sống còn:
+> 1.  **Networking (Non-blocking):** Mỗi Client kết nối vào sẽ có một luồng (Thread) riêng thông qua lớp Session để lắng nghe request. Nhờ đó server phục vụ hàng trăm người cùng lúc mà không bị nghẽn (Bottleneck).
+> 2.  **Concurrency Control (Xử lý đồng thời):** Khi nhiều người cùng bấm 'Đặt giá', tụi em dùng `ReentrantLock` với chế độ Fairness để điều phối, đảm bảo dữ liệu không bị ghi đè (tránh Lost Update)."
+
+**Q: Cả 2 cùng trả cùng một giá ở cùng một giây thì ai thắng? Tại sao không dùng từ khóa `synchronized`?**
+> "Dạ, nhờ `ReentrantLock(true)`, Server sẽ xếp hàng họ theo thứ tự micro-giây. Người thứ nhất chiếm được khóa, đặt giá thành công. Khi người thứ hai vào sau, giá hiện tại đã tăng lên, hàm `isValidBid()` sẽ trả về false và ném ra `InvalidBidException`.
+> Nhóm em không dùng `synchronized` vì nó không hỗ trợ chế độ công bằng (Fairness). Người đến sau có thể may mắn nhảy lên chiếm khóa trước. Trong đấu giá, công bằng theo thời gian là tối quan trọng ạ."
+
+**Q: Người dùng dùng tool spam hàng nghìn tỷ thì sao?**
+> "Dạ, tụi em phòng thủ qua 3 lớp (Rate Limiting & Validation):
+> 1.  *Lớp Giao thức (Jackson):* Nếu số quá lớn vượt ngưỡng `double`, báo lỗi định dạng ngay từ Server.
+> 2.  *Lớp Logic (BidValidator):* Check số dư tài khoản (ném `InsufficientFundsException`) và check bước nhảy giá (không vọt quá 200% để chống phá giá).
+> 3.  *Lớp Tần suất (Rate Limiting):* Mỗi User chỉ được Bid 1 lần mỗi giây. Dùng tool spam sẽ bị Server nhận diện và ngắt kết nối."
+
+**Q: Nếu ADMIN tham gia vào bid hay sell thì sao?**
+> "Dạ, tụi em áp dụng nguyên tắc Phân tách trách nhiệm (Separation of Duties). Về thiết kế, Admin không kế thừa các thuộc tính 'số lần bid' hay 'số sản phẩm'. Về kỹ thuật, lớp `SecurityContext` dùng Role-Based Access Control (RBAC). Nếu Session mang quyền ADMIN gửi yêu cầu PLACE_BID, hệ thống sẽ ném `AuthenticationException` từ chối ngay lập tức ạ."
+
+### 3. Kỹ thuật Pattern và Xử lý Ngoại lệ (Exceptions & Patterns)
+
+**Q: Xử lý ngoại lệ như nào? Để làm gì? Chia nhiều tầng làm gì?**
+> "Mục đích tạo ra `BidHubException` và các lớp con là: 1) Ngăn chặn sập hệ thống (Crash prevention), 2) Thông báo đúng bệnh cho người dùng, 3) Bảo vệ dữ liệu tài chính.
+> * **Tầng 1 (Hierarchy):** Phân cấp lỗi rõ ràng (`InvalidBidException`, `AuthException`).
+> * **Tầng 2 (Centralized Handling):** Kế thừa từ `RuntimeException` (Unchecked). Các tầng DAO/Service cứ thoải mái `throw` lỗi lên trên mà không làm code bị rác bởi try-catch.
+> * **Tầng 3 (Graceful Degradation):** Tóm mọi lỗi tại một 'cái phễu' `RequestHandler`, trích xuất thông điệp và trả về chuẩn JSON cho Client hiển thị hộp thoại thân thiện."
+
+**Q: Em dùng Factory Method cần gì phải dùng Abstract Factory? Nếu dùng switch-case bình thường thì sao?**
+> "Dạ, Factory Method giúp tách biệt logic tạo đối tượng phức tạp ra khỏi logic nghiệp vụ của Server. Thay vì để hệ thống tự 'new', tụi em giao cho `ItemCreator` và các lớp con.
+> Nếu dùng `switch-case` bình thường sẽ vi phạm **Open/Closed Principle (OCP)**. Mỗi lần thêm mặt hàng mới (VD: Trang sức), phải mở file cũ ra sửa, code phình to thành 'God Class' và mất tính đa hình ạ."
+
+---
+
+## PHẦN 3: PHÂN TÍCH SƠ ĐỒ LỚP THEO THÀNH VIÊN (CLASS DIAGRAMS)
+
+### 1. Phần của Công Minh (Core Domain & Bid Logic)
+* **Entity (Lớp nền):** Trừu tượng (Abstract), chứa `id`, `createdAt`, `updatedAt` để quản lý Database.
+* **AuctionStatus (Enum Trạng thái):** Quản lý vòng đời (OPEN, RUNNING, FINISHED). Hàm `canBid()` kiểm tra có cho đặt giá không. Hàm `isTerminal()` check trạng thái cuối cùng.
+* **Auction (Lớp Trung tâm):** Xử lý business logic. Biến `currentHighestBid`, `minimumIncrement`. Chứa hàm quan trọng: `isValidBid()` (kiểm tra giá hợp lệ) và `extendEndTime()` (chống "bắn tỉa" - Anti-sniping giây cuối).
+* **BidTransaction (Giao dịch):** Tính Đóng Gói tuyệt đối. Các biến (`bidAmount`, `bidderId`) là `final` (Bất biến/Immutable) để đảm bảo lịch sử giao dịch minh bạch, không ai có thể sửa chữa.
+
+*Quan hệ:* `Entity` <|-- `Auction` (Kế thừa). `Auction` --> `AuctionStatus` (Liên kết). `Auction` chứa `BidTransaction` (Quan hệ 1 - Nhiều).
+
+### 2. Phần của Khoa (Exception Hierarchy)
+* **BidHubException (Lớp gốc):** Kế thừa từ `RuntimeException` (Java). Chứa mã lỗi dạng chuỗi (`errorCode`) giúp Frontend dễ dịch thuật (Localization).
+* **Các lỗi nghiệp vụ (Business Exceptions):** `InvalidBidException`, `UserNotFoundException`,... Mỗi lớp định nghĩa sẵn 1 hằng số tĩnh (`static String ERROR_CODE`) làm mã lỗi đặc trưng riêng biệt.
+* **ValidationException:** Khác với các lỗi trên, lớp này chứa một Danh sách (`List<String> errors`) để báo cáo nhiều lỗi trên form cùng lúc (VD: vừa sai email, vừa sai pass) trả về cho người dùng 1 lần.
+
+*Quan hệ:* `BidHubException` <|-- `InvalidBidException`, `UserNotFoundException`... (Tất cả đều IS-A BidHubException để dễ tóm lỗi tập trung).
+
+### 3. Phần của Quốc Minh (Item Factory & Display)
+* **Giao diện Displayable:** Bắt buộc các class cài đặt phải viết hàm `printInfo()`.
+* **ItemType (Enum):** Chứa danh mục (ELECTRONICS, ART, VEHICLE).
+* **Item (Abstract):** Định nghĩa hàm abstract `getCategoryDetails()`. Ép các lớp con (`Electronics`, `Art`...) tự override hàm này để trả về thông tin đặc thù (VD: Xe thì in số km, Tranh thì in tên tác giả). Thể hiện Đa hình.
+* **Khối Factory:** `ItemCreator` (Nhà máy tổng) có hàm static `forType` để điều phối dựa vào `ItemType`. `ElectronicsCreator` (Nhà máy chuyên biệt) biết cách lấy thông tin từ Map để ráp ra đối tượng.
+
+*Quan hệ:* `Entity` <|-- `Item` <|-- `Vehicle` (Kế thừa). `Item` ..|> `Displayable` (Hiện thực hóa/Implements). `VehicleCreator` ..> `Vehicle` (Phụ thuộc/Dependency - Nhà máy tạo ra sản phẩm nhưng không lưu trữ sản phẩm).
+
+### 4. Phần của Đăng (User Roles & Accounts)
+* **UserRole (Enum):** Vai trò `BIDDER`, `SELLER`, `ADMIN`. Hàm `getDisplayName()`.
+* **User (Abstract):** Chứa thông tin cốt lõi: `username`, `passwordHash` (mật khẩu băm bảo mật). Hàm trừu tượng `getInfo()`.
+* **Bidder, Seller, Admin:** Kế thừa User nhưng thêm biến riêng. *Bidder* có `totalBidsPlaced`. *Seller* có `totalItemsListed`. Thể hiện đa hình xuất sắc khi gọi `user.getInfo()` thì mỗi account tự báo cáo đúng đặc tính của mình.
+
+*Quan hệ:* `Entity` <|-- `User` (Kế thừa). `User` <|-- `Bidder`/`Seller`/`Admin` (Phân cấp đa tầng / Multi-level Hierarchy). `User` --> `UserRole` (Liên kết quyền).
