@@ -1,6 +1,7 @@
 package com.bidhub.server;
 
 import com.bidhub.server.config.ConfigLoader;
+import com.bidhub.server.config.MigrationRunner;
 
 /**
  * Entry point của BidHub Server.
@@ -28,6 +29,7 @@ public class ServerApp {
      * @param args tham số dòng lệnh (không dùng ở tuần 1)
      */
     public static void main(String[] args) {
+        MigrationRunner.run();
         System.out.println(getWelcomeMessage());
         int port = ConfigLoader.getInt("server.port");
         System.out.println("Cổng lắng nghe: " + port);
