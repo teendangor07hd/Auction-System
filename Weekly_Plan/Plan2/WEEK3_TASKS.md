@@ -1226,29 +1226,22 @@ class ItemDaoTest {
 
 ```
 ## 👤 CÔNG MINH — ViewRouter & FXML Skeleton
-Branch: feature/tuan-3-congminh-viewrouter-fxml
-Phụ thuộc: BidHubApp (tuần 1), LoginController (tuần 1), Views (tuần 1) — tất cả đã có
-           JavaFX FXMLLoader (javafx-fxml dependency đã khai báo trong pom)
-```
+Branch: `feature/tuan-3-congminh-viewrouter-fxml`
+Phụ thuộc: BidHubApp (tuần 1), LoginController (tuần 1), Views (tuần 1) — tất cả đã có, JavaFX FXMLLoader (javafx-fxml dependency đã khai báo trong pom)
 
 📌 **[Tiêu chí điểm: MVC — ViewRouter điều hướng màn hình (phần của 0.5đ) + Singleton ViewRouter]**
 
 ### 📝 Mô tả bài tập
 
-`ViewRouter` là trung tâm điều phối màn hình phía client. Không có nó, mỗi Controller phải tự gọi
-`FXMLLoader.load()` và `primaryStage.setScene()` — dẫn đến code trùng lặp và khó test. Khi Tuần 5
-thêm màn hình Register và ItemList, chỉ cần gọi `ViewRouter.getInstance().navigateTo(Views.REGISTER)`.
+`ViewRouter` là trung tâm điều phối màn hình phía client. Không có nó, mỗi Controller phải tự gọi `FXMLLoader.load()` và `primaryStage.setScene()` — dẫn đến code trùng lặp và khó test. Khi Tuần 5 thêm màn hình Register và ItemList, chỉ cần gọi `ViewRouter.getInstance().navigateTo(Views.REGISTER)`.
 
-`ContextAware` giải quyết vấn đề truyền dữ liệu giữa màn hình: khi `AuctionListController` click vào
-1 phiên đấu giá, nó cần truyền `auctionId` sang `AuctionDetailController`. Không có interface này,
-không có cách nào type-safe để inject dữ liệu vào controller mới được tạo bởi `FXMLLoader`.
+`ContextAware` giải quyết vấn đề truyền dữ liệu giữa màn hình: khi `AuctionListController` click vào 1 phiên đấu giá, nó cần truyền `auctionId` sang `AuctionDetailController`. Không có interface này, không có cách nào type-safe để inject dữ liệu vào controller mới được tạo bởi `FXMLLoader`.
 
-Các FXML skeleton tuần này **không có networking** — chỉ layout và `@FXML` annotations. Logic thực tế
-sẽ được bổ sung từ Tuần 5-6 khi có `UserService` và `BidService`.
+Các FXML skeleton tuần này **không có networking** — chỉ layout và `@FXML` annotations. Logic thực tế sẽ được bổ sung từ Tuần 5-6 khi có `UserService` và `BidService`.
 
 ### 📁 Cấu trúc file
 
-```
+```text
 bidhub-client/src/
 ├── main/java/com/bidhub/client/
 │   ├── BidHubApp.java               (đã có — thêm ViewRouter.getInstance().initialize(stage))
@@ -1601,9 +1594,9 @@ git commit -m "feat: thêm AuctionListController, AuctionDetailController, Creat
 <?xml version="1.0" encoding="UTF-8"?>
 <?import javafx.scene.control.*?>
 <?import javafx.scene.layout.*?>
-<VBox xmlns:fx="http://javafx.com/fxml/1"
+<VBox xmlns:fx="[http://javafx.com/fxml/1](http://javafx.com/fxml/1)"
       fx:controller="com.bidhub.client.controller.AuctionListController"
-      spacing="10" style="-fx-padding: 15; -fx-font-family: \'Arial\';">
+      spacing="10" style="-fx-padding: 15; -fx-font-family: 'Arial';">
   <HBox alignment="CENTER_RIGHT" spacing="10">
     <Label text="BidHub — Danh sách đấu giá" style="-fx-font-size: 16; -fx-font-weight: bold;"
            HBox.hgrow="ALWAYS"/>
@@ -1628,9 +1621,9 @@ git commit -m "feat: thêm AuctionListController, AuctionDetailController, Creat
 <?xml version="1.0" encoding="UTF-8"?>
 <?import javafx.scene.control.*?>
 <?import javafx.scene.layout.*?>
-<VBox xmlns:fx="http://javafx.com/fxml/1"
+<VBox xmlns:fx="[http://javafx.com/fxml/1](http://javafx.com/fxml/1)"
       fx:controller="com.bidhub.client.controller.AuctionDetailController"
-      spacing="12" style="-fx-padding: 20; -fx-font-family: \'Arial\';">
+      spacing="12" style="-fx-padding: 20; -fx-font-family: 'Arial';">
   <Label fx:id="lblTitle" text="Đang tải..." style="-fx-font-size: 18; -fx-font-weight: bold;"/>
   <HBox spacing="20">
     <VBox spacing="4">
@@ -1642,7 +1635,7 @@ git commit -m "feat: thêm AuctionListController, AuctionDetailController, Creat
       <Label fx:id="lblCurrentBid" text="—"/>
     </VBox>
     <VBox spacing="4">
-      <Label text="Thờii gian còn lại:" style="-fx-font-weight: bold;"/>
+      <Label text="Thời gian còn lại:" style="-fx-font-weight: bold;"/>
       <Label fx:id="lblTimeRemaining" text="—"/>
     </VBox>
   </HBox>
@@ -1664,9 +1657,9 @@ git commit -m "feat: thêm AuctionListController, AuctionDetailController, Creat
 <?xml version="1.0" encoding="UTF-8"?>
 <?import javafx.scene.control.*?>
 <?import javafx.scene.layout.*?>
-<VBox xmlns:fx="http://javafx.com/fxml/1"
+<VBox xmlns:fx="[http://javafx.com/fxml/1](http://javafx.com/fxml/1)"
       fx:controller="com.bidhub.client.controller.CreateItemController"
-      spacing="10" style="-fx-padding: 20; -fx-font-family: \'Arial\';" maxWidth="500">
+      spacing="10" style="-fx-padding: 20; -fx-font-family: 'Arial';" maxWidth="500">
   <Label text="Thêm sản phẩm mới" style="-fx-font-size: 16; -fx-font-weight: bold;"/>
   <Label text="Tên sản phẩm:"/>
   <TextField fx:id="tfName" promptText="VD: MacBook Pro 14"/>
@@ -1728,21 +1721,6 @@ class ViewRouterTest {
         });
   }
 }
-```
-
-**Manual test quan trọng:**
-1. `mvn javafx:run -pl bidhub-client` → cửa sổ Login hiện ra
-2. Thêm tạm button trong `LoginController` gọi `ViewRouter.getInstance().navigateTo(Views.AUCTION_LIST)`
-   → màn hình chuyển sang AuctionListView với TableView rỗng
-3. Mở từng FXML trong Scene Builder → không có lỗi "Controller class not found" hay "Property not found"
-
-**❌ FAIL nếu:**
-- `navigateTo("AuctionListView")` ném `NullPointerException` thay vì `IllegalStateException` khi
-  `primaryStage == null`
-- FXML không load được do `fx:controller` trỏ sai package (`com.bidhub.client.controller.Xxx`)
-- `ContextAware.setContext()` không được gọi khi `params` không rỗng — `auctionId` bị mất
-
----
 
 ## 👤 KHOA — AuctionDao & BidDao + Integration Test
 
