@@ -104,3 +104,34 @@ public final class BidTransaction extends Entity {
         }
 }
 
+/**
+ * Constructor load từ database — dành cho BidDao.mapRow().
+ *
+ * <p>Bảng bid_transactions không lưu created_at/updated_at riêng;
+ * dùng bidTime cho cả hai để giữ nguyên contract của Entity.
+ *
+ * @param id        id từ DB
+ * @param auctionId id phiên đấu giá
+ * @param bidderId  id ngườii đặt giá
+ * @param bidAmount mức giá
+ * @param bidTime   thờii điểm đặt giá từ DB (cũng dùng làm createdAt/updatedAt)
+ */
+public BidTransaction(
+        String id,
+        String auctionId,
+        String bidderId,
+        double bidAmount,
+        LocalDateTime bidTime) {
+    // Dùng bidTime cho createdAt và updatedAt vì schema không lưu chúng riêng
+    super(id, bidTime, bidTime);
+    Objects.requireNonNull(auctionId, "auctionId không được null");
+    Objects.requireNonNull(bidderId, "bidderId không được null");
+    Objects.requireNonNull(bidTime, "bidTime không được null");
+    if (bidAmount <= 0) {
+        throw new IllegalArgumentException("bidAmount phải > 0: " + bidAmount);
+    }
+    this.auctionId = auctionId;
+    this.bidderId = bidderId;
+    this.bidAmount = bidAmount;
+    this.bidTime = bidTime;
+}
