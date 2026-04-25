@@ -1222,9 +1222,10 @@ class ItemDaoTest {
 
 ---
 
-## 👤 CÔNG MINH — ViewRouter & FXML Skeleton
+
 
 ```
+## 👤 CÔNG MINH — ViewRouter & FXML Skeleton
 Branch: feature/tuan-3-congminh-viewrouter-fxml
 Phụ thuộc: BidHubApp (tuần 1), LoginController (tuần 1), Views (tuần 1) — tất cả đã có
            JavaFX FXMLLoader (javafx-fxml dependency đã khai báo trong pom)
