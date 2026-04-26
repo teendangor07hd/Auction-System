@@ -1,0 +1,182 @@
+/* ==============================================
+   BIDHUB - MODERN UI THEME
+   File: src/main/resources/css/styles.css
+   ============================================== */
+
+/* 1. GLOBAL SETTINGS (Cài đặt chung) */
+.root {
+    -fx-font-family: "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+    -fx-background-color: #E2E8F0; /* Xám đậm hơn chút để nổi bật form trắng */
+    -fx-font-size: 14px;
+}
+
+/* 2. HEADER BAR (Thanh tiêu đề) */
+.header-bar {
+    -fx-background-color: linear-gradient(to right, #1E1B4B, #4338CA);
+    -fx-padding: 15px 25px;
+    -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.2), 10, 0, 0, 3);
+}
+
+.header-title {
+    -fx-text-fill: white;
+    -fx-font-size: 22px;
+    -fx-font-weight: 900;
+    -fx-effect: dropshadow(two-pass-box, rgba(0,0,0,0.3), 2, 0, 1, 1);
+}
+
+/* 3. CENTER CONTENT (Khung chứa nội dung ở giữa) */
+.content-pane {
+    -fx-background-color: white;
+    -fx-background-radius: 12px;
+    -fx-border-radius: 12px;
+    -fx-padding: 20px;
+    -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.05), 8, 0, 0, 4);
+}
+
+/* 4. BUTTONS (Nút bấm) */
+.button {
+    -fx-padding: 10px 20px;
+    -fx-background-radius: 8px;
+    -fx-font-weight: bold;
+    -fx-cursor: hand;
+}
+
+.btn-primary {
+    -fx-background-color: #4F46E5;
+    -fx-text-fill: white;
+}
+.btn-primary:hover {
+    -fx-background-color: #4338CA;
+    -fx-effect: dropshadow(three-pass-box, rgba(79, 70, 229, 0.4), 10, 0, 0, 4);
+}
+
+.btn-danger-outline {
+    -fx-background-color: transparent;
+    -fx-border-color: #EF4444;
+    -fx-border-radius: 8px;
+    -fx-border-width: 1.5px;
+    -fx-text-fill: #EF4444;
+}
+.btn-danger-outline:hover {
+    -fx-background-color: #FEF2F2;
+}
+
+/* 5. TABLE VIEW (Bảng dữ liệu) */
+.table-view {
+    -fx-background-color: transparent;
+    -fx-border-color: #E2E8F0;
+    -fx-border-radius: 8px;
+    -fx-background-radius: 8px;
+}
+.table-view:focused {
+    -fx-background-insets: 0;
+}
+.table-view .column-header-background {
+    -fx-background-color: #F8FAFC;
+    -fx-background-radius: 8px 8px 0 0;
+    -fx-border-width: 0 0 1px 0;
+    -fx-border-color: #E2E8F0;
+}
+.table-view .column-header {
+    -fx-background-color: transparent;
+    -fx-size: 45px;
+}
+.table-view .column-header .label {
+    -fx-text-fill: #64748B;
+    -fx-font-weight: bold;
+    -fx-alignment: center-left;
+}
+.table-row-cell {
+    -fx-background-color: white;
+    -fx-border-width: 0 0 1px 0;
+    -fx-border-color: #F1F5F9;
+    -fx-cell-size: 45px;
+}
+.table-row-cell:odd {
+    -fx-background-color: #F8FAFC;
+}
+.table-row-cell:hover {
+    -fx-background-color: #EEF2FF;
+}
+.table-row-cell:selected {
+    -fx-background-color: #E0E7FF;
+    -fx-text-background-color: #1E1B4B;
+    -fx-font-weight: bold;
+}
+
+/* 6. STATUS LABEL */
+.status-label {
+    -fx-text-fill: #94A3B8;
+    -fx-font-style: italic;
+    -fx-font-size: 13px;
+} /* <-- VỪA NÃY BẠN QUÊN DẤU NGOẶC NÀY NÈ! */
+
+
+/* ==============================================
+   7. LOGIN & FORM SCENES (Màn hình Đăng nhập & Biểu mẫu)
+   ============================================== */
+
+.login-card {
+    -fx-background-color: white;
+    -fx-padding: 40px;
+    -fx-background-radius: 16px; /* Bo góc tròn hơn */
+    -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.15), 20, 0, 0, 8); /* Đổ bóng sâu hơn */
+}
+
+.login-title {
+    -fx-font-size: 28px;
+    -fx-font-weight: 900;
+    -fx-fill: #4F46E5;
+}
+
+.login-subtitle {
+    -fx-font-size: 14px;
+    -fx-fill: #64748B;
+}
+
+.form-label {
+    -fx-font-weight: bold;
+    -fx-font-size: 13px;
+    -fx-text-fill: #334155;
+}
+
+.text-input-field {
+    -fx-pref-height: 45px; /* Nới rộng chiều cao */
+    -fx-background-radius: 8px;
+    -fx-border-color: #CBD5E1;
+    -fx-border-radius: 8px;
+    -fx-background-color: #F8FAFC;
+    -fx-padding: 8px 15px;
+    -fx-background-insets: 0; /* Xóa viền xanh mặc định của JavaFX */
+}
+.text-input-field:focused {
+    -fx-border-color: #4F46E5;
+    -fx-border-width: 2px;
+    -fx-background-color: white;
+    -fx-focus-color: transparent; /* Ẩn viền focus mặc định */
+    -fx-faint-focus-color: transparent;
+}
+
+.btn-full-width {
+    -fx-pref-height: 45px;
+    -fx-font-size: 15px;
+}
+
+.error-message {
+    -fx-text-fill: #EF4444;
+    -fx-font-size: 13px;
+    -fx-padding: 10px;
+    -fx-background-color: #FEF2F2;
+    -fx-background-radius: 6px;
+    -fx-border-color: #FCA5A5;
+    -fx-border-radius: 6px;
+}
+
+.link-text {
+    -fx-font-size: 13px;
+    -fx-text-fill: #4F46E5;
+    -fx-underline: false;
+}
+.link-text:hover {
+    -fx-underline: true;
+}
