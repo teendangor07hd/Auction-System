@@ -1594,22 +1594,32 @@ git commit -m "feat: thêm AuctionListController, AuctionDetailController, Creat
 <?xml version="1.0" encoding="UTF-8"?>
 <?import javafx.scene.control.*?>
 <?import javafx.scene.layout.*?>
-<VBox xmlns:fx="[http://javafx.com/fxml/1](http://javafx.com/fxml/1)"
+
+<VBox xmlns:fx="http://javafx.com/fxml/1"
       fx:controller="com.bidhub.client.controller.AuctionListController"
-      spacing="10" style="-fx-padding: 15; -fx-font-family: 'Arial';">
-  <HBox alignment="CENTER_RIGHT" spacing="10">
-    <Label text="BidHub — Danh sách đấu giá" style="-fx-font-size: 16; -fx-font-weight: bold;"
-           HBox.hgrow="ALWAYS"/>
-    <Button fx:id="btnCreateAuction" text="+ Tạo phiên mới" onAction="#handleCreateAuction"/>
-  </HBox>
-  <TableView fx:id="tableAuctions" VBox.vgrow="ALWAYS" onMouseClicked="#handleRowClick">
-    <columns>
-      <TableColumn fx:id="colId"         text="Mã phiên"     prefWidth="80"/>
-      <TableColumn fx:id="colItem"       text="Sản phẩm"     prefWidth="220"/>
-      <TableColumn fx:id="colStatus"     text="Trạng thái"   prefWidth="110"/>
-      <TableColumn fx:id="colCurrentBid" text="Giá cao nhất" prefWidth="130"/>
-    </columns>
-  </TableView>
+      stylesheets="@/css/styles.css"
+      spacing="20"
+      styleClass="root">
+
+    <HBox alignment="CENTER_LEFT" styleClass="header-bar">
+        <Label text="BidHub — Danh sách đấu giá" styleClass="header-title" HBox.hgrow="ALWAYS" maxWidth="Infinity"/>
+
+        <Button fx:id="btnCreateAuction" text="+ Tạo phiên mới" styleClass="button, btn-primary" onAction="#handleCreateAuction"/>
+    </HBox>
+
+    <VBox styleClass="content-pane" VBox.vgrow="ALWAYS" style="-fx-margin: 0 20 20 20;">
+
+        <TableView fx:id="tableAuctions" VBox.vgrow="ALWAYS" onMouseClicked="#handleRowClick">
+            <columns>
+                <TableColumn fx:id="colId"         text="Mã phiên"     prefWidth="100"/>
+                <TableColumn fx:id="colItem"       text="Sản phẩm"     prefWidth="250"/>
+                <TableColumn fx:id="colStatus"     text="Trạng thái"   prefWidth="120"/>
+                <TableColumn fx:id="colCurrentBid" text="Giá cao nhất" prefWidth="150"/>
+            </columns>
+        </TableView>
+
+    </VBox>
+
 </VBox>
 ```
 
@@ -1621,31 +1631,49 @@ git commit -m "feat: thêm AuctionListController, AuctionDetailController, Creat
 <?xml version="1.0" encoding="UTF-8"?>
 <?import javafx.scene.control.*?>
 <?import javafx.scene.layout.*?>
-<VBox xmlns:fx="[http://javafx.com/fxml/1](http://javafx.com/fxml/1)"
+
+<VBox xmlns:fx="http://javafx.com/fxml/1"
       fx:controller="com.bidhub.client.controller.AuctionDetailController"
-      spacing="12" style="-fx-padding: 20; -fx-font-family: 'Arial';">
-  <Label fx:id="lblTitle" text="Đang tải..." style="-fx-font-size: 18; -fx-font-weight: bold;"/>
-  <HBox spacing="20">
-    <VBox spacing="4">
-      <Label text="Trạng thái:" style="-fx-font-weight: bold;"/>
-      <Label fx:id="lblStatus" text="—"/>
+      stylesheets="@/css/styles.css"
+      styleClass="root"
+      spacing="20">
+
+    <HBox alignment="CENTER_LEFT" styleClass="header-bar">
+        <Label fx:id="lblTitle" text="Đang tải..." styleClass="header-title"/>
+    </HBox>
+
+    <VBox styleClass="content-pane" spacing="15" style="-fx-margin: 0 20 20 20;">
+
+        <HBox spacing="40">
+            <VBox spacing="5">
+                <Label text="Trạng thái:" styleClass="form-label"/>
+                <Label fx:id="lblStatus" text="—" styleClass="status-label"/>
+            </VBox>
+
+            <VBox spacing="5">
+                <Label text="Giá cao nhất:" styleClass="form-label"/>
+                <Label fx:id="lblCurrentBid" text="—" style="-fx-font-weight: bold; -fx-font-size: 16px; -fx-text-fill: #4F46E5;"/>
+            </VBox>
+
+            <VBox spacing="5">
+                <Label text="Thời gian còn lại:" styleClass="form-label"/>
+                <Label fx:id="lblTimeRemaining" text="—"/>
+            </VBox>
+        </HBox>
+
+        <Separator/>
+
+        <HBox spacing="15" alignment="CENTER_LEFT">
+            <Label text="Giá đặt (VNĐ):" styleClass="form-label"/>
+
+            <TextField fx:id="tfBidAmount" promptText="Nhập số tiền..." prefWidth="200" styleClass="text-input-field"/>
+
+            <Button fx:id="btnPlaceBid" text="Đặt giá" onAction="#handlePlaceBid" styleClass="button, btn-primary"/>
+        </HBox>
+
+        <Label fx:id="lblMessage" text="" styleClass="error-message"/>
+
     </VBox>
-    <VBox spacing="4">
-      <Label text="Giá cao nhất:" style="-fx-font-weight: bold;"/>
-      <Label fx:id="lblCurrentBid" text="—"/>
-    </VBox>
-    <VBox spacing="4">
-      <Label text="Thời gian còn lại:" style="-fx-font-weight: bold;"/>
-      <Label fx:id="lblTimeRemaining" text="—"/>
-    </VBox>
-  </HBox>
-  <Separator/>
-  <HBox spacing="10" alignment="CENTER_LEFT">
-    <Label text="Giá đặt (VNĐ):"/>
-    <TextField fx:id="tfBidAmount" promptText="Nhập số tiền..." prefWidth="180"/>
-    <Button fx:id="btnPlaceBid" text="Đặt giá" onAction="#handlePlaceBid"/>
-  </HBox>
-  <Label fx:id="lblMessage" text="" style="-fx-text-fill: red;"/>
 </VBox>
 ```
 
@@ -1657,28 +1685,51 @@ git commit -m "feat: thêm AuctionListController, AuctionDetailController, Creat
 <?xml version="1.0" encoding="UTF-8"?>
 <?import javafx.scene.control.*?>
 <?import javafx.scene.layout.*?>
-<VBox xmlns:fx="[http://javafx.com/fxml/1](http://javafx.com/fxml/1)"
+
+<VBox xmlns:fx="http://javafx.com/fxml/1"
       fx:controller="com.bidhub.client.controller.CreateItemController"
-      spacing="10" style="-fx-padding: 20; -fx-font-family: 'Arial';" maxWidth="500">
-  <Label text="Thêm sản phẩm mới" style="-fx-font-size: 16; -fx-font-weight: bold;"/>
-  <Label text="Tên sản phẩm:"/>
-  <TextField fx:id="tfName" promptText="VD: MacBook Pro 14"/>
-  <Label text="Mô tả:"/>
-  <TextArea fx:id="taDescription" promptText="Mô tả ngắn..." prefRowCount="3"/>
-  <Label text="Giá khởi điểm (VNĐ):"/>
-  <TextField fx:id="tfStartingPrice" promptText="VD: 25000000"/>
-  <Label text="Loại sản phẩm:"/>
-  <ComboBox fx:id="cbItemType" prefWidth="200"/>
-  <Label text="Thông tin đặc trưng (VD: tên thương hiệu):"/>
-  <TextField fx:id="tfExtra1" promptText="Brand / Nghệ sĩ / Nhà sản xuất"/>
-  <TextField fx:id="tfExtra2" promptText="Bảo hành (tháng) / Năm sáng tác / Năm sản xuất"/>
-  <TextField fx:id="tfExtra3" promptText="Số km đã đi (chỉ dùng cho Xe)"/>
-  <HBox spacing="10" alignment="CENTER_RIGHT">
-    <Button text="Hủy" onAction="#handleCancel"/>
-    <Button fx:id="btnSubmit" text="Tạo sản phẩm" onAction="#handleSubmit"
-            style="-fx-base: #4CAF50;"/>
-  </HBox>
-  <Label fx:id="lblMessage" text="" style="-fx-text-fill: red;"/>
+      stylesheets="@/css/styles.css"
+      styleClass="root"
+      alignment="CENTER"
+      style="-fx-padding: 30;">
+
+    <VBox styleClass="content-pane" spacing="15" maxWidth="550">
+
+        <Label text="Thêm sản phẩm mới" styleClass="login-title" style="-fx-font-size: 24px;"/>
+
+        <Separator style="-fx-padding: 0 0 10 0;"/>
+
+        <Label text="Tên sản phẩm:" styleClass="form-label"/>
+        <TextField fx:id="tfName" promptText="VD: MacBook Pro 14" styleClass="text-input-field"/>
+
+        <Label text="Mô tả:" styleClass="form-label"/>
+        <TextArea fx:id="taDescription" promptText="Mô tả ngắn..." prefRowCount="3" styleClass="text-input-field"/>
+
+        <HBox spacing="15">
+            <VBox spacing="5" HBox.hgrow="ALWAYS">
+                <Label text="Giá khởi điểm (VNĐ):" styleClass="form-label"/>
+                <TextField fx:id="tfStartingPrice" promptText="VD: 25000000" styleClass="text-input-field"/>
+            </VBox>
+            <VBox spacing="5" HBox.hgrow="ALWAYS">
+                <Label text="Loại sản phẩm:" styleClass="form-label"/>
+                <ComboBox fx:id="cbItemType" maxWidth="Infinity" styleClass="text-input-field"/>
+            </VBox>
+        </HBox>
+
+        <Label text="Thông tin đặc trưng (VD: tên thương hiệu):" styleClass="form-label" style="-fx-padding: 10 0 0 0;"/>
+        <TextField fx:id="tfExtra1" promptText="Brand / Nghệ sĩ / Nhà sản xuất" styleClass="text-input-field"/>
+        <TextField fx:id="tfExtra2" promptText="Bảo hành (tháng) / Năm sáng tác / Năm sản xuất" styleClass="text-input-field"/>
+        <TextField fx:id="tfExtra3" promptText="Số km đã đi (chỉ dùng cho Xe)" styleClass="text-input-field"/>
+
+        <HBox spacing="15" alignment="CENTER_RIGHT" style="-fx-padding: 15 0 0 0;">
+            <Button text="Hủy" onAction="#handleCancel" styleClass="button, btn-danger-outline"/>
+
+            <Button fx:id="btnSubmit" text="Tạo sản phẩm" onAction="#handleSubmit" styleClass="button, btn-primary"/>
+        </HBox>
+
+        <Label fx:id="lblMessage" text="" styleClass="error-message"/>
+
+    </VBox>
 </VBox>
 ```
 
@@ -1687,6 +1738,210 @@ git commit -m "feat: thêm 3 FXML skeleton AuctionList/Detail/CreateItem"
 ```
 
 ---
+# 🎨 BidHub - Modern UI Theme (JavaFX CSS)
+
+Chào mừng bạn đến với **BidHub Modern UI Theme**! Đây là một tệp định dạng (stylesheet) được thiết kế đặc biệt cho các ứng dụng JavaFX. Tệp CSS này giúp biến đổi giao diện mặc định có phần cũ kỹ của JavaFX thành một giao diện người dùng (User Interface - UI) hiện đại, sạch sẽ và vô cùng chuyên nghiệp.
+
+## 🌟 Tính năng nổi bật (Key Features)
+
+* **Global Settings (Cài đặt chung):** Đồng bộ phông chữ (fonts) hiện đại như Segoe UI và sử dụng tông màu nền xám nhạt tinh tế.
+
+* **Header & Containers (Thanh tiêu đề & Vùng chứa):** Áp dụng hiệu ứng đổ bóng (drop shadows) mượt mà và bo góc (rounded corners) tạo chiều sâu cho ứng dụng.
+
+* **Interactive Buttons (Nút bấm tương tác):** Thiết kế nút bấm nổi bật với hiệu ứng khi di chuột qua (hover effects) sinh động.
+
+* **Data Tables (Bảng dữ liệu):** Bảng hiển thị dễ nhìn, phân biệt màu sắc giữa các hàng chẵn/lẻ (odd/even rows) và làm nổi bật hàng đang được chọn (selected row).
+
+* **Login & Forms (Đăng nhập & Biểu mẫu):** Khung nhập liệu (input fields) rộng rãi, tinh tế cùng các thông báo lỗi (error messages) rõ ràng.
+
+## 💻 Mã nguồn (Source Code)
+
+Dưới đây là toàn bộ mã nguồn CSS cho chủ đề này. Hãy lưu nó vào tệp `styles.css` theo đúng đường dẫn (path) trong thư mục dự án (project directory) của bạn:
+`bidhub-client/src/main/resources/css/styles.css`
+
+```css
+/* ==============================================
+   BIDHUB - MODERN UI THEME
+   File: bidhub-client/src/main/resources/css/styles.css
+   ============================================== */
+
+/* 1. GLOBAL SETTINGS (Cài đặt chung) */
+.root {
+    -fx-font-family: "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+    -fx-background-color: #E2E8F0; /* Xám đậm hơn chút để nổi bật form trắng */
+    -fx-font-size: 14px;
+}
+
+/* 2. HEADER BAR (Thanh tiêu đề) */
+.header-bar {
+    -fx-background-color: linear-gradient(to right, #1E1B4B, #4338CA);
+    -fx-padding: 15px 25px;
+    -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.2), 10, 0, 0, 3);
+}
+
+.header-title {
+    -fx-text-fill: white;
+    -fx-font-size: 22px;
+    -fx-font-weight: 900;
+    -fx-effect: dropshadow(two-pass-box, rgba(0,0,0,0.3), 2, 0, 1, 1);
+}
+
+/* 3. CENTER CONTENT (Khung chứa nội dung ở giữa) */
+.content-pane {
+    -fx-background-color: white;
+    -fx-background-radius: 12px;
+    -fx-border-radius: 12px;
+    -fx-padding: 20px;
+    -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.05), 8, 0, 0, 4);
+}
+
+/* 4. BUTTONS (Nút bấm) */
+.button {
+    -fx-padding: 10px 20px;
+    -fx-background-radius: 8px;
+    -fx-font-weight: bold;
+    -fx-cursor: hand;
+}
+
+.btn-primary {
+    -fx-background-color: #4F46E5;
+    -fx-text-fill: white;
+}
+.btn-primary:hover {
+    -fx-background-color: #4338CA;
+    -fx-effect: dropshadow(three-pass-box, rgba(79, 70, 229, 0.4), 10, 0, 0, 4);
+}
+
+.btn-danger-outline {
+    -fx-background-color: transparent;
+    -fx-border-color: #EF4444;
+    -fx-border-radius: 8px;
+    -fx-border-width: 1.5px;
+    -fx-text-fill: #EF4444;
+}
+.btn-danger-outline:hover {
+    -fx-background-color: #FEF2F2;
+}
+
+/* 5. TABLE VIEW (Bảng dữ liệu) */
+.table-view {
+    -fx-background-color: transparent;
+    -fx-border-color: #E2E8F0;
+    -fx-border-radius: 8px;
+    -fx-background-radius: 8px;
+}
+.table-view:focused {
+    -fx-background-insets: 0;
+}
+.table-view .column-header-background {
+    -fx-background-color: #F8FAFC;
+    -fx-background-radius: 8px 8px 0 0;
+    -fx-border-width: 0 0 1px 0;
+    -fx-border-color: #E2E8F0;
+}
+.table-view .column-header {
+    -fx-background-color: transparent;
+    -fx-size: 45px;
+}
+.table-view .column-header .label {
+    -fx-text-fill: #64748B;
+    -fx-font-weight: bold;
+    -fx-alignment: center-left;
+}
+.table-row-cell {
+    -fx-background-color: white;
+    -fx-border-width: 0 0 1px 0;
+    -fx-border-color: #F1F5F9;
+    -fx-cell-size: 45px;
+}
+.table-row-cell:odd {
+    -fx-background-color: #F8FAFC;
+}
+.table-row-cell:hover {
+    -fx-background-color: #EEF2FF;
+}
+.table-row-cell:selected {
+    -fx-background-color: #E0E7FF;
+    -fx-text-background-color: #1E1B4B;
+    -fx-font-weight: bold;
+}
+
+/* 6. STATUS LABEL */
+.status-label {
+    -fx-text-fill: #94A3B8;
+    -fx-font-style: italic;
+    -fx-font-size: 13px;
+}
+
+/* ==============================================
+   7. LOGIN & FORM SCENES (Màn hình Đăng nhập & Biểu mẫu)
+   ============================================== */
+
+.login-card {
+    -fx-background-color: white;
+    -fx-padding: 40px;
+    -fx-background-radius: 16px; /* Bo góc tròn hơn */
+    -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.15), 20, 0, 0, 8); /* Đổ bóng sâu hơn */
+}
+
+.login-title {
+    -fx-font-size: 28px;
+    -fx-font-weight: 900;
+    -fx-fill: #4F46E5;
+}
+
+.login-subtitle {
+    -fx-font-size: 14px;
+    -fx-fill: #64748B;
+}
+
+.form-label {
+    -fx-font-weight: bold;
+    -fx-font-size: 13px;
+    -fx-text-fill: #334155;
+}
+
+.text-input-field {
+    -fx-pref-height: 45px; /* Nới rộng chiều cao */
+    -fx-background-radius: 8px;
+    -fx-border-color: #CBD5E1;
+    -fx-border-radius: 8px;
+    -fx-background-color: #F8FAFC;
+    -fx-padding: 8px 15px;
+    -fx-background-insets: 0; /* Xóa viền xanh mặc định của JavaFX */
+}
+.text-input-field:focused {
+    -fx-border-color: #4F46E5;
+    -fx-border-width: 2px;
+    -fx-background-color: white;
+    -fx-focus-color: transparent; /* Ẩn viền focus mặc định */
+    -fx-faint-focus-color: transparent;
+}
+
+.btn-full-width {
+    -fx-pref-height: 45px;
+    -fx-font-size: 15px;
+}
+
+.error-message {
+    -fx-text-fill: #EF4444;
+    -fx-font-size: 13px;
+    -fx-padding: 10px;
+    -fx-background-color: #FEF2F2;
+    -fx-background-radius: 6px;
+    -fx-border-color: #FCA5A5;
+    -fx-border-radius: 6px;
+}
+
+.link-text {
+    -fx-font-size: 13px;
+    -fx-text-fill: #4F46E5;
+    -fx-underline: false;
+}
+.link-text:hover {
+    -fx-underline: true;
+}
+'''
 
 ### ✅ Test đầu ra
 
