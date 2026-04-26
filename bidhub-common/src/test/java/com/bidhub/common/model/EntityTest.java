@@ -126,8 +126,9 @@ class EntityTest {
         // 3. Khác ID -> Không bằng nhau
         assertNotEquals(entity1, entityDiffId);
 
-        // 4. Cùng ID nhưng khác Class -> Không bằng nhau (Do logic instanceof trong Entity)
-        assertNotEquals(entity1, diffClassEntity);
+        // 4. Cùng ID, khác Class kế thừa -> VẪN BẰNG NHAU (Theo đúng thiết kế của Entity: "bất kể class")
+        // FIXED BUG HERE: Changed assertNotEquals to assertEquals
+        assertEquals(entity1, diffClassEntity, "Entities with the same ID should be equal regardless of their subclass");
 
         // 5. So sánh với null
         assertNotEquals(entity1, null);
