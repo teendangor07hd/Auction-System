@@ -42,3 +42,11 @@ CREATE TABLE IF NOT EXISTS bid_transactions (
                                                 bid_amount REAL NOT NULL,
                                                 bid_time   TEXT NOT NULL
 );
+
+CREATE TABLE IF NOT EXISTS audit_logs (
+                                          id         TEXT PRIMARY KEY,
+                                          user_id    TEXT,
+                                          action     TEXT NOT NULL,
+                                          details    TEXT NOT NULL DEFAULT '',
+                                          created_at TEXT NOT NULL
+);
