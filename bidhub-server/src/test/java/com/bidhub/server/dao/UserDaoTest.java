@@ -55,9 +55,9 @@ class UserDaoTest {
     @Test
     @DisplayName("save 3 users → findAll size == 3, đúng subclass")
     void findAll_afterSaveThree_returnsCorrectSubclasses() {
-        dao.save(new Bidder("b1", "h", "b1@test.com"));
-        dao.save(new Seller("s1", "h", "s1@test.com"));
-        dao.save(new Admin("a1", "h", "a1@test.com", 2));
+        dao.save(new Bidder("bidder1", "h", "b1@test.com"));
+        dao.save(new Seller("seller1", "h", "s1@test.com"));
+        dao.save(new Admin("admin1", "h", "a1@test.com", 2));
 
         List<User> all = dao.findAll();
         assertEquals(3, all.size());
