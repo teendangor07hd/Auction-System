@@ -12,11 +12,11 @@ CREATE TABLE IF NOT EXISTS users (
 CREATE TABLE IF NOT EXISTS items (
                                      id            TEXT PRIMARY KEY,
                                      name          TEXT NOT NULL,
-                                     description   TEXT NOT NULL DEFAULT \'\',
+                                     description   TEXT NOT NULL DEFAULT '',
                                      starting_price REAL NOT NULL,
                                      item_type     TEXT NOT NULL,
                                      seller_id     TEXT NOT NULL,
-                                     extra_data    TEXT NOT NULL DEFAULT \'{}\',
+                                     extra_data    TEXT NOT NULL DEFAULT '{}',
                                      created_at    TEXT NOT NULL,
                                      updated_at    TEXT NOT NULL
 );
