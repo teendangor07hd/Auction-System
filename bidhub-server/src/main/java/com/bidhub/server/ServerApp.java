@@ -2,6 +2,9 @@ package com.bidhub.server;
 
 import com.bidhub.server.config.ConfigLoader;
 import com.bidhub.server.config.MigrationRunner;
+import com.bidhub.server.network.SocketServerCore;
+
+import java.io.IOException;
 
 /**
  * Entry point của BidHub Server.
@@ -28,12 +31,14 @@ public class ServerApp {
      *
      * @param args tham số dòng lệnh (không dùng ở tuần 1)
      */
-    public static void main(String[] args) {
+    public static void main(String[] args)  throws IOException {
         MigrationRunner.run();
         System.out.println(getWelcomeMessage());
         int port = ConfigLoader.getInt("server.port");
         System.out.println("Cổng lắng nghe: " + port);
         System.out.println("Database: " + ConfigLoader.getString("db.path"));
         System.out.println("Server sẵn sàng. Socket server sẽ implement tuần 4.");
+        SocketServerCore server = new SocketServerCore();
+        server.start(port); // dùng biến port đã lấy ở trên để nhất quán
     }
 }
