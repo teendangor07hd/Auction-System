@@ -23,6 +23,29 @@ public final class RequestHandler {
             "LIST_MY_ITEMS", "PLACE_BID", "GET_AUCTION_DETAIL"
     );
 
+    // ← THÊM: field DAO (null ở T4 — sẽ được gán thực sự ở T5)
+    // Giữ package-private để test inject được mà không cần reflection
+    final Object injectedUserDao;   // type Object tạm — T5 sẽ đổi thành UserDao
+    final Object injectedItemDao;   // type Object tạm — T5 sẽ đổi thành ItemDao
+
+    /** Constructor production — T4 và T5 đều dùng. */
+    public RequestHandler() {
+        this.injectedUserDao = null;
+        this.injectedItemDao = null;
+    }
+
+    /**
+     * Constructor inject — dùng trong test để truyền in-memory DAO.
+     * T5 sẽ bổ sung đầy đủ tham số khi cần.
+     *
+     * @param injectedUserDao DAO inject từ test (Object để T4 compile không cần UserDao)
+     * @param injectedItemDao DAO inject từ test
+     */
+    RequestHandler(Object injectedUserDao, Object injectedItemDao) {
+        this.injectedUserDao = injectedUserDao;
+        this.injectedItemDao = injectedItemDao;
+    }
+
     /**
      * Xử lý 1 request JSON từ client, trả về JSON response string.
      *
