@@ -1,4 +1,4 @@
-package com.bidhub.server.network;
+package com.bidhub.common.network;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
