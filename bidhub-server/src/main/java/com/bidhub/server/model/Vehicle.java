@@ -47,6 +47,19 @@ public final class Vehicle extends Item {
         this.mileageKm = mileageKm;
     }
 
+    // Thêm vào Vehicle.java — constructor load từ DB
+    public Vehicle(String id, java.time.LocalDateTime createdAt, java.time.LocalDateTime updatedAt,
+                   String name, String description, double startingPrice, String sellerId,
+                   String manufacturer, int year, int mileageKm) {
+        super(id, createdAt, updatedAt, name, description, startingPrice, sellerId,
+                com.bidhub.server.model.ItemType.VEHICLE);
+        if (manufacturer == null) throw new IllegalArgumentException("manufacturer không được null");
+        if (mileageKm < 0) throw new IllegalArgumentException("mileageKm không được âm");
+        this.manufacturer = manufacturer;
+        this.year = year;
+        this.mileageKm = mileageKm;
+    }
+
     /**
      * {@inheritDoc}
      *

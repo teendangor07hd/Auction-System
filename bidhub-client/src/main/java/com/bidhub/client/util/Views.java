@@ -1,4 +1,4 @@
-package com.bidhub.client;
+package com.bidhub.client.util;
 
 /**
  * Hằng số tên các màn hình (FXML views) trong ứng dụng.

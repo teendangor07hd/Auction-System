@@ -38,6 +38,17 @@ public final class Art extends Item {
         this.yearCreated = yearCreated;
     }
 
+    // Thêm vào Art.java — constructor load từ DB
+    public Art(String id, java.time.LocalDateTime createdAt, java.time.LocalDateTime updatedAt,
+               String name, String description, double startingPrice, String sellerId,
+               String artist, int yearCreated) {
+        super(id, createdAt, updatedAt, name, description, startingPrice, sellerId,
+                com.bidhub.server.model.ItemType.ART);
+        if (artist == null) throw new IllegalArgumentException("artist không được null");
+        this.artist = artist;
+        this.yearCreated = yearCreated;
+    }
+
     /**
      * {@inheritDoc}
      *

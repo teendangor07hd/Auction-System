@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+
+<VBox xmlns:fx="http://javafx.com/fxml/1"
+      fx:controller="com.bidhub.client.controller.CreateItemController"
+      stylesheets="@/css/styles.css"
+      styleClass="root"
+      alignment="CENTER"
+      style="-fx-padding: 30;">
+
+    <VBox styleClass="content-pane" spacing="15" maxWidth="550">
+
+        <Label text="Thêm sản phẩm mới" styleClass="login-title" style="-fx-font-size: 24px;"/>
+
+        <Separator style="-fx-padding: 0 0 10 0;"/>
+
+        <Label text="Tên sản phẩm:" styleClass="form-label"/>
+        <TextField fx:id="tfName" promptText="VD: MacBook Pro 14" styleClass="text-input-field"/>
+
+        <Label text="Mô tả:" styleClass="form-label"/>
+        <TextArea fx:id="taDescription" promptText="Mô tả ngắn..." prefRowCount="3" styleClass="text-input-field"/>
+
+        <HBox spacing="15">
+            <VBox spacing="5" HBox.hgrow="ALWAYS">
+                <Label text="Giá khởi điểm (VNĐ):" styleClass="form-label"/>
+                <TextField fx:id="tfStartingPrice" promptText="VD: 25000000" styleClass="text-input-field"/>
+            </VBox>
+            <VBox spacing="5" HBox.hgrow="ALWAYS">
+                <Label text="Loại sản phẩm:" styleClass="form-label"/>
+                <ComboBox fx:id="cbItemType" maxWidth="Infinity" styleClass="text-input-field"/>
+            </VBox>
+        </HBox>
+
+        <Label text="Thông tin đặc trưng (VD: tên thương hiệu):" styleClass="form-label" style="-fx-padding: 10 0 0 0;"/>
+        <TextField fx:id="tfExtra1" promptText="Brand / Nghệ sĩ / Nhà sản xuất" styleClass="text-input-field"/>
+        <TextField fx:id="tfExtra2" promptText="Bảo hành (tháng) / Năm sáng tác / Năm sản xuất" styleClass="text-input-field"/>
+        <TextField fx:id="tfExtra3" promptText="Số km đã đi (chỉ dùng cho Xe)" styleClass="text-input-field"/>
+
+        <HBox spacing="15" alignment="CENTER_RIGHT" style="-fx-padding: 15 0 0 0;">
+            <Button text="Hủy" onAction="#handleCancel" styleClass="button, btn-danger-outline"/>
+
+            <Button fx:id="btnSubmit" text="Tạo sản phẩm" onAction="#handleSubmit" styleClass="button, btn-primary"/>
+        </HBox>
+
+        <Label fx:id="lblMessage" text="" styleClass="error-message"/>
+
+    </VBox>
+</VBox>

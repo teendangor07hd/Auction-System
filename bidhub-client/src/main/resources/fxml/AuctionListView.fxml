@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+
+<VBox xmlns:fx="http://javafx.com/fxml/1"
+      fx:controller="com.bidhub.client.controller.AuctionListController"
+      stylesheets="@/css/styles.css"
+      spacing="20"
+      styleClass="root">
+
+    <HBox alignment="CENTER_LEFT" styleClass="header-bar">
+        <Label text="BidHub — Danh sách đấu giá" styleClass="header-title" HBox.hgrow="ALWAYS" maxWidth="Infinity"/>
+
+        <Button fx:id="btnCreateAuction" text="+ Tạo phiên mới" styleClass="button, btn-primary" onAction="#handleCreateAuction"/>
+    </HBox>
+
+    <VBox styleClass="content-pane" VBox.vgrow="ALWAYS" style="-fx-margin: 0 20 20 20;">
+
+        <TableView fx:id="tableAuctions" VBox.vgrow="ALWAYS" onMouseClicked="#handleRowClick">
+            <columns>
+                <TableColumn fx:id="colId"         text="Mã phiên"     prefWidth="100"/>
+                <TableColumn fx:id="colItem"       text="Sản phẩm"     prefWidth="250"/>
+                <TableColumn fx:id="colStatus"     text="Trạng thái"   prefWidth="120"/>
+                <TableColumn fx:id="colCurrentBid" text="Giá cao nhất" prefWidth="150"/>
+            </columns>
+        </TableView>
+
+    </VBox>
+
+</VBox>

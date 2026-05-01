@@ -176,4 +176,42 @@ public class Auction extends Entity {
     public AuctionStatus getStatus() { return status; }
     /** Trả về mức tăng tối thiểu. */
     public double getMinimumIncrement() { return minimumIncrement; }
+
+    /**
+     * Constructor load từ database — dùng bởi {@link AuctionDao#mapRow(ResultSet)}.
+     *
+     * @param id               ID từ DB
+     * @param createdAt        thời điểm tạo từ DB
+     * @param updatedAt        thời điểm cập nhật từ DB
+     * @param itemId           ID sản phẩm
+     * @param startTime        thời điểm bắt đầu
+     * @param endTime          thời điểm kết thúc
+     * @param startingPrice    giá khởi điểm
+     * @param currentHighestBid giá cao nhất hiện tại
+     * @param highestBidderId  ID người đặt cao nhất (có thể null)
+     * @param status           trạng thái hiện tại
+     * @param minimumIncrement mức tăng tối thiểu
+     */
+    public Auction(
+            String id,
+            LocalDateTime createdAt,
+            LocalDateTime updatedAt,
+            String itemId,
+            LocalDateTime startTime,
+            LocalDateTime endTime,
+            double startingPrice,
+            double currentHighestBid,
+            String highestBidderId,
+            AuctionStatus status,
+            double minimumIncrement) {
+        super(id, createdAt, updatedAt);
+        this.itemId = itemId;
+        this.startTime = startTime;
+        this.endTime = endTime;
+        this.startingPrice = startingPrice;
+        this.currentHighestBid = currentHighestBid;
+        this.highestBidderId = highestBidderId;
+        this.status = status;
+        this.minimumIncrement = minimumIncrement;
+    }
 }

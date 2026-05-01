@@ -1,5 +1,6 @@
 package com.bidhub.client;
 
+import com.bidhub.client.navigation.ViewRouter;
 import javafx.application.Application;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Parent;
@@ -39,6 +40,9 @@ public class BidHubApp extends Application {
      */
     @Override
     public void start(Stage primaryStage) throws IOException {
+        //KHởi tạo ViewRouter với Stage
+        ViewRouter.getInstance().initialize(primaryStage);
+
         // Load LoginView.fxml từ resources/fxml/
         URL fxmlUrl = getClass().getResource("/fxml/LoginView.fxml");
         if (fxmlUrl == null) {

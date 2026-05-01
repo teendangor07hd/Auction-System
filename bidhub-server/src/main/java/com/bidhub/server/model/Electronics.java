@@ -41,6 +41,18 @@ public final class Electronics extends Item {
         this.warrantyMonths = warrantyMonths;
     }
 
+    // Thêm vào Electronics.java — constructor load từ DB (giữ id/timestamps gốc)
+    public Electronics(String id, java.time.LocalDateTime createdAt, java.time.LocalDateTime updatedAt,
+                       String name, String description, double startingPrice, String sellerId,
+                       String brand, int warrantyMonths) {
+        super(id, createdAt, updatedAt, name, description, startingPrice, sellerId,
+                com.bidhub.server.model.ItemType.ELECTRONICS);
+        if (brand == null) throw new IllegalArgumentException("brand không được null");
+        if (warrantyMonths < 0) throw new IllegalArgumentException("warrantyMonths không được âm");
+        this.brand = brand;
+        this.warrantyMonths = warrantyMonths;
+    }
+
     /**
      * {@inheritDoc}
      *
