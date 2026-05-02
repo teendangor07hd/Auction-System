@@ -22,41 +22,49 @@ public class BidHubApp extends Application {
 
     @Override
     public void start(Stage primaryStage) throws IOException {
-        // 1. Khởi tạo ViewRouter (Bộ định tuyến giao diện)
         ViewRouter.getInstance().initialize(primaryStage);
 
-        // 2. Tải giao diện đầu tiên (LoginView)
         URL fxmlUrl = getClass().getResource("/fxml/LoginView.fxml");
         if (fxmlUrl == null) {
             throw new IllegalStateException("Không tìm thấy /fxml/LoginView.fxml trong resources.");
         }
-        Parent root = FXMLLoader.load(fxmlUrl);
-        Scene scene = new Scene(root, WINDOW_WIDTH, WINDOW_HEIGHT);
 
-        // Thêm CSS nếu có
+        Parent root = FXMLLoader.load(fxmlUrl);
+
+        // [UI GUARD] - Khóa toàn bộ giao diện ngay từ đầu
+        // Người dùng sẽ thấy giao diện hơi mờ đi và không thể click được
+        root.setDisable(true);
+
+        Scene scene = new Scene(root, WINDOW_WIDTH, WINDOW_HEIGHT);
         URL cssUrl = getClass().getResource("/css/styles.css");
         if (cssUrl != null) {
             scene.getStylesheets().add(cssUrl.toExternalForm());
         }
 
-        // 3. Cấu hình và hiển thị cửa sổ
         primaryStage.setTitle(APP_TITLE);
         primaryStage.setScene(scene);
         primaryStage.setResizable(true);
         primaryStage.show();
 
-        // 4. Kết nối tới Server ở chế độ nền (Background)
-        connectToServer();
+        // Truyền root vào hàm connect để có thể mở khóa sau khi kết nối xong
+        connectToServer(root);
     }
 
-    private void connectToServer() {
+    private void connectToServer(Parent root) {
         NetworkTask<Void> connectTask = new NetworkTask<>(() -> {
             ServerGateway gw = ServerGateway.getInstance();
             gw.connect(gw.getServerHost(), gw.getServerPort());
             return null;
         });
 
-        // Nếu lỗi, hiển thị thông báo rồi đóng app
+        // [THÀNH CÔNG] - Server đã kết nối
+        connectTask.setOnSucceeded(e -> {
+            // Gỡ bỏ UI Guard: Mở khóa giao diện cho người dùng thao tác
+            root.setDisable(false);
+            System.out.println("[Client] Đã kết nối thành công tới Server!");
+        });
+
+        // [THẤT BẠI] - Không kết nối được
         connectTask.setOnFailed(e -> {
             Alert alert = new Alert(Alert.AlertType.ERROR,
                     "Không kết nối được Server tại "
@@ -64,10 +72,9 @@ public class BidHubApp extends Application {
                             + ServerGateway.getInstance().getServerPort()
                             + "\nKiểm tra server đang chạy rồi thử lại.");
             alert.showAndWait();
-            Platform.exit(); // Thoát ứng dụng
+            Platform.exit();
         });
 
-        // Khởi chạy tác vụ trên một Thread riêng
         new Thread(connectTask).start();
     }
 
