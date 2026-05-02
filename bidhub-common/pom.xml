@@ -26,6 +26,12 @@
             <artifactId>junit-jupiter</artifactId>
             <scope>test</scope>
         </dependency>
+
+        <!-- Nếu chưa có, thêm đoạn này vào pom.xml của bidhub-common -->
+        <dependency>
+            <groupId>com.fasterxml.jackson.core</groupId>
+            <artifactId>jackson-databind</artifactId>
+        </dependency>
     </dependencies>
 
     <build>
@@ -36,4 +42,6 @@
             </plugin>
         </plugins>
     </build>
+
+
 </project>
