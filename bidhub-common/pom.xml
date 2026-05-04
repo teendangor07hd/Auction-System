@@ -13,19 +13,25 @@
 
     <artifactId>bidhub-common</artifactId>
     <name>BidHub Common</name>
-    <description>Các class dùng chung giữa server và client: Entity, Exception hierarchy</description>
+    <description>Các class dùng chung giữa server và client: Entity, Exception hierarchy, Network Protocol</description>
 
-    <!--
-      Module này CỐ Ý không có dependency nặng nào (không Jackson, không SQLite).
-      Chỉ dùng Java standard library.
-      Lý do: client cần import module này, nếu kéo theo SQLite → client bị thừa dependency.
-    -->
     <dependencies>
+        <!--
+          Jackson được đặt ở common để các lớp DTO (Data Transfer Object)
+          như MessageRequest, MessageResponse có thể sử dụng các annotation xử lý JSON.
+          Client và Server sẽ tự động kế thừa dependency này (Transitive Dependency).
+        -->
+        <dependency>
+            <groupId>com.fasterxml.jackson.core</groupId>
+            <artifactId>jackson-databind</artifactId>
+        </dependency>
+
         <dependency>
             <groupId>org.junit.jupiter</groupId>
             <artifactId>junit-jupiter</artifactId>
             <scope>test</scope>
         </dependency>
+
     </dependencies>
 
     <build>
@@ -36,4 +42,5 @@
             </plugin>
         </plugins>
     </build>
+
 </project>
