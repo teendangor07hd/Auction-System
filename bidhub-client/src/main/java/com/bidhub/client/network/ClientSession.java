@@ -72,4 +72,5 @@ public final class ClientSession {
     public String getCurrentRole() {
         return currentRole;
     }
+
 }
