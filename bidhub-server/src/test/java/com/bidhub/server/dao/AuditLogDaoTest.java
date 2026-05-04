@@ -85,4 +85,20 @@ class AuditLogDaoTest {
         assertNull(all.get(0).getUserId());
         assertEquals("{\"auctionId\":\"a-1\"}", all.get(0).getDetails());
     }
+
+    @Test
+    @DisplayName("findRecent(0) → ném IllegalArgumentException")
+    void findRecent_zeroLimit_throwsException() {
+        assertThrows(IllegalArgumentException.class, () -> dao.findRecent(0));
+    }
+
+    @Test
+    @DisplayName("findRecent(-1) → ném IllegalArgumentException (không trả về toàn bảng)")
+    void findRecent_negativeLimit_throwsException() {
+        // Đảm bảo LIMIT -1 không âm thầm trả về tất cả rows
+        for (int i = 0; i < 5; i++) {
+            dao.save(new AuditLog("u" + i, AuditActions.PLACE_BID, "{}"));
+        }
+        assertThrows(IllegalArgumentException.class, () -> dao.findRecent(-1));
+    }
 }

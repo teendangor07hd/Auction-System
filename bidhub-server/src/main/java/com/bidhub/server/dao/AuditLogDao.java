@@ -105,6 +105,9 @@ public class AuditLogDao {
      * @return danh sách tối đa {@code limit} bản ghi
      */
     public List<AuditLog> findRecent(int limit) {
+        if (limit <= 0) {
+            throw new IllegalArgumentException("limit phải > 0, nhận được: " + limit);
+        }
         String sql = "SELECT * FROM audit_logs ORDER BY created_at DESC LIMIT ?";
         Connection conn = null;
         try {
