@@ -64,4 +64,12 @@ public final class ClientSession {
     public String getCurrentUsername() {
         return currentUsername;
     }
+
+    public String getToken() {
+        return token;
+    }
+
+    public String getCurrentRole() {
+        return currentRole;
+    }
 }
