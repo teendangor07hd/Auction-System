@@ -1,5 +1,6 @@
 package com.bidhub.common.network;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonInclude;
 
 /**
@@ -10,6 +11,8 @@ import com.fasterxml.jackson.annotation.JsonInclude;
  * {@code @JsonInclude.NON_NULL} loại bỏ field null khỏi JSON output.
  */
 @JsonInclude(JsonInclude.Include.NON_NULL)
+@JsonIgnoreProperties(ignoreUnknown = true)   // ← thêm dòng này
+
 public class MessageResponse {
 
     private String status;

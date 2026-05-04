@@ -1,5 +1,8 @@
 package com.bidhub.server.network;
 
+import com.bidhub.common.network.MessageMapper;
+import com.bidhub.common.network.MessageRequest;
+import com.bidhub.common.network.MessageResponse;
 import org.junit.jupiter.api.*;
 import java.util.Map;
 import static org.junit.jupiter.api.Assertions.*;
