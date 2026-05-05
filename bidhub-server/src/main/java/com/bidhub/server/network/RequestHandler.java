@@ -7,6 +7,7 @@ import java.util.Set;
 import com.bidhub.common.network.MessageMapper;
 import com.bidhub.common.network.MessageRequest;
 import com.bidhub.common.network.MessageResponse;
+import com.bidhub.server.service.SessionManager;
 
 /**
  * Dispatcher chính: nhận JSON thô → parse → auth-guard → switch type → gọi handler.
@@ -65,7 +66,15 @@ public final class RequestHandler {
         }
 
         String type = req.getType() != null ? req.getType().toUpperCase() : "UNKNOWN";
+        // === THÊM VÀO method handle() — sau phần parse JSON, trước auth-guard check ===
 
+        // 📌 [Tieu chi: Kien truc Client–Server — giai ma token truoc khi xu ly request]
+        // Giai ma token → set authenticatedUserId vao session
+        String token = req.getToken();
+        if (token != null && !token.isBlank()) {
+            SessionManager.getInstance().getUserIdByToken(token)
+                    .ifPresent(session::setAuthenticatedUserId);
+        }
         // 📌 [Tiêu chí: Kiến trúc Client–Server — auth guard]
         if (AUTH_REQUIRED.contains(type) && !session.isAuthenticated()) {
             return MessageMapper.toJson(
