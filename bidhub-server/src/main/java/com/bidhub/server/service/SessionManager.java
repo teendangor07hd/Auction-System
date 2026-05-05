@@ -50,7 +50,7 @@ public final class SessionManager {
      * @param userId id nguoi dung
      * @return token UUID moi
      */
-    public String createSession(String userId) {
+    public synchronized  String createSession(String userId) {
         String token = AuthService.generateToken();
 
         // Neu user da co token cu → xoa token cu khoi tokenToUserId
@@ -68,7 +68,7 @@ public final class SessionManager {
      *
      * @param token token can huy
      */
-    public void invalidateSession(String token) {
+    public synchronized void invalidateSession(String token) {
         if (token == null) {
             return;
         }
