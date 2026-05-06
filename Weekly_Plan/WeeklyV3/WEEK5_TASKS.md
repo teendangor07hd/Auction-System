@@ -1625,7 +1625,9 @@ public class RegisterController {
         Bindings.createBooleanBinding(
             () -> usernameField.getText().isBlank()
                 || passwordField.getText().length() < 8
-                || emailField.getText().isBlank(),
+                || emailField.getText().isBlank()
+                || !emailField.getText().contains("@")
+                || !passwordField.getText().equals(confirmPasswordField.getText()),
             usernameField.textProperty(),
             passwordField.textProperty(),
             emailField.textProperty()
