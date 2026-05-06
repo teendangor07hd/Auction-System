@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<?import javafx.geometry.Insets?>
+
+<!-- Container xám ngoài cùng bọc toàn bộ màn hình -->
+<VBox xmlns:fx="http://javafx.com/fxml"
+      fx:controller="com.bidhub.client.controller.RegisterController"
+      styleClass="root" alignment="CENTER"
+      prefWidth="1024" prefHeight="720">
+
+    <!-- Container trắng (Card) đổ bóng chứa form ở giữa -->
+    <VBox styleClass="login-card" spacing="15" maxWidth="400" alignment="TOP_CENTER">
+
+        <Label text="Đăng ký tài khoản" styleClass="login-title"/>
+
+        <TextField fx:id="usernameField" promptText="Tên đăng nhập" styleClass="text-input-field"/>
+
+        <PasswordField fx:id="passwordField" promptText="Mật khẩu (ít nhất 8 ký tự)" styleClass="text-input-field"/>
+
+        <PasswordField fx:id="confirmPasswordField" promptText="Xác nhận mật khẩu" styleClass="text-input-field"/>
+
+        <!-- managed="false" giúp label không chiếm diện tích khi bị ẩn (visible="false") -->
+        <Label fx:id="passwordMatchLabel" visible="false" managed="false" styleClass="error-message"/>
+
+        <TextField fx:id="emailField" promptText="Email" styleClass="text-input-field"/>
+
+        <HBox spacing="10" alignment="CENTER_LEFT">
+            <Label text="Vai trò:" styleClass="form-label"/>
+            <ChoiceBox fx:id="roleChoiceBox" prefWidth="150" styleClass="text-input-field"/>
+        </HBox>
+
+        <Label fx:id="errorLabel" visible="false" managed="false" styleClass="error-message"/>
+
+        <!-- Nút bấm áp dụng 3 styleClass chồng lên nhau -->
+        <Button fx:id="registerButton" text="Đăng ký" onAction="#handleRegister"
+                styleClass="button, btn-primary, btn-full-width" maxWidth="Infinity"/>
+
+        <Separator/>
+
+        <!-- Thay Button bằng Hyperlink cho chuẩn giao diện -->
+        <Hyperlink text="Đã có tài khoản? Đăng nhập" onAction="#handleBackToLogin" styleClass="link-text"/>
+
+    </VBox>
+
+</VBox>
