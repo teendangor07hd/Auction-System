@@ -82,8 +82,15 @@ public final class ViewRouter {
                 ca.setContext(params);
             }
 
-            primaryStage.setScene(new Scene(root));
+            // Thay ruột Scene thay vì tạo mới để giữ nguyên kích thước cửa sổ (Window Size)
+            Scene currentScene = primaryStage.getScene();
+            if (currentScene == null) {
+                primaryStage.setScene(new Scene(root, 1024, 720)); // Ép cứng nếu chưa có
+            } else {
+                currentScene.setRoot(root);
+            }
             primaryStage.show();
+
         } catch (IOException e) {
             throw new RuntimeException("ViewRouter không load được " + viewName + ": " + e.getMessage(), e);
         }
