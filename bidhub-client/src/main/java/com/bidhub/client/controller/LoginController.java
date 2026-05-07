@@ -1,108 +1,120 @@
 package com.bidhub.client.controller;
 
+import com.bidhub.client.network.ClientSession;
+import com.bidhub.client.network.NetworkTask;
+import com.bidhub.client.network.ServerGateway;
+import com.bidhub.client.navigation.ViewRouter;
+import com.bidhub.client.util.Views;
+import com.bidhub.common.network.MessageMapper;
+import com.bidhub.common.network.MessageRequest;
+import com.bidhub.common.network.MessageResponse;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.JsonNodeFactory;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import javafx.fxml.FXML;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.PasswordField;
 import javafx.scene.control.TextField;
+import javafx.beans.binding.Bindings;
 
 /**
- * Controller cho màn hình đăng nhập (LoginView.fxml).
+ * Controller cho man hinh dang nhap.
  *
- * <p>Tuần 1: Chỉ có skeleton, chưa có logic kết nối server.
- * Logic thật (gọi API Login) sẽ được implement ở Tuần 5.
- *
- * <p>Pattern: JavaFX MVC
- * <ul>
- *   <li>View: LoginView.fxml</li>
- *   <li>Controller: LoginController (class này)</li>
- *   <li>Model: sẽ có User, ClientSession ở tuần 5</li>
- * </ul>
+ * <p>// 📌 [Tieu chi: MVC — Controller dieu phoi UI + network + navigation]
+ * Flow: validate → NetworkTask → ServerGateway → ClientSession → navigateTo.
+ * setOnSucceeded chay tren FX thread — KHONG can Platform.runLater().
  */
 public class LoginController {
+    private javafx.beans.property.BooleanProperty isLoading = new javafx.beans.property.SimpleBooleanProperty(false);
 
-    /** TextField nhập tên đăng nhập — kết nối từ FXML qua fx:id="usernameField" */
-    @FXML
-    private TextField usernameField;
+    @FXML private TextField usernameField;
+    @FXML private PasswordField passwordField;
+    @FXML private Label errorLabel;
+    @FXML private Button loginButton;
 
-    /** PasswordField nhập mật khẩu */
-    @FXML
-    private PasswordField passwordField;
-
-    /** Label hiển thị lỗi (ẩn mặc định) */
-    @FXML
-    private Label errorLabel;
-
-    /** Button đăng nhập */
-    @FXML
-    private Button loginButton;
-
-    /**
-     * JavaFX gọi method này SAU KHI tất cả @FXML fields đã được inject.
-     * Dùng để setup bindings, event listeners, giá trị mặc định.
-     *
-     * <p>Tuần 1: Chỉ disable button khi fields rỗng (binding đơn giản).
-     */
     @FXML
     public void initialize() {
-        // Disable button khi username hoặc password đang rỗng
-        // Bindings.or() trả về BooleanBinding: true khi ít nhất 1 field rỗng
         loginButton.disableProperty().bind(
-                usernameField.textProperty().isEmpty()
-                        .or(passwordField.textProperty().isEmpty())
+                Bindings.createBooleanBinding(
+                        // Nút sẽ disable nếu ô chữ trống HOẶC đang trong trạng thái loading
+                        () -> usernameField.getText().isBlank()
+                                || passwordField.getText().isBlank()
+                                || isLoading.get(),
+                        usernameField.textProperty(),
+                        passwordField.textProperty(),
+                        isLoading // Lắng nghe thêm biến isLoading
+                )
         );
-
-        // Ẩn label lỗi ban đầu
         errorLabel.setVisible(false);
-        errorLabel.setManaged(false); // Không chiếm không gian khi ẩn
+        errorLabel.getStyleClass().add("error-message");
     }
 
     /**
-     * Xử lý khi người dùng click "Đăng nhập" hoặc nhấn Enter trong form.
-     *
-     * <p>Tuần 1: Chỉ in ra console để test — sẽ gọi API thật ở Tuần 5.
-     * <p>onAction="#handleLogin" trong FXML kết nối đến method này.
+     * Xu ly click nut "Dang nhap" — gui request LOGIN qua NetworkTask.
      */
     @FXML
-    private void handleLogin() {
+    public void handleLogin() {
         String username = usernameField.getText().trim();
         String password = passwordField.getText();
 
-        // Tuần 1: Demo validation cơ bản (chưa gọi server)
-        if (username.length() < 3) {
-            showError("Tên đăng nhập phải có ít nhất 3 ký tự");
-            return;
-        }
+        errorLabel.setVisible(false);
+        isLoading.set(true); // Bắt đầu loading, binding sẽ tự động disable nút
 
-        // TODO Tuần 5: Gọi NetworkTask → LoginCommand → nhận token → navigate AuctionList
-        System.out.println("[DEBUG] Đăng nhập với username: " + username);
-        showError(""); // Xóa lỗi cũ
-        System.out.println("[DEBUG] Tuần 5 sẽ implement kết nối server thật");
+        // 📌 [Tieu chi: MVC — tao request JSON payload]
+        ObjectNode payload = JsonNodeFactory.instance.objectNode();
+        payload.put("username", username);
+        payload.put("password", password);
+
+        MessageRequest request = new MessageRequest(
+                "LOGIN", ClientSession.getInstance().getToken(), payload);
+
+        // 📌 [Tieu chi: Ky thuat quan trong — NetworkTask khong block FX thread]
+        NetworkTask<MessageResponse> task = new NetworkTask<>(() ->
+                ServerGateway.getInstance().sendRequest(request));
+
+        task.setOnSucceeded(e -> {
+            isLoading.set(false); // Đưa lên đầu: Dù thành công hay thất bại, tiến trình mạng đã xong thì gỡ loading.
+
+            MessageResponse response = task.getValue();
+            if (response.isOk()) {
+                handleLoginSuccess(response);
+            } else {
+                errorLabel.setText(response.getMessage());
+                errorLabel.setVisible(true);
+            }
+        });
+
+        task.setOnFailed(e -> {
+            isLoading.set(false); // Lỗi mạng (Exception) rơi vào đây, cũng gỡ loading.
+            errorLabel.setText("Khong ket noi duoc may chu. Thu lai sau.");
+            errorLabel.setVisible(true);
+        });
+
+        new Thread(task).start();
     }
 
     /**
-     * Xử lý khi người dùng click "Đăng ký".
-     *
-     * <p>TODO Tuần 5: ViewRouter.navigateTo(Views.REGISTER)
+     * Xu ly dang nhap thanh cong — luu session va chuyen man hinh.
+     */
+    private void handleLoginSuccess(MessageResponse response) {
+        // 📌 [Tieu chi: Quan ly nguoi dung — luu thong tin dang nhap vao ClientSession]
+        Object payload = response.getPayload();
+        if (payload instanceof java.util.Map<?, ?> map) {
+            String token = (String) map.get("token");
+            String userId = (String) map.get("userId");
+            String username = (String) map.get("username");
+            String role = (String) map.get("role");
+            ClientSession.getInstance().login(token, userId, username, role);
+        }
+        ViewRouter.getInstance().navigateTo(Views.AUCTION_LIST);
+    }
+
+    /**
+     * Chuyen sang man hinh dang ky.
      */
     @FXML
-    private void handleRegister() {
-        System.out.println("[DEBUG] Chuyển sang màn hình đăng ký — implement tuần 5");
-    }
-
-    /**
-     * Hiển thị thông báo lỗi dưới form.
-     *
-     * @param message nội dung lỗi; truyền chuỗi rỗng để ẩn label
-     */
-    private void showError(String message) {
-        if (message == null || message.isBlank()) {
-            errorLabel.setVisible(false);
-            errorLabel.setManaged(false);
-        } else {
-            errorLabel.setText(message);
-            errorLabel.setVisible(true);
-            errorLabel.setManaged(true);
-        }
+    public void handleRegister() {
+        ViewRouter.getInstance().navigateTo(Views.REGISTER);
     }
 }
