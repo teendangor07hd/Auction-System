@@ -177,13 +177,28 @@ public class UserDao {
         String passwordHash = rs.getString("password_hash");
         String email = rs.getString("email");
         UserRole role = UserRole.valueOf(rs.getString("role"));
-        int extraInt = rs.getInt("extra_int");
+        int extraInt = 0;
+        try { extraInt = rs.getInt("extra_int"); } catch (SQLException ignored) {}
 
-        return switch (role) {
+        User user = switch (role) {
             case BIDDER -> new Bidder(id, createdAt, updatedAt, username, passwordHash, email, extraInt);
             case SELLER -> new Seller(id, createdAt, updatedAt, username, passwordHash, email, extraInt);
             case ADMIN  -> new Admin(id, createdAt, updatedAt, username, passwordHash, email, extraInt);
         };
+
+        // ╔═══════════════════════════════════════════════════════════════╗
+        // ║  ⚠️ STUB — ĐĂNG SẼ MERGE — XÓA khi rebase từ develop          ║
+        // ║  Đọc is_locked nếu cột tồn tại (Đăng thêm cột này vào schema) ║
+        // ╚═══════════════════════════════════════════════════════════════╝
+        try {
+            boolean locked = rs.getInt("is_locked") == 1;
+            user.setLocked(locked);
+        } catch (SQLException ignored) {
+            // Cot is_locked chua ton tai — bo qua
+        }
+        // ║  ⚠️ END STUB — mapRow is_locked                                ║
+
+        return user;
     }
 
     // Lấy giá trị extra_int theo role (totalBidsPlaced / totalItemsListed / adminLevel)
@@ -194,4 +209,43 @@ public class UserDao {
             case ADMIN  -> ((Admin)  user).getAdminLevel();
         };
     }
+
+    // ╔══════════════════════════════════════════════════════════════╗
+    // ║  ⚠️ STUB — ĐĂNG SẼ MERGE (feature/tuan-6-dang-auction-manager)  ║
+    // ║  XÓA TOÀN BỘ METHOD NÀY khi rebase từ develop sau khi Đăng merge║
+    // ║  Lý do: Khoa cần updateLocked() cho AdminUserService             ║
+    // ╚══════════════════════════════════════════════════════════════╝
+    /**
+     * Cap nhat trang thai khoa/mo khoa tai khoan.
+     *
+     * <p>// 📌 [Tieu chi: Quan ly nguoi dung — Admin khoa/mo tai khoan]
+     *
+     * @param userId id nguoi dung
+     * @param locked true de khoa, false de mo
+     */
+    public void updateLocked(String userId, boolean locked) {
+        String sql = "UPDATE users SET is_locked = ?, updated_at = ? WHERE id = ?";
+        Connection conn = null;
+        try {
+            conn = acquireConnection();
+            try (PreparedStatement ps = conn.prepareStatement(sql)) {
+                ps.setInt(1, locked ? 1 : 0);
+                ps.setString(2, LocalDateTime.now().toString());
+                ps.setString(3, userId);
+                int affected = ps.executeUpdate();
+                if (affected == 0) {
+                    throw new RuntimeException(
+                        "UserDao.updateLocked: khong tim thay user " + userId);
+                }
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException(
+                "UserDao.updateLocked that bai: " + e.getMessage(), e);
+        } finally {
+            releaseConnection(conn);
+        }
+    }
+    // ╔══════════════════════════════════════════════════════════════╗
+    // ║  ⚠️ END STUB — ĐĂNG (updateLocked)                            ║
+    // ╚══════════════════════════════════════════════════════════════╝
 }
