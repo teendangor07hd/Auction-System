@@ -1,52 +1,125 @@
 <?xml version="1.0" encoding="UTF-8"?>
+
+<?import java.lang.*?>
+<?import javafx.geometry.*?>
 <?import javafx.scene.control.*?>
 <?import javafx.scene.layout.*?>
-<?import javafx.geometry.Insets?>
 
-<!-- Đã sửa: Nạp file styles.css để nhận Modern UI Theme -->
-<VBox xmlns:fx="http://javafx.com/fxml/1"
-      fx:controller="com.bidhub.client.controller.CreateItemController"
-      stylesheets="@/css/styles.css"
-      styleClass="root" spacing="10" alignment="CENTER"
-      prefWidth="550" prefHeight="650">
+<VBox alignment="TOP_CENTER" prefHeight="700.0" prefWidth="600.0" spacing="20.0" styleClass="root" stylesheets="@/css/styles.css" xmlns="http://javafx.com/javafx/17.0.12" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.bidhub.client.controller.CreateItemController">
 
-    <padding><Insets top="20" right="40" bottom="20" left="40"/></padding>
+    <padding>
+        <Insets bottom="30.0" left="50.0" right="50.0" top="30.0" />
+    </padding>
 
-    <!-- Đã sửa: Áp dụng styleClass login-title từ file CSS thay vì hardcode -->
-    <Label text="Tạo sản phẩm mới" styleClass="login-title" style="-fx-font-size: 24px;"/>
-
-    <Separator style="-fx-padding: 0 0 10 0;"/>
-
-    <!-- Thêm styleClass text-input-field cho các trường nhập liệu -->
-    <TextField fx:id="nameField" promptText="Tên sản phẩm" styleClass="text-input-field"/>
-    <TextArea fx:id="descriptionArea" promptText="Mô tả sản phẩm" prefRowCount="3" styleClass="text-input-field"/>
-    <TextField fx:id="startingPriceField" promptText="Giá khởi điểm (VND)" styleClass="text-input-field"/>
-    <ComboBox fx:id="itemTypeComboBox" promptText="Chọn loại sản phẩm" maxWidth="Infinity" styleClass="text-input-field"/>
-
-    <!-- Dynamic fields: Electronics -->
-    <VBox fx:id="electronicsFields" spacing="8">
-        <TextField fx:id="brandField" promptText="Thương hiệu (brand)" styleClass="text-input-field"/>
-        <TextField fx:id="warrantyMonthsField" promptText="Số tháng bảo hành" styleClass="text-input-field"/>
+    <VBox alignment="CENTER" spacing="5.0">
+        <Label style="-fx-font-size: 28px; -fx-text-fill: #2c3e50;" styleClass="login-title" text="THÔNG TIN ĐẤU GIÁ">
+         <VBox.margin>
+            <Insets />
+         </VBox.margin></Label>
+        <Label style="-fx-text-fill: #7f8c8d; -fx-font-size: 13px;" text="Vui lòng điền đầy đủ thông tin sản phẩm bên dưới" />
+        <Label fx:id="lblMessage" managed="false" styleClass="error-message" visible="false" />
     </VBox>
 
-    <!-- Dynamic fields: Art -->
-    <VBox fx:id="artFields" spacing="8">
-        <TextField fx:id="artistField" promptText="Nghệ sĩ (artist)" styleClass="text-input-field"/>
-        <TextField fx:id="yearCreatedField" promptText="Năm sáng tác" styleClass="text-input-field"/>
+    <Separator />
+
+    <GridPane hgap="15.0" vgap="18.0">
+        <columnConstraints>
+            <ColumnConstraints hgrow="SOMETIMES" minWidth="120.0" prefWidth="140.0" />
+            <ColumnConstraints hgrow="ALWAYS" minWidth="10.0" />
+        </columnConstraints>
+
+        <children>
+            <Label text="Tên sản phẩm:" GridPane.rowIndex="0" />
+            <TextField fx:id="nameField" promptText="VD: iPhone 15 Pro Max" styleClass="text-input-field" GridPane.columnIndex="1" GridPane.rowIndex="0" />
+
+            <Label text="Mô tả chi tiết:" GridPane.rowIndex="1" GridPane.valignment="TOP" />
+            <TextArea fx:id="descriptionArea" prefRowCount="3" promptText="Tình trạng, ngoại hình, phụ kiện đi kèm..." styleClass="text-input-field" wrapText="true" GridPane.columnIndex="1" GridPane.rowIndex="1" />
+
+            <Label text="Giá khởi điểm:" GridPane.rowIndex="2" />
+            <TextField fx:id="startingPriceField" promptText="Nhập số tiền (VND)" styleClass="text-input-field" GridPane.columnIndex="1" GridPane.rowIndex="2" />
+
+            <Label text="Loại sản phẩm:" GridPane.rowIndex="3" />
+            <ComboBox fx:id="itemTypeComboBox" maxWidth="Infinity" promptText="-- Chọn danh mục --" styleClass="text-input-field" GridPane.columnIndex="1" GridPane.rowIndex="3" />
+        </children>
+      <rowConstraints>
+         <RowConstraints />
+         <RowConstraints />
+         <RowConstraints />
+         <RowConstraints />
+      </rowConstraints>
+    </GridPane>
+
+    <VBox spacing="15.0">
+        <VBox fx:id="electronicsFields" managed="false" spacing="15.0" style="-fx-background-color: #f1f3f5; -fx-padding: 15; -fx-background-radius: 10;" visible="false">
+            <Label style="-fx-font-weight: bold; -fx-text-fill: #4361ee;" text="Thông tin Điện tử" />
+            <GridPane hgap="15.0" vgap="10.0">
+                <columnConstraints>
+                    <ColumnConstraints minWidth="120.0" prefWidth="125.0" />
+                    <ColumnConstraints hgrow="ALWAYS" />
+                </columnConstraints>
+                <Label text="Thương hiệu:" />
+                <TextField fx:id="brandField" styleClass="text-input-field" GridPane.columnIndex="1" />
+                <Label text="Bảo hành (tháng):" GridPane.rowIndex="1" />
+                <TextField fx:id="warrantyMonthsField" styleClass="text-input-field" GridPane.columnIndex="1" GridPane.rowIndex="1" />
+            <rowConstraints>
+               <RowConstraints />
+               <RowConstraints />
+            </rowConstraints>
+            </GridPane>
+        </VBox>
+
+        <VBox fx:id="artFields" managed="false" spacing="15.0" style="-fx-background-color: #fff9db; -fx-padding: 15; -fx-background-radius: 10;" visible="false">
+            <Label style="-fx-font-weight: bold; -fx-text-fill: #f08c00;" text="Thông tin Nghệ thuật" />
+            <GridPane hgap="15.0" vgap="10.0">
+                <columnConstraints>
+                    <ColumnConstraints minWidth="120.0" prefWidth="125.0" />
+                    <ColumnConstraints hgrow="ALWAYS" />
+                </columnConstraints>
+                <Label text="Nghệ sĩ:" />
+                <TextField fx:id="artistField" styleClass="text-input-field" GridPane.columnIndex="1" />
+                <Label text="Năm sáng tác:" GridPane.rowIndex="1" />
+                <TextField fx:id="yearCreatedField" styleClass="text-input-field" GridPane.columnIndex="1" GridPane.rowIndex="1" />
+            <rowConstraints>
+               <RowConstraints />
+               <RowConstraints />
+            </rowConstraints>
+            </GridPane>
+        </VBox>
+
+        <VBox fx:id="vehicleFields" managed="false" spacing="15.0" style="-fx-background-color: #e7f5ff; -fx-padding: 15; -fx-background-radius: 10;" visible="false">
+            <Label style="-fx-font-weight: bold; -fx-text-fill: #1971c2;" text="Thông tin Phương tiện" />
+            <GridPane hgap="15.0" vgap="10.0">
+                <columnConstraints>
+                    <ColumnConstraints minWidth="120.0" prefWidth="125.0" />
+                    <ColumnConstraints hgrow="ALWAYS" />
+                </columnConstraints>
+                <Label text="Hãng xe:" />
+                <TextField fx:id="manufacturerField" styleClass="text-input-field" GridPane.columnIndex="1" />
+                <Label text="Năm sản xuất:" GridPane.rowIndex="1" />
+                <TextField fx:id="yearField" styleClass="text-input-field" GridPane.columnIndex="1" GridPane.rowIndex="1" />
+                <Label text="Số KM đã đi:" GridPane.rowIndex="2" />
+                <TextField fx:id="mileageKmField" styleClass="text-input-field" GridPane.columnIndex="1" GridPane.rowIndex="2" />
+            <rowConstraints>
+               <RowConstraints />
+               <RowConstraints />
+               <RowConstraints />
+            </rowConstraints>
+            </GridPane>
+        </VBox>
     </VBox>
 
-    <!-- Dynamic fields: Vehicle -->
-    <VBox fx:id="vehicleFields" spacing="8">
-        <TextField fx:id="manufacturerField" promptText="Nhà sản xuất" styleClass="text-input-field"/>
-        <TextField fx:id="yearField" promptText="Năm sản xuất" styleClass="text-input-field"/>
-        <TextField fx:id="mileageKmField" promptText="Số km đã đi" styleClass="text-input-field"/>
-    </VBox>
-
-    <!-- Đã sửa: Thêm managed="false" để thu hồi không gian khi tàng hình -->
-    <Label fx:id="lblMessage" visible="false" managed="false" styleClass="error-message"/>
-
-    <HBox spacing="10" alignment="CENTER_RIGHT" style="-fx-padding: 15 0 0 0;">
-        <Button text="Hủy" onAction="#handleCancel" styleClass="button, btn-danger-outline"/>
-        <Button text="Tạo sản phẩm" onAction="#handleSubmit" styleClass="button, btn-primary"/>
-    </HBox>
+    <Region VBox.vgrow="ALWAYS" /> <HBox alignment="CENTER_RIGHT" spacing="15.0">
+    <Button onAction="#handleCancel" text="Hủy bỏ">
+        <styleClass>
+            <String fx:value="button" />
+            <String fx:value="btn-danger-outline" />
+        </styleClass>
+    </Button>
+    <Button onAction="#handleSubmit" prefWidth="150.0" text="Đăng sản phẩm">
+        <styleClass>
+            <String fx:value="button" />
+            <String fx:value="btn-primary" />
+        </styleClass>
+    </Button>
+</HBox>
 </VBox>

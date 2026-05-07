@@ -93,6 +93,7 @@ public class RegisterController {
         }
 
         errorLabel.setVisible(false);
+        registerButton.disableProperty().unbind();
         registerButton.setDisable(true);
 
         // 📌 [Tieu chi: MVC — tao REGISTER request payload]
