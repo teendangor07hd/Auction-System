@@ -63,6 +63,23 @@ public class Auction extends Entity {
      * @throws IllegalArgumentException nếu vi phạm điều kiện
      */
 
+    // ╔══════════════════════════════════════════════════════════════╗
+    // ║  ⚠️ STUB — Test reflection (BidValidatorTest dùng new Auction()) ║
+    // ║  XÓA khi Quốc Minh merge BidValidator + test chính thức         ║
+    // ╚══════════════════════════════════════════════════════════════╝
+    public Auction() {
+        super();
+        this.itemId = null;
+        this.startTime = LocalDateTime.now();
+        this.endTime = LocalDateTime.now().plusHours(1);
+        this.startingPrice = 0;
+        this.currentHighestBid = 0;
+        this.highestBidderId = null;
+        this.status = AuctionStatus.OPEN;
+        this.minimumIncrement = 0;
+    }
+    // ║  ⚠️ END STUB — Auction no-arg constructor                      ║
+
     public Auction(
             String itemId,
             LocalDateTime startTime,
