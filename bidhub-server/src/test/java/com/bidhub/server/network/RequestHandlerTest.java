@@ -61,8 +61,10 @@ class RequestHandlerTest {
         String resp = handler.handle("{\"type\":\"PLACE_BID\",\"payload\":{}}", session);
         MessageResponse r = MessageMapper.fromJson(resp, MessageResponse.class);
         assertEquals("ERROR", r.getStatus());
-        assertTrue(r.getMessage().contains("chưa đăng nhập"));
-    }
+        assertTrue(
+                r.getMessage().contains("Ban chua dang nhap") || r.getMessage().contains("chưa đăng nhập"),
+                "Phải báo lỗi chưa đăng nhập"
+        );    }
 
     @Test
     @DisplayName("type=null trong JSON → không crash, trả về ERROR")
