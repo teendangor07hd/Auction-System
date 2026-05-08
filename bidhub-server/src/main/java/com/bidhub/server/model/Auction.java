@@ -52,6 +52,10 @@ public class Auction extends Entity {
     */
     private final double minimumIncrement;
 
+    public Auction() {
+        // Constructor rỗng dành cho Testing và thư viện Jackson
+    }
+
     /**
      * Tạo phiên đấu giá mới.
      *
