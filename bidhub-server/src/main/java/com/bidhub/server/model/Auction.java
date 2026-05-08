@@ -54,6 +54,11 @@ public class Auction extends Entity {
 
     public Auction() {
         // Constructor rỗng dành cho Testing và thư viện Jackson
+        // Gán giá trị mặc định cho các biến final để trình biên dịch không báo lỗi
+        this.itemId = null;
+        this.startTime = null;
+        this.startingPrice = 0.0;
+        this.minimumIncrement = 0.0;
     }
 
     /**
