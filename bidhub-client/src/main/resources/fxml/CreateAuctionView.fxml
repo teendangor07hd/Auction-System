@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<?import javafx.geometry.Insets?>
+
+<VBox xmlns:fx="http://javafx.com/fxml/1"
+      fx:controller="com.bidhub.client.controller.CreateAuctionController"
+      stylesheets="@/css/styles.css"
+      styleClass="root"
+      alignment="CENTER"
+      spacing="0">
+
+    <padding><Insets top="20" right="20" bottom="20" left="20"/></padding>
+
+    <!-- Khung trắng chứa form -->
+    <VBox styleClass="content-pane" spacing="16" alignment="TOP_CENTER"
+          maxWidth="600" maxHeight="Infinity">
+
+        <Label text="Tạo phiên đấu giá" styleClass="login-title" />
+
+        <HBox spacing="12" alignment="CENTER_LEFT">
+            <Label text="Sản phẩm:" styleClass="form-label" prefWidth="120"/>
+            <ComboBox fx:id="cbItemId" prefWidth="250" promptText="Chọn sản phẩm..."
+                      style="-fx-background-color: #F8FAFC; -fx-border-color: #CBD5E1; -fx-border-radius: 8px; -fx-background-radius: 8px;"/>
+        </HBox>
+
+        <HBox spacing="12" alignment="CENTER_LEFT">
+            <Label text="Giá khởi điểm:" styleClass="form-label" prefWidth="120"/>
+            <TextField fx:id="tfStartingPrice" styleClass="text-input-field" prefWidth="250"
+                       promptText="VD: 100000"/>
+        </HBox>
+
+        <HBox spacing="12" alignment="CENTER_LEFT">
+            <Label text="Bước giá tối thiểu:" styleClass="form-label" prefWidth="120"/>
+            <TextField fx:id="tfMinIncrement" styleClass="text-input-field" prefWidth="250"
+                       promptText="VD: 50000 (mặc định 1)"/>
+        </HBox>
+
+        <HBox spacing="12" alignment="CENTER_LEFT">
+            <Label text="Thời gian bắt đầu:" styleClass="form-label" prefWidth="120"/>
+            <DatePicker fx:id="dpStartTime"
+                        style="-fx-background-color: #F8FAFC; -fx-border-color: #CBD5E1; -fx-border-radius: 8px; -fx-background-radius: 8px;"/>
+            <Spinner fx:id="spStartHour" prefWidth="80" editable="true"
+                     style="-fx-background-color: #F8FAFC; -fx-border-color: #CBD5E1; -fx-border-radius: 8px; -fx-background-radius: 8px;"/>
+            <Label text="giờ" styleClass="form-label"/>
+        </HBox>
+
+        <HBox spacing="12" alignment="CENTER_LEFT">
+            <Label text="Thời gian kết thúc:" styleClass="form-label" prefWidth="120"/>
+            <DatePicker fx:id="dpEndTime"
+                        style="-fx-background-color: #F8FAFC; -fx-border-color: #CBD5E1; -fx-border-radius: 8px; -fx-background-radius: 8px;"/>
+            <Spinner fx:id="spEndHour" prefWidth="80" editable="true"
+                     style="-fx-background-color: #F8FAFC; -fx-border-color: #CBD5E1; -fx-border-radius: 8px; -fx-background-radius: 8px;"/>
+            <Label text="giờ" styleClass="form-label"/>
+        </HBox>
+
+        <HBox spacing="16" alignment="CENTER">
+            <Button fx:id="btnSubmit" text="Tạo phiên" styleClass="button btn-primary btn-full-width"
+                    prefWidth="120"/>
+            <Button fx:id="btnBack" text="Quay lại" styleClass="button" prefWidth="120"/>
+        </HBox>
+
+    </VBox>
+</VBox>
