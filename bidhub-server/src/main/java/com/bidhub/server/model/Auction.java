@@ -214,4 +214,24 @@ public class Auction extends Entity {
         this.status = status;
         this.minimumIncrement = minimumIncrement;
     }
+
+    /**
+     * Cap nhat gia cao nhat hien tai — dung khi co bid moi.
+     *
+     * <p>// 📌 [Tieu chi: Chuc nang dau gia — cap nhat gia trong RAM]
+     *
+     * @param amount gia dau moi
+     */
+    public void setCurrentHighestBid(double amount) {
+        this.currentHighestBid = amount;
+    }
+
+    /**
+     * Cap nhat id nguoi dan dau — dung khi co bid moi.
+     *
+     * @param bidderId id cua nguoi dau gia moi
+     */
+    public void setHighestBidderId(String bidderId) {
+        this.highestBidderId = bidderId;
+    }
 }
