@@ -17,12 +17,14 @@
                     maxWidth="Infinity" styleClass="button, btn-primary" />
             <Button fx:id="btnCreateAuction" text="📊 Tạo phiên mới"
                     maxWidth="Infinity" styleClass="button, btn-primary" />
+            <Button fx:id="btnAccount"       text="👤 Tài khoản"
+                    maxWidth="Infinity" styleClass="button, btn-primary" />
             <Button fx:id="btnLogout"        text="🚪 Đăng xuất"
                     maxWidth="Infinity" style="button, btn-danger-outline" />
 
             <Separator/>
 
-            <!-- Thông tin người dùng -->
+            <!-- Thông tin người dùng (tên + vai trò) -->
             <Label fx:id="lblUserRole" text="Chưa đăng nhập"
                    style="-fx-text-fill: white; -fx-font-size: 12px;" wrapText="true"/>
         </VBox>
