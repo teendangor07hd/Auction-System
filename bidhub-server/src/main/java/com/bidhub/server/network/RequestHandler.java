@@ -175,7 +175,13 @@ public final class RequestHandler {
             return MessageMapper.toJson(
                     MessageResponse.error("LOGIN", "Ten dang nhap hoac mat khau khong dung."));
         }
-
+        // 📌 [Tieu chi: Quan ly nguoi dung — kiem tra tai khoan bi khoa]
+        if (user.isLocked()) {
+            auditLogService.log(user.getId(),
+                    AuditActions.USER_LOGIN, "{\"blocked\":true}");
+            return MessageMapper.toJson(
+                    MessageResponse.error("LOGIN", "TAI KHOAN BI KHOA"));
+        }
         // 📌 [Tieu chi: Ky thuat quan trong — tao session voi token UUID]
         String token = SessionManager.getInstance().createSession(user.getId());
         session.setAuthenticatedUserId(user.getId());
