@@ -6,6 +6,7 @@ import com.bidhub.common.network.MessageRequest;
 import com.bidhub.common.network.MessageResponse;
 import com.bidhub.server.dao.UserDao;
 import com.bidhub.server.model.*;
+import com.bidhub.server.service.AdminUserService;
 import com.bidhub.server.service.AuditLogService;
 import com.bidhub.server.service.SessionManager;
 import com.bidhub.server.dao.ItemDao;
@@ -55,6 +56,7 @@ public final class RequestHandler {
     private final ItemDao itemDao;
     private final AuditLogService auditLogService;
     private final UserDao userDao;
+    private final AdminUserService adminUserService;
     private final AuctionDao auctionDao;
     private final BidDao bidDao;
     private final BidValidator bidValidator;
@@ -67,6 +69,7 @@ public final class RequestHandler {
         this.auctionDao = new AuctionDao();
         this.bidDao = new BidDao();
         this.itemDao = new ItemDao();
+        this.adminUserService = new AdminUserService();
         this.bidValidator = new BidValidator(itemDao);
     }
 
@@ -76,9 +79,11 @@ public final class RequestHandler {
         this.auditLogService = new AuditLogService();
         this.userDao = injectedUserDao instanceof UserDao
                 ? (UserDao) injectedUserDao : new UserDao();
+        this.itemDao = injectedItemDao instanceof ItemDao
+                ? (ItemDao) injectedItemDao : new ItemDao();
         this.auctionDao = new AuctionDao();
         this.bidDao = new BidDao();
-        this.itemDao = new ItemDao();
+        this.adminUserService = new AdminUserService();
         this.bidValidator = new BidValidator(itemDao);
     }
 
@@ -89,9 +94,11 @@ public final class RequestHandler {
         this.auditLogService = injectedAuditService;
         this.userDao = injectedUserDao instanceof UserDao
                 ? (UserDao) injectedUserDao : new UserDao();
+        this.itemDao = injectedItemDao instanceof ItemDao
+                ? (ItemDao) injectedItemDao : new ItemDao();
         this.auctionDao = new AuctionDao();
         this.bidDao = new BidDao();
-        this.itemDao = new ItemDao();
+        this.adminUserService = new AdminUserService();
         this.bidValidator = new BidValidator(itemDao);
     }
 
@@ -146,6 +153,9 @@ public final class RequestHandler {
                         MessageResponse.error("GET_ITEM_DETAIL", "Chua implement — Khoa se them"));
                 case "DELETE_ITEM"   -> MessageMapper.toJson(
                         MessageResponse.error("DELETE_ITEM", "Chua implement — Khoa se them"));
+                case "GET_USER_LIST"  -> handleGetUserList(session, payload);
+                case "LOCK_USER"      -> handleLockUser(session, payload);
+                case "UNLOCK_USER"    -> handleUnlockUser(session, payload);
                 case "PLACE_BID"        -> handlePlaceBid(session, payload);
                 case "GET_AUCTION_LIST"  -> handleGetAuctionList(session, payload);
                 case "GET_AUCTION_DETAIL" -> handleGetAuctionDetail(session, payload);
@@ -484,6 +494,84 @@ public final class RequestHandler {
 
         return MessageMapper.toJson(MessageResponse.ok("DELETE_ITEM", result));
     }
+
+    // === ADMIN HANDLERS ===
+
+    /**
+     * Xu ly lay danh sach nguoi dung — chi ADMIN.
+     *
+     * <p>// 📌 [Tieu chi: Quan ly nguoi dung — Admin xem danh sach user]
+     *
+     * @param session session cua client
+     * @param payload payload rong
+     * @return JSON response voi danh sach user
+     */
+    private String handleGetUserList(Session session, JsonNode payload) {
+        SecurityContext.requireRole(session, UserRole.ADMIN);
+
+        java.util.List<User> users = adminUserService.listAllUsers();
+        java.util.List<Map<String, Object>> result = new java.util.ArrayList<>();
+        for (User u : users) {
+            Map<String, Object> userInfo = new HashMap<>();
+            userInfo.put("id", u.getId());
+            userInfo.put("username", u.getUsername());
+            userInfo.put("email", u.getEmail());
+            userInfo.put("role", u.getRole().name());
+            userInfo.put("isLocked", u.isLocked());
+            result.add(userInfo);
+        }
+        return MessageMapper.toJson(
+            MessageResponse.ok("GET_USER_LIST", result));
+    }
+
+    /**
+     * Xu ly khoa tai khoan — chi ADMIN.
+     *
+     * <p>// 📌 [Tieu chi: Quan ly nguoi dung — Admin khoa tai khoan]
+     *
+     * @param session session cua client
+     * @param payload {targetUserId}
+     * @return JSON response
+     */
+    private String handleLockUser(Session session, JsonNode payload) {
+        String adminId = SecurityContext.requireRole(session, UserRole.ADMIN);
+        String targetUserId = payload.path("targetUserId").asText("");
+
+        if (targetUserId.isBlank()) {
+            throw new com.bidhub.common.exception.ValidationException(
+                "targetUserId khong duoc de trong");
+        }
+
+        adminUserService.lockUser(targetUserId, adminId);
+
+        return MessageMapper.toJson(MessageResponse.ok("LOCK_USER",
+            Map.of("message", "Da khoa tai khoan.")));
+    }
+
+    /**
+     * Xu ly mo khoa tai khoan — chi ADMIN.
+     *
+     * <p>// 📌 [Tieu chi: Quan ly nguoi dung — Admin mo khoa tai khoan]
+     *
+     * @param session session cua client
+     * @param payload {targetUserId}
+     * @return JSON response
+     */
+    private String handleUnlockUser(Session session, JsonNode payload) {
+        String adminId = SecurityContext.requireRole(session, UserRole.ADMIN);
+        String targetUserId = payload.path("targetUserId").asText("");
+
+        if (targetUserId.isBlank()) {
+            throw new com.bidhub.common.exception.ValidationException(
+                "targetUserId khong duoc de trong");
+        }
+
+        adminUserService.unlockUser(targetUserId, adminId);
+
+        return MessageMapper.toJson(MessageResponse.ok("UNLOCK_USER",
+            Map.of("message", "Da mo khoa tai khoan.")));
+    }
+
 
     /**
      * Xu ly dat gia — validate, luu bid, cap nhat RAM va DB.

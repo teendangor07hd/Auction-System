@@ -176,7 +176,8 @@ public class UserDao {
         String passwordHash = rs.getString("password_hash");
         String email = rs.getString("email");
         UserRole role = UserRole.valueOf(rs.getString("role"));
-        int extraInt = rs.getInt("extra_int");
+        int extraInt = 0;
+        try { extraInt = rs.getInt("extra_int"); } catch (SQLException ignored) {}
 
         // Tạo đúng subclass dựa trên role
         User user = switch (role) {
@@ -185,10 +186,9 @@ public class UserDao {
             case ADMIN  -> new Admin(id, createdAt, updatedAt, username, passwordHash, email, extraInt);
         };
 
-        // ===== THÊM 2 DÒNG NÀY =====
-        boolean locked = rs.getInt("is_locked") == 1;  // Đọc cột is_locked từ DB
-        user.setLocked(locked);                         // Gán vào user
-        // ===========================
+        // Đọc cột is_locked từ DB
+        boolean locked = rs.getInt("is_locked") == 1;
+        user.setLocked(locked);
 
         return user;
     }
@@ -201,7 +201,7 @@ public class UserDao {
             case ADMIN  -> ((Admin)  user).getAdminLevel();
         };
     }
-    // --- 3. THÊM method mới: updateLocked() ---
+
     /**
      * Cap nhat trang thai khoa/mo khoa tai khoan.
      *
@@ -232,5 +232,4 @@ public class UserDao {
             releaseConnection(conn);
         }
     }
-
 }

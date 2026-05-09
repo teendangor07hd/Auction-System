@@ -125,4 +125,65 @@ class BidValidatorTest {
         assertDoesNotThrow(
                 () -> validator.validate(a, "user-bidder", 1050.0));
     }
+
+    // === 6 test cases bo sung (Khoa) ===
+
+    private Auction createAuctionWithStatus(AuctionStatus status, double currentBid,
+            double minIncrement, String highestBidderId) {
+        Auction a = createRunningAuction(currentBid, minIncrement, highestBidderId);
+        try {
+            var statusField = a.getClass().getDeclaredField("status");
+            statusField.setAccessible(true);
+            statusField.set(a, status);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+        return a;
+    }
+
+    @Test
+    @DisplayName("validate auction CANCELED → AuctionClosedException")
+    void validate_canceledAuction_throwsClosed() {
+        Auction a = createAuctionWithStatus(AuctionStatus.CANCELED, 1000, 50, null);
+        assertThrows(AuctionClosedException.class,
+            () -> validator.validate(a, "user1", 1100));
+    }
+
+    @Test
+    @DisplayName("validate auction OPEN (chua bat dau) → AuctionClosedException")
+    void validate_openAuction_throwsClosed() {
+        Auction a = createAuctionWithStatus(AuctionStatus.OPEN, 0, 50, null);
+        assertThrows(AuctionClosedException.class,
+            () -> validator.validate(a, "user1", 100));
+    }
+
+    @Test
+    @DisplayName("validate auction PAID → AuctionClosedException")
+    void validate_paidAuction_throwsClosed() {
+        Auction a = createAuctionWithStatus(AuctionStatus.PAID, 5000, 50, "winner");
+        assertThrows(AuctionClosedException.class,
+            () -> validator.validate(a, "user1", 6000));
+    }
+
+    @Test
+    @DisplayName("validate gia dat 0 → InvalidBidException")
+    void validate_zeroBid_throwsException() {
+        Auction a = createRunningAuction(0, 50, null);
+        assertThrows(InvalidBidException.class,
+            () -> validator.validate(a, "user1", 0));
+    }
+
+    @Test
+    @DisplayName("validate buoc gia dung chinh xac minimumIncrement → hop le")
+    void validate_exactMinimumIncrement_valid() {
+        Auction a = createRunningAuction(1000, 100, null);
+        assertDoesNotThrow(() -> validator.validate(a, "user1", 1100));
+    }
+
+    @Test
+    @DisplayName("validate bid vuot minimumIncrement nhieu → hop le")
+    void validate_largeIncrement_valid() {
+        Auction a = createRunningAuction(1000, 50, null);
+        assertDoesNotThrow(() -> validator.validate(a, "user1", 5000));
+    }
 }
