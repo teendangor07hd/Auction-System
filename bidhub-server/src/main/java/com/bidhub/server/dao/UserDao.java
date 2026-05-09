@@ -48,11 +48,9 @@ public class UserDao {
      * @throws RuntimeException nếu lỗi SQL
      */
     public void save(User user) {
-        String sql = """
-        INSERT INTO users (id, username, password_hash, email, role, extra_int,
-            created_at, updated_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-        """;
+        String sql = "INSERT INTO users (id, username, password_hash, email, role, "
+                + "extra_int, is_locked, created_at, updated_at) "
+                + "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
         Connection conn = null;
         try {
             conn = acquireConnection();
@@ -62,13 +60,14 @@ public class UserDao {
                 ps.setString(3, user.getPasswordHash());
                 ps.setString(4, user.getEmail());
                 ps.setString(5, user.getRole().name());
-                ps.setInt(6, extractExtraInt(user));
-                ps.setString(7, user.getCreatedAt().toString());
-                ps.setString(8, user.getUpdatedAt().toString());
+                ps.setInt(6, extractExtraInt(user));          // extra_int
+                ps.setInt(7, user.isLocked() ? 1 : 0);        // is_locked
+                ps.setString(8, user.getCreatedAt().toString());
+                ps.setString(9, user.getUpdatedAt().toString());
                 ps.executeUpdate();
             }
         } catch (SQLException e) {
-            throw new RuntimeException("UserDao.save thất bại: " + e.getMessage(), e);
+            throw new RuntimeException("UserDao.save that bai: " + e.getMessage(), e);
         } finally {
             releaseConnection(conn);
         }
@@ -180,23 +179,16 @@ public class UserDao {
         int extraInt = 0;
         try { extraInt = rs.getInt("extra_int"); } catch (SQLException ignored) {}
 
+        // Tạo đúng subclass dựa trên role
         User user = switch (role) {
             case BIDDER -> new Bidder(id, createdAt, updatedAt, username, passwordHash, email, extraInt);
             case SELLER -> new Seller(id, createdAt, updatedAt, username, passwordHash, email, extraInt);
             case ADMIN  -> new Admin(id, createdAt, updatedAt, username, passwordHash, email, extraInt);
         };
 
-        // ╔═══════════════════════════════════════════════════════════════╗
-        // ║  ⚠️ STUB — ĐĂNG SẼ MERGE — XÓA khi rebase từ develop          ║
-        // ║  Đọc is_locked nếu cột tồn tại (Đăng thêm cột này vào schema) ║
-        // ╚═══════════════════════════════════════════════════════════════╝
-        try {
-            boolean locked = rs.getInt("is_locked") == 1;
-            user.setLocked(locked);
-        } catch (SQLException ignored) {
-            // Cot is_locked chua ton tai — bo qua
-        }
-        // ║  ⚠️ END STUB — mapRow is_locked                                ║
+        // Đọc cột is_locked từ DB
+        boolean locked = rs.getInt("is_locked") == 1;
+        user.setLocked(locked);
 
         return user;
     }
@@ -210,11 +202,6 @@ public class UserDao {
         };
     }
 
-    // ╔══════════════════════════════════════════════════════════════╗
-    // ║  ⚠️ STUB — ĐĂNG SẼ MERGE (feature/tuan-6-dang-auction-manager)  ║
-    // ║  XÓA TOÀN BỘ METHOD NÀY khi rebase từ develop sau khi Đăng merge║
-    // ║  Lý do: Khoa cần updateLocked() cho AdminUserService             ║
-    // ╚══════════════════════════════════════════════════════════════╝
     /**
      * Cap nhat trang thai khoa/mo khoa tai khoan.
      *
@@ -230,22 +217,19 @@ public class UserDao {
             conn = acquireConnection();
             try (PreparedStatement ps = conn.prepareStatement(sql)) {
                 ps.setInt(1, locked ? 1 : 0);
-                ps.setString(2, LocalDateTime.now().toString());
+                ps.setString(2, java.time.LocalDateTime.now().toString());
                 ps.setString(3, userId);
                 int affected = ps.executeUpdate();
                 if (affected == 0) {
                     throw new RuntimeException(
-                        "UserDao.updateLocked: khong tim thay user " + userId);
+                            "UserDao.updateLocked: khong tim thay user " + userId);
                 }
             }
         } catch (SQLException e) {
             throw new RuntimeException(
-                "UserDao.updateLocked that bai: " + e.getMessage(), e);
+                    "UserDao.updateLocked that bai: " + e.getMessage(), e);
         } finally {
             releaseConnection(conn);
         }
     }
-    // ╔══════════════════════════════════════════════════════════════╗
-    // ║  ⚠️ END STUB — ĐĂNG (updateLocked)                            ║
-    // ╚══════════════════════════════════════════════════════════════╝
 }

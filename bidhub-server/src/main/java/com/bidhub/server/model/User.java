@@ -187,4 +187,25 @@ public abstract class User extends Entity {
                 + ", username=" + username
                 + ", role=" + role.name() + "]";
     }
+
+    /** Trang thai khoa tai khoan — true la bi khoa, false la binh thuong. */
+    private boolean locked = false;
+
+    /**
+     * Kiem tra tai khoan co bi khoa khong.
+     *
+     * @return true neu tai khoan bi khoa
+     */
+    public boolean isLocked() {
+        return locked;
+    }
+
+    /**
+     * Dat trang thai khoa/mo khoa tai khoan.
+     *
+     * @param locked true de khoa, false de mo
+     */
+    public void setLocked(boolean locked) {
+        this.locked = locked;
+    }
 }

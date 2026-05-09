@@ -20,4 +20,8 @@ public class AuctionClosedException extends BidHubException {
     public AuctionClosedException(String auctionId, String status) {
         super("Phiên đấu giá " + auctionId + " đã đóng (status: " + status + ")", ERROR_CODE);
     }
+
+    public AuctionClosedException(String message) {
+        super(message);
+    }
 }

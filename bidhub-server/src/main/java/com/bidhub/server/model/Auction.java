@@ -52,6 +52,15 @@ public class Auction extends Entity {
     */
     private final double minimumIncrement;
 
+    public Auction() {
+        // Constructor rỗng dành cho Testing và thư viện Jackson
+        // Gán giá trị mặc định cho các biến final để trình biên dịch không báo lỗi
+        this.itemId = null;
+        this.startTime = null;
+        this.startingPrice = 0.0;
+        this.minimumIncrement = 0.0;
+    }
+
     /**
      * Tạo phiên đấu giá mới.
      *
@@ -230,5 +239,25 @@ public class Auction extends Entity {
         this.highestBidderId = highestBidderId;
         this.status = status;
         this.minimumIncrement = minimumIncrement;
+    }
+
+    /**
+     * Cap nhat gia cao nhat hien tai — dung khi co bid moi.
+     *
+     * <p>// 📌 [Tieu chi: Chuc nang dau gia — cap nhat gia trong RAM]
+     *
+     * @param amount gia dau moi
+     */
+    public void setCurrentHighestBid(double amount) {
+        this.currentHighestBid = amount;
+    }
+
+    /**
+     * Cap nhat id nguoi dan dau — dung khi co bid moi.
+     *
+     * @param bidderId id cua nguoi dau gia moi
+     */
+    public void setHighestBidderId(String bidderId) {
+        this.highestBidderId = bidderId;
     }
 }
