@@ -33,6 +33,7 @@ public class LoginController {
     @FXML private Label errorLabel;
     @FXML private Button loginButton;
 
+
     @FXML
     public void initialize() {
         loginButton.disableProperty().bind(
