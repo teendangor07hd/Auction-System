@@ -1,0 +1,86 @@
+/* 1. Root Background với lớp phủ tối (Dark Overlay) */
+.root-background {
+    -fx-background-image: url("../images/Moon.jpg");
+    -fx-background-size: cover;
+    -fx-background-position: center;
+    /* Phủ một lớp màu đen 35% để dìm độ sáng của mặt trăng */
+    -fx-background-color: rgba(0, 0, 0, 0.35);
+    -fx-background-blend-mode: multiply;
+}
+
+/* 2. Glassmorphism Card - Kính mờ hiện đại */
+.login-card {
+    /* Tăng độ đậm của nền trắng lên 0.4 để không bị lẫn vào nền */
+    -fx-background-color: rgba(255, 255, 255, 0.4);
+
+    -fx-border-color: rgba(255, 255, 255, 0.35);
+    -fx-border-width: 1.5px;
+    -fx-border-radius: 20px;
+    -fx-background-radius: 20px;
+
+    /* Shadow mạnh hơn để tạo cảm giác nổi (Floating effect) */
+    -fx-effect: dropshadow(three-pass-box, rgba(0, 0, 0, 0.4), 30, 0, 0, 15);
+    -fx-padding: 40px;
+}
+
+/* 3. Typography - Chữ */
+.login-title {
+    -fx-font-size: 32px;
+    -fx-font-weight: bold;
+    -fx-fill: #FFFFFF;
+    /* Thêm bóng đổ nhẹ cho chữ để dễ đọc hơn */
+    -fx-effect: dropshadow(one-pass-box, rgba(0, 0, 0, 0.5), 2, 0, 0, 1);
+}
+
+.login-subtitle {
+    -fx-font-size: 14px;
+    -fx-fill: rgba(255, 255, 255, 0.85);
+}
+
+.form-label {
+    -fx-text-fill: #FFFFFF;
+    -fx-font-weight: bold;
+}
+
+/* 4. Input Fields - Ô nhập liệu */
+.text-input-field {
+    -fx-background-color: rgba(0, 0, 0, 0.25);
+    -fx-text-fill: white;
+    -fx-prompt-text-fill: rgba(255, 255, 255, 0.5);
+    -fx-background-radius: 8px;
+    -fx-border-color: rgba(255, 255, 255, 0.2);
+    -fx-padding: 10px;
+}
+
+.text-input-field:focused {
+    -fx-border-color: #8B5CF6; /* Màu tím khi click vào */
+    -fx-background-color: rgba(0, 0, 0, 0.4);
+}
+
+/* 5. Buttons & Links */
+.btn-primary {
+    -fx-background-color: #8B5CF6;
+    -fx-text-fill: white;
+    -fx-font-weight: bold;
+    -fx-background-radius: 8px;
+    -fx-cursor: hand;
+    -fx-padding: 12px;
+}
+
+.btn-primary:hover {
+    -fx-background-color: #7C3AED;
+}
+
+.link-text {
+    -fx-text-fill: #C4B5FD; /* Màu tím nhạt cho link */
+    -fx-underline: false;
+}
+
+.link-text:hover {
+    -fx-text-fill: #FFFFFF;
+}
+
+.error-message {
+    -fx-text-fill: #FCA5A5; /* Màu đỏ nhạt dễ nhìn trên nền tối */
+    -fx-font-size: 12px;
+}
