@@ -58,34 +58,44 @@ public final class AuctionLifecycleTask implements Runnable {
      *
      * @param auction auction can dong
      */
+
     private void closeAuction(Auction auction) {
         String auctionId = auction.getId();
         System.out.println("[LifecycleTask] Dang dong phien: " + auctionId);
 
-        // 1. Chuyen trang thai
-        auction.transitionTo(AuctionStatus.FINISHED);
+        // 📌 [Tieu chi: Ky thuat quan trọng — lock khi dong phien de chong race voi bid]
+        auction.getLock().lock();
+        try {
+            // 1. Chuyen trang thai
+            auction.transitionTo(AuctionStatus.FINISHED);
 
-        // 2. Cap nhat status trong DB
-        AuctionDao auctionDao = new AuctionDao();
-        auctionDao.updateStatus(auctionId, AuctionStatus.FINISHED);
+            // 2. Cap nhat status trong DB
+            AuctionDao auctionDao = new AuctionDao();
+            auctionDao.updateStatus(auctionId, AuctionStatus.FINISHED);
 
-        // 3. Tim winner
-        BidDao bidDao = new BidDao();
-        Optional<BidTransaction> highestBidOpt = bidDao.getHighestBid(auctionId);
+            // 3. Tim winner
+            BidDao bidDao = new BidDao();
+            Optional<BidTransaction> highestBidOpt = bidDao.getHighestBid(auctionId);
 
-        if (highestBidOpt.isPresent()) {
-            BidTransaction winner = highestBidOpt.get();
-            System.out.println("[LifecycleTask] Winner: " + winner.getBidderId()
-                    + " voi gia " + winner.getBidAmount());
-            // Winner da duoc cap nhat qua auctionDao.updateHighestBid()
-            // khi bid duoc dat → khong can update lai
-        } else {
-            System.out.println("[LifecycleTask] Khong co bid nao — phien "
-                    + auctionId + " ket thuc khong co nguoi thang.");
+            if (highestBidOpt.isPresent()) {
+                BidTransaction winner = highestBidOpt.get();
+                System.out.println("[LifecycleTask] Winner: " + winner.getBidderId()
+                        + " voi gia " + winner.getBidAmount());
+            } else {
+                System.out.println("[LifecycleTask] Khong co bid nao — phien "
+                        + auctionId + " ket thuc khong co nguoi thang.");
+            }
+
+            // 4. Xoa khoi RAM
+            AuctionManager.getInstance().removeAuction(auctionId);
+        } finally {
+            auction.getLock().unlock();
         }
 
-        // 4. Xoa khoi RAM
-        AuctionManager.getInstance().removeAuction(auctionId);
+        // NotificationBroker publish (sau khi unlock — Week 7, Quốc Minh them)
+        // NotificationBroker.getInstance().publish(auctionId,
+        //     new AuctionClosedEvent(auctionId, winnerId, winningBid));
+
         System.out.println("[LifecycleTask] Da dong phien: " + auctionId);
     }
 }
