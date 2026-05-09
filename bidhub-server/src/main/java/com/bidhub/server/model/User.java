@@ -32,17 +32,6 @@ public abstract class User extends Entity {
     /** Vai trò người dùng — xác định quyền hạn trong hệ thống. */
     private final UserRole role;
 
-    // ╔══════════════════════════════════════════════════════════════╗
-    // ║  ⚠️ STUB — ĐĂNG SẼ MERGE (feature/tuan-6-dang-auction-manager)  ║
-    // ║  XÓA TOÀN BỘ BLOCK NÀY khi rebase từ develop sau khi Đăng merge ║
-    // ╚══════════════════════════════════════════════════════════════╝
-    private boolean locked = false;
-    public boolean isLocked() { return locked; }
-    public void setLocked(boolean locked) { this.locked = locked; }
-    // ╔══════════════════════════════════════════════════════════════╗
-    // ║  ⚠️ END STUB — ĐĂNG                                          ║
-    // ╚══════════════════════════════════════════════════════════════╝
-
     /**
      * Constructor tạo User mới — gọi bởi subclass qua {@code super(...)}.
      *
