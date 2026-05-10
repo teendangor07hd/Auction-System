@@ -611,33 +611,39 @@ public final class RequestHandler {
         }
 
         // Lay auction tu RAM (AuctionManager)
-        // 📌 [Tieu chi: Ky thuat quan trong — truy cap auction tu RAM thay vi DB]
         Auction auction = AuctionManager.getInstance().getAuction(auctionId)
                 .orElseThrow(() -> new AuctionNotFoundException(
                         "Phien dau gia khong ton tai: " + auctionId));
 
-        // Validate 5 dieu kien
-        // 📌 [Tieu chi: Xu ly loi & ngoai le — BidValidator nem exception phu hop]
-        bidValidator.validate(auction, userId, bidAmount);
+        // 📌 [Tieu chi: Ky thuat quan trọng — ReentrantLock granular locking]
+        // Lock toan bo logic bid de chong lost update va race condition
+        auction.getLock().lock();
+        try {
+            // Validate 5 dieu kien
+            bidValidator.validate(auction, userId, bidAmount);
 
-        // Tao BidTransaction
-        BidTransaction bid = new BidTransaction(auctionId, userId, bidAmount);
+            // Tao BidTransaction
+            BidTransaction bid = new BidTransaction(auctionId, userId, bidAmount);
 
-        // Luu bid vao DB
-        // 📌 [Tieu chi: Chuc nang dau gia — luu bid transaction vao DB]
-        bidDao.save(bid);
+            // Luu bid vao DB
+            bidDao.save(bid);
 
-        // Cap nhat RAM
-        // 📌 [Tieu chi: Ky thuat quan trong — cap nhat RAM nhanh hon DB]
-        auction.setCurrentHighestBid(bidAmount);
-        auction.setHighestBidderId(userId);
+            // Cap nhat RAM
+            auction.setCurrentHighestBid(bidAmount);
+            auction.setHighestBidderId(userId);
 
-        // Cap nhat DB
-        auctionDao.updateHighestBid(auctionId, bidAmount, userId);
+            // Cap nhat DB
+            auctionDao.updateHighestBid(auctionId, bidAmount, userId);
+        } finally {
+            auction.getLock().unlock();
+        }
 
-        // Audit log
+        // Audit log (sau khi unlock — khong block bid khac)
         auditLogService.log(userId, AuditActions.PLACE_BID,
                 "{\"auctionId\":\"" + auctionId + "\",\"amount\":" + bidAmount + "}");
+
+        // NotificationBroker publish (sau khi unlock — Week 7, Quốc Minh them)
+        // NotificationBroker.getInstance().publish(auctionId, new BidUpdateEvent(...));
 
         return MessageMapper.toJson(MessageResponse.ok("PLACE_BID",
                 Map.of("auctionId", auctionId,

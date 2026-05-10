@@ -3,6 +3,7 @@ package com.bidhub.server.model;
 import com.bidhub.common.model.Entity;
 import java.time.LocalDateTime;
 import java.util.Objects;
+import java.util.concurrent.locks.ReentrantLock;
 /**
  * Phiên đấu giá trong hệ thống bidhub
  * <p>Kế thừa {@link Entity} để có id và timestamps.
@@ -242,5 +243,19 @@ public class Auction extends Entity {
      */
     public void setHighestBidderId(String bidderId) {
         this.highestBidderId = bidderId;
+    }
+    // 📌 [Tieu chi: Ky thuat quan trọng — ReentrantLock granular locking]
+    /** Lock cho tung auction — dam bao atomic khi bid hoac dong phien. */
+    private final ReentrantLock lock = new ReentrantLock();
+
+    /**
+     * Tra ve ReentrantLock cua auction — dung de lock trong handlePlaceBid.
+     *
+     * <p>// 📌 [Tieu chi: Ky thuat quan trọng — granular lock theo auction]
+     *
+     * @return ReentrantLock instance
+     */
+    public ReentrantLock getLock() {
+        return lock;
     }
 }

@@ -241,4 +241,30 @@ public class AuctionDao {
         return new Auction(id, createdAt, updatedAt, itemId, startTime, endTime,
                 startingPrice, currentHighestBid, highestBidderId, status, minimumIncrement);
     }
+    /**
+     * Lay tat ca auction — ORDER BY created_at DESC (moi nhat truoc).
+     *
+     * <p>Dung cho ReportService.exportAuctionReport().
+     *
+     * @return danh sach tat ca auction
+     */
+    public List<Auction> findAll() {
+        List<Auction> result = new ArrayList<>();
+        String sql = "SELECT * FROM auctions ORDER BY created_at DESC";
+        Connection conn = null;
+        try {
+            conn = acquireConnection();
+            try (PreparedStatement ps = conn.prepareStatement(sql);
+                 ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    result.add(mapRow(rs));
+                }
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException("AuctionDao.findAll that bai: " + e.getMessage(), e);
+        } finally {
+            releaseConnection(conn);
+        }
+        return result;
+    }
 }
