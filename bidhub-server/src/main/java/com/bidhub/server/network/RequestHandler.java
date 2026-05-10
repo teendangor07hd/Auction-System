@@ -32,6 +32,9 @@ import com.bidhub.server.model.BidTransaction;
 import com.bidhub.server.service.AuctionManager;
 import com.bidhub.server.service.BidValidator;
 import java.util.List;
+import com.bidhub.server.event.BidUpdateEvent;
+import com.bidhub.server.event.AuctionClosedEvent;
+import com.bidhub.server.service.NotificationBroker;
 
 /**
  * Dispatcher chinh: nhan JSON tho → parse → auth-guard → switch type → goi handler.
@@ -159,6 +162,7 @@ public final class RequestHandler {
                 case "PLACE_BID"        -> handlePlaceBid(session, payload);
                 case "GET_AUCTION_LIST"  -> handleGetAuctionList(session, payload);
                 case "GET_AUCTION_DETAIL" -> handleGetAuctionDetail(session, payload);
+                case "SUBSCRIBE_AUCTION" -> handleSubscribeAuction(session, payload);
                 default              -> MessageMapper.toJson(
                         MessageResponse.error(type, "Lenh khong xac dinh: " + type));
             };
@@ -318,17 +322,6 @@ public final class RequestHandler {
         Map<String, String> result = new HashMap<>();
         result.put("message", "Dang xuat thanh cong.");
         return MessageMapper.toJson(MessageResponse.ok("LOGOUT", result));
-    }
-
-    // === HELPER METHODS ===
-
-    private String handlePing(Session session) {
-        Map<String, String> payload = Map.of(
-                "message", "pong",
-                "serverTime", LocalDateTime.now().toString(),
-                "sessionId", session.getSessionId()
-        );
-        return MessageMapper.toJson(MessageResponse.ok("PING", payload));
     }
 
     // === ITEM HANDLERS ===
@@ -572,6 +565,7 @@ public final class RequestHandler {
             Map.of("message", "Da mo khoa tai khoan.")));
     }
 
+    // --- 4. Handler method ---
 
     /**
      * Xu ly dat gia — validate, luu bid, cap nhat RAM va DB.
@@ -623,6 +617,10 @@ public final class RequestHandler {
         } finally {
             auction.getLock().unlock();
         }
+
+        // 📌 [Tieu chi: Realtime update — publish BID_UPDATE sau unlock]
+        NotificationBroker.getInstance().publish(auctionId,
+                new BidUpdateEvent(auctionId, userId, bidAmount));
 
         // Audit log (sau khi unlock — khong block bid khac)
         auditLogService.log(userId, AuditActions.PLACE_BID,
@@ -680,7 +678,36 @@ public final class RequestHandler {
                 Map.of("auction", auction, "bidHistory", bidHistory)));
     }
 
-    // === HELPER ===
+    /**
+     * Xu ly subscribe realtime event cho auction.
+     *
+     * <p>// 📌 [Tieu chi: Realtime update — Observer Pattern subscribe]
+     *
+     * @param session session cua client
+     * @param payload {auctionId}
+     * @return JSON response
+     */
+    private String handleSubscribeAuction(Session session, JsonNode payload) {
+        String auctionId = payload.path("auctionId").asText("");
+        if (auctionId.isBlank()) {
+            throw new ValidationException("auctionId khong duoc de trong");
+        }
+        NotificationBroker.getInstance().subscribe(auctionId, session);
+        return MessageMapper.toJson(
+                MessageResponse.ok("SUBSCRIBE_AUCTION",
+                        Map.of("auctionId", auctionId, "message", "Da subscribe thanh cong")));
+    }
+
+    // === HELPER METHODS ===
+
+    private String handlePing(Session session) {
+        Map<String, String> payload = Map.of(
+                "message", "pong",
+                "serverTime", LocalDateTime.now().toString(),
+                "sessionId", session.getSessionId()
+        );
+        return MessageMapper.toJson(MessageResponse.ok("PING", payload));
+    }
 
     /**
      * Parse extras JsonNode thanh Map<String, Object> cho ItemCreator.
