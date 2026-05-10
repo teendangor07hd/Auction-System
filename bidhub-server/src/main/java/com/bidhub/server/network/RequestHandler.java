@@ -150,20 +150,10 @@ public final class RequestHandler {
                 case "LOGIN"         -> handleLogin(session, payload);
                 case "REGISTER"      -> handleRegister(session, payload);
                 case "LOGOUT"        -> handleLogout(session, req.getToken());
-                // ========================================================================
-                // 🚧 START STUB: Khoa se implement logic cho cac case ITEM
-                // ========================================================================
-                case "CREATE_ITEM"   -> MessageMapper.toJson(
-                        MessageResponse.error("CREATE_ITEM", "Chua implement — Khoa se them"));
-                case "GET_ITEM_LIST" -> MessageMapper.toJson(
-                        MessageResponse.error("GET_ITEM_LIST", "Chua implement — Khoa se them"));
-                case "GET_ITEM_DETAIL" -> MessageMapper.toJson(
-                        MessageResponse.error("GET_ITEM_DETAIL", "Chua implement — Khoa se them"));
-                case "DELETE_ITEM"   -> MessageMapper.toJson(
-                        MessageResponse.error("DELETE_ITEM", "Chua implement — Khoa se them"));
-                // ========================================================================
-                // 🚧 END STUB
-                // ========================================================================
+                case "CREATE_ITEM"   -> handleCreateItem(session, payload);
+                case "GET_ITEM_LIST" -> handleGetItemList();
+                case "GET_ITEM_DETAIL" -> handleGetItemDetail(payload);
+                case "DELETE_ITEM"   -> handleDeleteItem(session, payload);
                 case "GET_USER_LIST"  -> handleGetUserList(session, payload);
                 case "LOCK_USER"      -> handleLockUser(session, payload);
                 case "UNLOCK_USER"    -> handleUnlockUser(session, payload);
