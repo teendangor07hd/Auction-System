@@ -3,6 +3,8 @@ package com.bidhub.server.network;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import com.bidhub.server.service.NotificationBroker;
+
 
 /**
  * Runnable xử lý 1 client: đọc JSON → RequestHandler → sendMessage.
@@ -37,6 +39,11 @@ public final class ClientConnectionThread implements Runnable {
             System.out.println("[ClientThread] Client ngắt: " + session.getSessionId());
         } finally {
             session.disconnect();
+            try {
+                NotificationBroker.getInstance().unsubscribeAll(session);
+            } catch (Exception e) {
+                System.err.println("[ClientConnectionThread] unsubscribeAll loi: " + e.getMessage());
+            }
             System.out.println("[ClientThread] Cleanup xong: " + session.getSessionId());
         }
     }
