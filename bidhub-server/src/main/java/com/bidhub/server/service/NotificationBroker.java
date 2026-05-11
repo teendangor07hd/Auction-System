@@ -1,0 +1,154 @@
+package com.bidhub.server.service;
+
+import com.bidhub.server.event.AuctionClosedEvent;
+import com.bidhub.server.event.BidUpdateEvent;
+import com.bidhub.common.network.MessageMapper;
+import com.bidhub.server.network.Session;
+import java.util.List;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CopyOnWriteArrayList;
+
+/**
+ * Singleton Observer Pattern — quan ly subscribe/publish event realtime cho auction.
+ *
+ * <p>Dung {@link ConcurrentHashMap} key=auctionId,
+ * value={@link CopyOnWriteArrayList} session.
+ * CopyOnWriteArrayList cho phep safe iteration khi concurrently modify.
+ *
+ * <p>// 📌 [Tieu chi: Design Pattern Observer — Subject (GoF)]
+ * // 📌 [Tieu chi: Singleton — volatile + double-checked locking]
+ * // 📌 [Tieu chi: Realtime update — push event qua socket]
+ */
+public final class NotificationBroker {
+
+    private static volatile NotificationBroker instance;
+
+    // 📌 [Tieu chi: Ky thuat quan trong — ConcurrentHashMap + CopyOnWriteArrayList]
+    private final ConcurrentHashMap<String, CopyOnWriteArrayList<Session>> subscribers;
+
+    private NotificationBroker() {
+        this.subscribers = new ConcurrentHashMap<>();
+    }
+
+    /**
+     * Tra ve instance duy nhat (thread-safe, double-checked locking).
+     *
+     * @return NotificationBroker instance
+     */
+    public static NotificationBroker getInstance() {
+        if (instance == null) {
+            synchronized (NotificationBroker.class) {
+                if (instance == null) {
+                    instance = new NotificationBroker();
+                }
+            }
+        }
+        return instance;
+    }
+
+    /**
+     * Subscribe session vao auction — nhan tat ca event cua auction nay.
+     *
+     * <p>// 📌 [Tieu chi: Observer Pattern — attach()]
+     *
+     * @param auctionId id auction can theo doi
+     * @param session   session cua client
+     */
+    public void subscribe(String auctionId, Session session) {
+        if (auctionId == null || session == null) {
+            return;
+        }
+        subscribers.computeIfAbsent(auctionId, k -> new CopyOnWriteArrayList<>());
+        CopyOnWriteArrayList<Session> list = subscribers.get(auctionId);
+        if (list != null && !list.contains(session)) {
+            list.add(session);
+        }
+        System.out.println("[NotificationBroker] Session subscribe auction: " + auctionId
+                + " (total: " + (list != null ? list.size() : 0) + ")");
+    }
+
+    /**
+     * Unsubscribe session khoi auction.
+     *
+     * <p>// 📌 [Tieu chi: Observer Pattern — detach()]
+     *
+     * @param auctionId id auction
+     * @param session   session can xoa
+     */
+    public void unsubscribe(String auctionId, Session session) {
+        if (auctionId == null || session == null) {
+            return;
+        }
+        CopyOnWriteArrayList<Session> list = subscribers.get(auctionId);
+        if (list != null) {
+            list.remove(session);
+        }
+    }
+
+    /**
+     * Unsubscribe session khoi tat ca auction — goi khi session ngat ket noi.
+     *
+     * @param session session can xoa
+     */
+    public void unsubscribeAll(Session session) {
+        if (session == null) {
+            return;
+        }
+        for (CopyOnWriteArrayList<Session> list : subscribers.values()) {
+            list.remove(session);
+        }
+        System.out.println("[NotificationBroker] UnsubscribeAll session completed.");
+    }
+
+    /**
+     * Publish event den tat ca session subscribe auction — Observer notify().
+     *
+     * <p>Serialize event thanh JSON, gui qua session.sendMessage(). Bat IOException
+     * de khong 1 session loi block tat ca session khac.
+     *
+     * <p>// 📌 [Tieu chi: Observer Pattern — notify()]
+     * // 📌 [Tieu chi: Realtime update — push event qua socket]
+     *
+     * @param auctionId id auction
+     * @param event     event object (BidUpdateEvent hoac AuctionClosedEvent)
+     */
+    public void publish(String auctionId, Object event) {
+        if (auctionId == null || event == null) {
+            return;
+        }
+        CopyOnWriteArrayList<Session> list = subscribers.get(auctionId);
+        if (list == null || list.isEmpty()) {
+            return;
+        }
+
+        String eventJson;
+        try {
+            eventJson = MessageMapper.toJson(event);
+        } catch (Exception e) {
+            System.err.println("[NotificationBroker] Serialize event loi: " + e.getMessage());
+            return;
+        }
+
+        for (Session session : list) {
+            try {
+                session.sendMessage(eventJson);
+            } catch (Exception e) {
+                // 📌 [Tieu chi: Xu ly loi — 1 session loi khong block cac session khac]
+                System.err.println("[NotificationBroker] Gui event loi cho session: "
+                        + e.getMessage());
+                list.remove(session);
+            }
+        }
+    }
+
+    /** Lay so subscriber cua auction — chi dung cho test. */
+    public int getSubscriberCount(String auctionId) {
+        CopyOnWriteArrayList<Session> list = subscribers.get(auctionId);
+        return list != null ? list.size() : 0;
+    }
+
+    /** Xoa toan bo subscriber — chi dung cho test. */
+    public void clearAll() {
+        subscribers.clear();
+    }
+}

@@ -8,6 +8,8 @@ import com.bidhub.server.model.BidTransaction;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
+import com.bidhub.server.event.AuctionClosedEvent;
+import com.bidhub.server.service.NotificationBroker;
 
 /**
  * Task chay dinh ky — kiem tra va dong cac phien dau gia het han.
@@ -91,6 +93,20 @@ public final class AuctionLifecycleTask implements Runnable {
         } finally {
             auction.getLock().unlock();
         }
+
+        // Lay winner info de publish event
+        BidDao bidDao = new BidDao();
+        Optional<BidTransaction> highestBidOpt = bidDao.getHighestBid(auctionId);
+        String winnerId = null;
+        double winningBid = 0.0;
+        if (highestBidOpt.isPresent()) {
+            winnerId = highestBidOpt.get().getBidderId();
+            winningBid = highestBidOpt.get().getBidAmount();
+        }
+
+        // 📌 [Tieu chi: Realtime update — publish AUCTION_CLOSED sau unlock]
+        NotificationBroker.getInstance().publish(auctionId,
+                new AuctionClosedEvent(auctionId, winnerId, winningBid));
 
         // NotificationBroker publish (sau khi unlock — Week 7, Quốc Minh them)
         // NotificationBroker.getInstance().publish(auctionId,
