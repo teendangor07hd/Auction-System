@@ -616,6 +616,12 @@ public final class RequestHandler {
             // Chay trong lock block → thread-safe, khong race voi lifecycle task
             AntiSnipingEngine antiSnipingEngine = new AntiSnipingEngine();
             antiSnipingEngine.check(auction);
+
+            // 📌 [Tieu chi: Audit Log — log PLACE_BID trong lock block, sau DB save thanh cong]
+            // Dam bao audit log duoc ghi truoc khi unlock cho bid khac
+            auditLogService.log(userId, AuditActions.PLACE_BID,
+                    "{\"auctionId\":\"" + auctionId
+                            + "\",\"bidAmount\":" + bidAmount + "}");
         } finally {
             auction.getLock().unlock();
         }
@@ -623,10 +629,6 @@ public final class RequestHandler {
         // 📌 [Tieu chi: Realtime update — publish BID_UPDATE sau unlock]
         NotificationBroker.getInstance().publish(auctionId,
                 new BidUpdateEvent(auctionId, userId, bidAmount));
-
-        // Audit log (sau khi unlock — khong block bid khac)
-        auditLogService.log(userId, AuditActions.PLACE_BID,
-                "{\"auctionId\":\"" + auctionId + "\",\"amount\":" + bidAmount + "}");
 
         // NotificationBroker publish (sau khi unlock — Week 7, Quốc Minh them)
         // NotificationBroker.getInstance().publish(auctionId, new BidUpdateEvent(...));
