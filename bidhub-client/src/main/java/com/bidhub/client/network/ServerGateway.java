@@ -143,4 +143,6 @@ public final class ServerGateway {
     public int getServerPort() {
         return serverPort;
     }
+
+    public Socket getSocket() { return socket; }
 }
