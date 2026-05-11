@@ -10,6 +10,8 @@ import java.util.List;
 import java.util.Optional;
 import com.bidhub.server.event.AuctionClosedEvent;
 import com.bidhub.server.service.NotificationBroker;
+import com.bidhub.server.model.AuditActions;
+import com.bidhub.server.service.AuditLogService;
 
 /**
  * Task chay dinh ky — kiem tra va dong cac phien dau gia het han.
@@ -79,10 +81,14 @@ public final class AuctionLifecycleTask implements Runnable {
             BidDao bidDao = new BidDao();
             Optional<BidTransaction> highestBidOpt = bidDao.getHighestBid(auctionId);
 
+            String winnerId = null;
+            double winningBid = 0.0;
             if (highestBidOpt.isPresent()) {
                 BidTransaction winner = highestBidOpt.get();
-                System.out.println("[LifecycleTask] Winner: " + winner.getBidderId()
-                        + " voi gia " + winner.getBidAmount());
+                winnerId = winner.getBidderId();
+                winningBid = winner.getBidAmount();
+                System.out.println("[LifecycleTask] Winner: " + winnerId
+                        + " voi gia " + winningBid);
             } else {
                 System.out.println("[LifecycleTask] Khong co bid nao — phien "
                         + auctionId + " ket thuc khong co nguoi thang.");
@@ -90,6 +96,14 @@ public final class AuctionLifecycleTask implements Runnable {
 
             // 4. Xoa khoi RAM
             AuctionManager.getInstance().removeAuction(auctionId);
+
+            // 📌 [Tieu chi: Audit Log — log AUCTION_CLOSED sau FINISHED transition]
+            // Log trong lock → dam bao khong race voi bid handler
+            AuditLogService auditLogService = new AuditLogService();
+            auditLogService.log("SYSTEM", AuditActions.AUCTION_CLOSED,
+                    "{\"auctionId\":\"" + auctionId
+                            + "\",\"winnerId\":\"" + (winnerId != null ? winnerId : "none")
+                            + "\",\"winningBid\":" + winningBid + "}");
         } finally {
             auction.getLock().unlock();
         }
