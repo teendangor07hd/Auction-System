@@ -33,6 +33,19 @@ public final class MigrationRunner {
                     }
                 }
             }
+            // 📌 [Tieu chi: Quan ly nguoi dung — migration is_locked cho DB cu]
+            // Migration: them cot is_locked vao bang users (cho DB da tao tu Tuan 3)
+            String alterTableSql =
+                    "ALTER TABLE users ADD COLUMN IF NOT EXISTS is_locked "
+                            + "INTEGER NOT NULL DEFAULT 0";
+            try (Statement stmt = conn.createStatement()) {
+                stmt.execute(alterTableSql);
+                System.out.println("[MigrationRunner] Cot is_locked da san sang.");
+            } catch (SQLException e) {
+                // Cot da ton tai hoac loi khac — khong block server startup
+                System.err.println("[MigrationRunner] Canh bao migration is_locked: "
+                        + e.getMessage());
+            }
             System.out.println("[MigrationRunner] Schema đã sẵn sàng.");
         } catch (SQLException e) {
             throw new RuntimeException("Migration thất bại: " + e.getMessage(), e);

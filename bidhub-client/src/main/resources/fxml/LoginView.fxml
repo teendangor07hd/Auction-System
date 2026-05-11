@@ -5,37 +5,37 @@
 <?import javafx.scene.control.*?>
 <?import javafx.scene.layout.*?>
 <?import javafx.scene.text.*?>
+<?import javafx.scene.image.*?>
 
-<VBox alignment="CENTER" spacing="0" styleClass="root" xmlns="http://javafx.com/javafx/17.0.12" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.bidhub.client.controller.LoginController">
+<StackPane alignment="CENTER" xmlns="http://javafx.com/javafx/17.0.12" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.bidhub.client.controller.LoginController">
    <stylesheets>
-      <URL value="@../css/styles.css" />
+      <URL value="@../css/login.css" />
    </stylesheets>
 
-   <VBox alignment="TOP_CENTER" maxWidth="360" spacing="16" styleClass="login-card">
+   <VBox fx:id="backgroundContainer" styleClass="root-background" />
 
-      <Text styleClass="login-title" text="🔨 BidHub" />
-      <Text styleClass="login-subtitle" text="Hệ thống đấu giá trực tuyến" />
+   <VBox alignment="CENTER" spacing="0">
+      <VBox alignment="TOP_CENTER" maxWidth="360" spacing="16" styleClass="login-card">
+         <Text styleClass="login-title" text="🔨 BidHub" />
+         <Text styleClass="login-subtitle" text="Hệ thống đấu giá trực tuyến" />
 
-      <VBox alignment="CENTER_LEFT" spacing="8" VBox.vgrow="NEVER">
-         <Label styleClass="form-label" text="Tên đăng nhập" />
-         <TextField fx:id="usernameField" promptText="Nhập tên đăng nhập" styleClass="text-input-field" />
+         <VBox alignment="CENTER_LEFT" spacing="8">
+            <Label styleClass="form-label" text="Tên đăng nhập" />
+            <TextField fx:id="usernameField" promptText="Nhập tên đăng nhập" styleClass="text-input-field" />
+         </VBox>
+
+         <VBox alignment="CENTER_LEFT" spacing="8">
+            <Label styleClass="form-label" text="Mật khẩu" />
+            <PasswordField fx:id="passwordField" promptText="Nhập mật khẩu" styleClass="text-input-field" />
+         </VBox>
+
+         <Label fx:id="errorLabel" styleClass="error-message" text="Sai tên đăng nhập hoặc mật khẩu!" visible="false" wrapText="true" />
+
+         <Button fx:id="loginButton" maxWidth="Infinity" onAction="#handleLogin" styleClass="button, btn-primary" text="Đăng nhập" />
+
+         <Separator />
+
+         <Hyperlink onAction="#handleRegister" styleClass="link-text" text="Chưa có tài khoản? Đăng ký" />
       </VBox>
-
-      <VBox alignment="CENTER_LEFT" spacing="8">
-         <Label styleClass="form-label" text="Mật khẩu" />
-         <PasswordField fx:id="passwordField" promptText="Nhập mật khẩu" styleClass="text-input-field" />
-      </VBox>
-
-      <Label fx:id="errorLabel" styleClass="error-message" text="Sai tên đăng nhập hoặc mật khẩu!" visible="false" wrapText="true" />
-
-      <Button fx:id="loginButton" maxWidth="Infinity" onAction="#handleLogin" styleClass="button, btn-primary, btn-full-width" text="Đăng nhập" />
-
-      <Separator />
-
-      <Hyperlink onAction="#handleRegister" styleClass="link-text" text="Chưa có tài khoản? Đăng ký" />
-
-      <VBox.margin>
-         <Insets top="20" />
-      </VBox.margin>
    </VBox>
-</VBox>
+</StackPane>

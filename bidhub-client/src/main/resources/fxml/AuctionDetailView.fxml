@@ -6,42 +6,60 @@
       fx:controller="com.bidhub.client.controller.AuctionDetailController"
       stylesheets="@/css/styles.css"
       styleClass="root"
-      spacing="20">
+      spacing="0">
 
+    <!-- Header -->
     <HBox alignment="CENTER_LEFT" styleClass="header-bar">
         <Label fx:id="lblTitle" text="Đang tải..." styleClass="header-title"/>
     </HBox>
 
+    <!-- Tên sản phẩm nổi bật -->
+    <Label fx:id="lblItemName" text="—"
+           style="-fx-font-size: 20px; -fx-font-weight: bold; -fx-padding: 15 20 0 20;"/>
+
+    <!-- Nội dung chính -->
     <VBox styleClass="content-pane" spacing="15" style="-fx-margin: 0 20 20 20;">
 
-        <HBox spacing="40">
+        <!-- Mô tả sản phẩm -->
+        <Label fx:id="lblDescription" text="—" wrapText="true"/>
+
+        <!-- Hàng thông tin cơ bản -->
+        <HBox spacing="30">
             <VBox spacing="5">
                 <Label text="Trạng thái:" styleClass="form-label"/>
                 <Label fx:id="lblStatus" text="—" styleClass="status-label"/>
             </VBox>
-
             <VBox spacing="5">
-                <Label text="Giá cao nhất:" styleClass="form-label"/>
-                <Label fx:id="lblCurrentBid" text="—" style="-fx-font-weight: bold; -fx-font-size: 16px; -fx-text-fill: #4F46E5;"/>
+                <Label text="Giá khởi điểm:" styleClass="form-label"/>
+                <Label fx:id="lblStartingPrice" text="—"/>
             </VBox>
-
             <VBox spacing="5">
-                <Label text="Thời gian còn lại:" styleClass="form-label"/>
-                <Label fx:id="lblTimeRemaining" text="—"/>
+                <Label text="Giá hiện tại:" styleClass="form-label"/>
+                <Label fx:id="lblCurrentPrice" text="—"
+                       style="-fx-font-weight: bold; -fx-font-size: 16px; -fx-text-fill: #4F46E5;"/>
+            </VBox>
+            <VBox spacing="5">
+                <Label text="Người dẫn đầu:" styleClass="form-label"/>
+                <Label fx:id="lblHighestBidder" text="—"/>
+            </VBox>
+            <VBox spacing="5">
+                <Label text="Còn lại:" styleClass="form-label"/>
+                <Label fx:id="lblCountdown" text="—"/>
             </VBox>
         </HBox>
 
         <Separator/>
 
+        <!-- Form đặt giá + nút Back -->
         <HBox spacing="15" alignment="CENTER_LEFT">
             <Label text="Giá đặt (VNĐ):" styleClass="form-label"/>
-
-            <TextField fx:id="tfBidAmount" promptText="Nhập số tiền..." prefWidth="200" styleClass="text-input-field"/>
-
-            <Button fx:id="btnPlaceBid" text="Đặt giá" onAction="#handlePlaceBid" styleClass="button, btn-primary"/>
+            <TextField fx:id="tfBidAmount" promptText="Nhập số tiền..." prefWidth="200"
+                       styleClass="text-input-field"/>
+            <Button fx:id="btnPlaceBid" text="Đặt giá"
+                    styleClass="button, btn-primary"/>
+            <Button fx:id="btnBack" text="Quay lại"
+                    styleClass="button"/>
         </HBox>
-
-        <Label fx:id="lblMessage" text="" styleClass="error-message"/>
 
     </VBox>
 </VBox>
