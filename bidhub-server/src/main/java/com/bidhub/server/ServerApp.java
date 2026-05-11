@@ -40,10 +40,5 @@ public class ServerApp {
         System.out.println("Server sẵn sàng. Socket server sẽ implement tuần 4.");
         SocketServerCore server = new SocketServerCore();
         server.start(port); // dùng biến port đã lấy ở trên để nhất quán
-        // === THÊM VÀO ServerApp.main() — sau SocketServerCore.start() ===
-
-        // 📌 [Tieu chi: Singleton + Ky thuat quan trong — AuctionManager lifecycle]
-        com.bidhub.server.service.AuctionManager.getInstance().start();
-        System.out.println("[ServerApp] AuctionManager da khoi dong.");
     }
 }

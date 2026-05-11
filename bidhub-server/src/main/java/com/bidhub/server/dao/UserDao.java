@@ -48,9 +48,11 @@ public class UserDao {
      * @throws RuntimeException nếu lỗi SQL
      */
     public void save(User user) {
-        String sql = "INSERT INTO users (id, username, password_hash, email, role, "
-                + "extra_int, is_locked, created_at, updated_at) "
-                + "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
+        String sql = """
+        INSERT INTO users (id, username, password_hash, email, role, extra_int,
+            created_at, updated_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        """;
         Connection conn = null;
         try {
             conn = acquireConnection();
@@ -60,14 +62,13 @@ public class UserDao {
                 ps.setString(3, user.getPasswordHash());
                 ps.setString(4, user.getEmail());
                 ps.setString(5, user.getRole().name());
-                ps.setInt(6, extractExtraInt(user));          // extra_int
-                ps.setInt(7, user.isLocked() ? 1 : 0);        // is_locked
-                ps.setString(8, user.getCreatedAt().toString());
-                ps.setString(9, user.getUpdatedAt().toString());
+                ps.setInt(6, extractExtraInt(user));
+                ps.setString(7, user.getCreatedAt().toString());
+                ps.setString(8, user.getUpdatedAt().toString());
                 ps.executeUpdate();
             }
         } catch (SQLException e) {
-            throw new RuntimeException("UserDao.save that bai: " + e.getMessage(), e);
+            throw new RuntimeException("UserDao.save thất bại: " + e.getMessage(), e);
         } finally {
             releaseConnection(conn);
         }
@@ -176,21 +177,13 @@ public class UserDao {
         String passwordHash = rs.getString("password_hash");
         String email = rs.getString("email");
         UserRole role = UserRole.valueOf(rs.getString("role"));
-        int extraInt = 0;
-        try { extraInt = rs.getInt("extra_int"); } catch (SQLException ignored) {}
+        int extraInt = rs.getInt("extra_int");
 
-        // Tạo đúng subclass dựa trên role
-        User user = switch (role) {
+        return switch (role) {
             case BIDDER -> new Bidder(id, createdAt, updatedAt, username, passwordHash, email, extraInt);
             case SELLER -> new Seller(id, createdAt, updatedAt, username, passwordHash, email, extraInt);
             case ADMIN  -> new Admin(id, createdAt, updatedAt, username, passwordHash, email, extraInt);
         };
-
-        // Đọc cột is_locked từ DB
-        boolean locked = rs.getInt("is_locked") == 1;
-        user.setLocked(locked);
-
-        return user;
     }
 
     // Lấy giá trị extra_int theo role (totalBidsPlaced / totalItemsListed / adminLevel)
@@ -200,36 +193,5 @@ public class UserDao {
             case SELLER -> ((Seller) user).getTotalItemsListed();
             case ADMIN  -> ((Admin)  user).getAdminLevel();
         };
-    }
-
-    /**
-     * Cap nhat trang thai khoa/mo khoa tai khoan.
-     *
-     * <p>// 📌 [Tieu chi: Quan ly nguoi dung — Admin khoa/mo tai khoan]
-     *
-     * @param userId id nguoi dung
-     * @param locked true de khoa, false de mo
-     */
-    public void updateLocked(String userId, boolean locked) {
-        String sql = "UPDATE users SET is_locked = ?, updated_at = ? WHERE id = ?";
-        Connection conn = null;
-        try {
-            conn = acquireConnection();
-            try (PreparedStatement ps = conn.prepareStatement(sql)) {
-                ps.setInt(1, locked ? 1 : 0);
-                ps.setString(2, java.time.LocalDateTime.now().toString());
-                ps.setString(3, userId);
-                int affected = ps.executeUpdate();
-                if (affected == 0) {
-                    throw new RuntimeException(
-                            "UserDao.updateLocked: khong tim thay user " + userId);
-                }
-            }
-        } catch (SQLException e) {
-            throw new RuntimeException(
-                    "UserDao.updateLocked that bai: " + e.getMessage(), e);
-        } finally {
-            releaseConnection(conn);
-        }
     }
 }

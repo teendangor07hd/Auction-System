@@ -2,48 +2,29 @@
 <?import javafx.scene.control.*?>
 <?import javafx.scene.layout.*?>
 
-<BorderPane xmlns:fx="http://javafx.com/fxml/1"
-            fx:controller="com.bidhub.client.controller.AuctionListController"
-            stylesheets="@/css/styles.css"
-            styleClass="root">
+<VBox xmlns:fx="http://javafx.com/fxml/1"
+      fx:controller="com.bidhub.client.controller.AuctionListController"
+      stylesheets="@/css/styles.css"
+      spacing="20"
+      styleClass="root">
 
-    <!-- SIDEBAR TRÁI -->
-    <left>
-        <VBox spacing="10" style="-fx-background-color: #1E1B4B; -fx-padding: 20; -fx-min-width: 220;">
-            <Label text="BidHub" style="-fx-text-fill: white; -fx-font-size: 18px; -fx-font-weight: bold;"/>
+    <HBox alignment="CENTER_LEFT" styleClass="header-bar">
+        <Label text="BidHub — Danh sách đấu giá" styleClass="header-title" HBox.hgrow="ALWAYS" maxWidth="Infinity"/>
 
-            <!-- Các nút điều hướng -->
-            <Button fx:id="btnCreateItem"    text="➕ Thêm sản phẩm"
-                    maxWidth="Infinity" styleClass="button, btn-primary" />
-            <Button fx:id="btnCreateAuction" text="📊 Tạo phiên mới"
-                    maxWidth="Infinity" styleClass="button, btn-primary" />
-            <Button fx:id="btnAccount"       text="👤 Tài khoản"
-                    maxWidth="Infinity" styleClass="button, btn-primary" />
-            <Button fx:id="btnLogout"        text="🚪 Đăng xuất"
-                    maxWidth="Infinity" style="button, btn-danger-outline" />
+        <Button fx:id="btnCreateAuction" text="+ Tạo phiên mới" styleClass="button, btn-primary" onAction="#handleCreateAuction"/>
+    </HBox>
 
-            <Separator/>
+    <VBox styleClass="content-pane" VBox.vgrow="ALWAYS" style="-fx-margin: 0 20 20 20;">
 
-            <!-- Thông tin người dùng (tên + vai trò) -->
-            <Label fx:id="lblUserRole" text="Chưa đăng nhập"
-                   style="-fx-text-fill: white; -fx-font-size: 12px;" wrapText="true"/>
-        </VBox>
-    </left>
+        <TableView fx:id="tableAuctions" VBox.vgrow="ALWAYS" onMouseClicked="#handleRowClick">
+            <columns>
+                <TableColumn fx:id="colId"         text="Mã phiên"     prefWidth="100"/>
+                <TableColumn fx:id="colItem"       text="Sản phẩm"     prefWidth="250"/>
+                <TableColumn fx:id="colStatus"     text="Trạng thái"   prefWidth="120"/>
+                <TableColumn fx:id="colCurrentBid" text="Giá cao nhất" prefWidth="150"/>
+            </columns>
+        </TableView>
 
-    <!-- NỘI DUNG CHÍNH -->
-    <center>
-        <VBox spacing="20" style="-fx-padding: 20;">
-            <Label text="Danh sách phiên đấu giá" style="-fx-font-size: 20px; -fx-font-weight: bold;"/>
+    </VBox>
 
-            <TableView fx:id="auctionTable" VBox.vgrow="ALWAYS">
-                <columns>
-                    <TableColumn fx:id="colItemName"  text="Sản phẩm"       prefWidth="250"/>
-                    <TableColumn fx:id="colPrice"     text="Giá hiện tại"   prefWidth="150"/>
-                    <TableColumn fx:id="colEndTime"   text="Kết thúc"       prefWidth="150"/>
-                    <TableColumn fx:id="colStatus"    text="Trạng thái"     prefWidth="120"/>
-                </columns>
-            </TableView>
-        </VBox>
-    </center>
-
-</BorderPane>
+</VBox>

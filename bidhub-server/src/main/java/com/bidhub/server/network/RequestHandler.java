@@ -1,12 +1,14 @@
 package com.bidhub.server.network;
 
-import com.bidhub.common.exception.*;
+import com.bidhub.common.exception.BidHubException;
+import com.bidhub.common.exception.DuplicateUsernameException;
+import com.bidhub.common.exception.AuthenticationException;
+import com.bidhub.common.exception.UserNotFoundException;
 import com.bidhub.common.network.MessageMapper;
 import com.bidhub.common.network.MessageRequest;
 import com.bidhub.common.network.MessageResponse;
 import com.bidhub.server.dao.UserDao;
 import com.bidhub.server.model.*;
-import com.bidhub.server.service.AdminUserService;
 import com.bidhub.server.service.AuditLogService;
 import com.bidhub.server.service.SessionManager;
 import com.bidhub.server.dao.ItemDao;
@@ -23,15 +25,6 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
-import com.bidhub.server.dao.AuctionDao;
-import com.bidhub.server.dao.BidDao;
-import com.bidhub.server.dao.ItemDao;
-import com.bidhub.server.model.Auction;
-import com.bidhub.server.model.AuctionStatus;
-import com.bidhub.server.model.BidTransaction;
-import com.bidhub.server.service.AuctionManager;
-import com.bidhub.server.service.BidValidator;
-import java.util.List;
 
 /**
  * Dispatcher chinh: nhan JSON tho → parse → auth-guard → switch type → goi handler.
@@ -45,8 +38,7 @@ public final class RequestHandler {
     // 📌 [Tieu chi: MVC — RequestHandler la tang dieu phoi server]
     private static final Set<String> AUTH_REQUIRED = Set.of(
             "LOGOUT", "CREATE_ITEM", "DELETE_ITEM",
-            "LIST_MY_ITEMS", "PLACE_BID", "GET_AUCTION_DETAIL",
-            "GET_USER_LIST", "LOCK_USER", "UNLOCK_USER"
+            "LIST_MY_ITEMS", "PLACE_BID", "GET_AUCTION_DETAIL"
     );
 
     // ← THÊM: field DAO (null ở T4 — sẽ được gán thực sự ở T5)
@@ -56,21 +48,13 @@ public final class RequestHandler {
     private final ItemDao itemDao;
     private final AuditLogService auditLogService;
     private final UserDao userDao;
-    private final AdminUserService adminUserService;
-    private final AuctionDao auctionDao;
-    private final BidDao bidDao;
-    private final BidValidator bidValidator;
 
     public RequestHandler() {
         this.injectedUserDao = null;
         this.injectedItemDao = null;
         this.auditLogService = new AuditLogService();
         this.userDao = new UserDao();
-        this.auctionDao = new AuctionDao();
-        this.bidDao = new BidDao();
         this.itemDao = new ItemDao();
-        this.adminUserService = new AdminUserService();
-        this.bidValidator = new BidValidator(itemDao);
     }
 
     RequestHandler(Object injectedUserDao, Object injectedItemDao) {
@@ -81,12 +65,7 @@ public final class RequestHandler {
                 ? (UserDao) injectedUserDao : new UserDao();
         this.itemDao = injectedItemDao instanceof ItemDao
                 ? (ItemDao) injectedItemDao : new ItemDao();
-        this.auctionDao = new AuctionDao();
-        this.bidDao = new BidDao();
-        this.adminUserService = new AdminUserService();
-        this.bidValidator = new BidValidator(itemDao);
     }
-
     RequestHandler(Object injectedUserDao, Object injectedItemDao,
                    AuditLogService injectedAuditService) {
         this.injectedUserDao = injectedUserDao;
@@ -96,10 +75,6 @@ public final class RequestHandler {
                 ? (UserDao) injectedUserDao : new UserDao();
         this.itemDao = injectedItemDao instanceof ItemDao
                 ? (ItemDao) injectedItemDao : new ItemDao();
-        this.auctionDao = new AuctionDao();
-        this.bidDao = new BidDao();
-        this.adminUserService = new AdminUserService();
-        this.bidValidator = new BidValidator(itemDao);
     }
 
     /**
@@ -153,12 +128,6 @@ public final class RequestHandler {
                         MessageResponse.error("GET_ITEM_DETAIL", "Chua implement — Khoa se them"));
                 case "DELETE_ITEM"   -> MessageMapper.toJson(
                         MessageResponse.error("DELETE_ITEM", "Chua implement — Khoa se them"));
-                case "GET_USER_LIST"  -> handleGetUserList(session, payload);
-                case "LOCK_USER"      -> handleLockUser(session, payload);
-                case "UNLOCK_USER"    -> handleUnlockUser(session, payload);
-                case "PLACE_BID"        -> handlePlaceBid(session, payload);
-                case "GET_AUCTION_LIST"  -> handleGetAuctionList(session, payload);
-                case "GET_AUCTION_DETAIL" -> handleGetAuctionDetail(session, payload);
                 default              -> MessageMapper.toJson(
                         MessageResponse.error(type, "Lenh khong xac dinh: " + type));
             };
@@ -206,13 +175,7 @@ public final class RequestHandler {
             return MessageMapper.toJson(
                     MessageResponse.error("LOGIN", "Ten dang nhap hoac mat khau khong dung."));
         }
-        // 📌 [Tieu chi: Quan ly nguoi dung — kiem tra tai khoan bi khoa]
-        if (user.isLocked()) {
-            auditLogService.log(user.getId(),
-                    AuditActions.USER_LOGIN, "{\"blocked\":true}");
-            return MessageMapper.toJson(
-                    MessageResponse.error("LOGIN", "TAI KHOAN BI KHOA"));
-        }
+
         // 📌 [Tieu chi: Ky thuat quan trong — tao session voi token UUID]
         String token = SessionManager.getInstance().createSession(user.getId());
         session.setAuthenticatedUserId(user.getId());
@@ -493,185 +456,6 @@ public final class RequestHandler {
         result.put("itemId", itemId);
 
         return MessageMapper.toJson(MessageResponse.ok("DELETE_ITEM", result));
-    }
-
-    // === ADMIN HANDLERS ===
-
-    /**
-     * Xu ly lay danh sach nguoi dung — chi ADMIN.
-     *
-     * <p>// 📌 [Tieu chi: Quan ly nguoi dung — Admin xem danh sach user]
-     *
-     * @param session session cua client
-     * @param payload payload rong
-     * @return JSON response voi danh sach user
-     */
-    private String handleGetUserList(Session session, JsonNode payload) {
-        SecurityContext.requireRole(session, UserRole.ADMIN);
-
-        java.util.List<User> users = adminUserService.listAllUsers();
-        java.util.List<Map<String, Object>> result = new java.util.ArrayList<>();
-        for (User u : users) {
-            Map<String, Object> userInfo = new HashMap<>();
-            userInfo.put("id", u.getId());
-            userInfo.put("username", u.getUsername());
-            userInfo.put("email", u.getEmail());
-            userInfo.put("role", u.getRole().name());
-            userInfo.put("isLocked", u.isLocked());
-            result.add(userInfo);
-        }
-        return MessageMapper.toJson(
-            MessageResponse.ok("GET_USER_LIST", result));
-    }
-
-    /**
-     * Xu ly khoa tai khoan — chi ADMIN.
-     *
-     * <p>// 📌 [Tieu chi: Quan ly nguoi dung — Admin khoa tai khoan]
-     *
-     * @param session session cua client
-     * @param payload {targetUserId}
-     * @return JSON response
-     */
-    private String handleLockUser(Session session, JsonNode payload) {
-        String adminId = SecurityContext.requireRole(session, UserRole.ADMIN);
-        String targetUserId = payload.path("targetUserId").asText("");
-
-        if (targetUserId.isBlank()) {
-            throw new com.bidhub.common.exception.ValidationException(
-                "targetUserId khong duoc de trong");
-        }
-
-        adminUserService.lockUser(targetUserId, adminId);
-
-        return MessageMapper.toJson(MessageResponse.ok("LOCK_USER",
-            Map.of("message", "Da khoa tai khoan.")));
-    }
-
-    /**
-     * Xu ly mo khoa tai khoan — chi ADMIN.
-     *
-     * <p>// 📌 [Tieu chi: Quan ly nguoi dung — Admin mo khoa tai khoan]
-     *
-     * @param session session cua client
-     * @param payload {targetUserId}
-     * @return JSON response
-     */
-    private String handleUnlockUser(Session session, JsonNode payload) {
-        String adminId = SecurityContext.requireRole(session, UserRole.ADMIN);
-        String targetUserId = payload.path("targetUserId").asText("");
-
-        if (targetUserId.isBlank()) {
-            throw new com.bidhub.common.exception.ValidationException(
-                "targetUserId khong duoc de trong");
-        }
-
-        adminUserService.unlockUser(targetUserId, adminId);
-
-        return MessageMapper.toJson(MessageResponse.ok("UNLOCK_USER",
-            Map.of("message", "Da mo khoa tai khoan.")));
-    }
-
-
-    /**
-     * Xu ly dat gia — validate, luu bid, cap nhat RAM va DB.
-     *
-     * <p>// 📌 [Tieu chi: Chuc nang dau gia — place bid flow day du]
-     * // 📌 [Tieu chi: MVC — handler la tang dieu phoi]
-     *
-     * @param session session cua client
-     * @param payload {auctionId, bidAmount}
-     * @return JSON response
-     */
-    private String handlePlaceBid(Session session, JsonNode payload) {
-        String userId = SecurityContext.requireAuthenticated(session);
-
-        String auctionId = payload.path("auctionId").asText("");
-        double bidAmount = payload.path("bidAmount").asDouble(0.0);
-
-        if (auctionId.isBlank()) {
-            throw new ValidationException("auctionId khong duoc de trong");
-        }
-        if (bidAmount <= 0) {
-            throw new InvalidBidException("Gia dat phai lon hon 0.");
-        }
-
-        // Lay auction tu RAM (AuctionManager)
-        // 📌 [Tieu chi: Ky thuat quan trong — truy cap auction tu RAM thay vi DB]
-        Auction auction = AuctionManager.getInstance().getAuction(auctionId)
-                .orElseThrow(() -> new AuctionNotFoundException(
-                        "Phien dau gia khong ton tai: " + auctionId));
-
-        // Validate 5 dieu kien
-        // 📌 [Tieu chi: Xu ly loi & ngoai le — BidValidator nem exception phu hop]
-        bidValidator.validate(auction, userId, bidAmount);
-
-        // Tao BidTransaction
-        BidTransaction bid = new BidTransaction(auctionId, userId, bidAmount);
-
-        // Luu bid vao DB
-        // 📌 [Tieu chi: Chuc nang dau gia — luu bid transaction vao DB]
-        bidDao.save(bid);
-
-        // Cap nhat RAM
-        // 📌 [Tieu chi: Ky thuat quan trong — cap nhat RAM nhanh hon DB]
-        auction.setCurrentHighestBid(bidAmount);
-        auction.setHighestBidderId(userId);
-
-        // Cap nhat DB
-        auctionDao.updateHighestBid(auctionId, bidAmount, userId);
-
-        // Audit log
-        auditLogService.log(userId, AuditActions.PLACE_BID,
-                "{\"auctionId\":\"" + auctionId + "\",\"amount\":" + bidAmount + "}");
-
-        return MessageMapper.toJson(MessageResponse.ok("PLACE_BID",
-                Map.of("auctionId", auctionId,
-                        "currentHighestBid", bidAmount,
-                        "highestBidderId", userId)));
-    }
-
-    /**
-     * Xu ly lay danh sach auction dang active.
-     *
-     * <p>// 📌 [Tieu chi: MVC — handler truy xuat du lieu tu DAO]
-     *
-     * @param session session cua client
-     * @param payload payload rong
-     * @return JSON response voi danh sach auction
-     */
-    private String handleGetAuctionList(Session session, JsonNode payload) {
-        List<Auction> auctions = auctionDao.findActiveAuctions();
-        return MessageMapper.toJson(
-                MessageResponse.ok("GET_AUCTION_LIST", auctions));
-    }
-
-    /**
-     * Xu ly lay chi tiet 1 auction.
-     *
-     * <p>// 📌 [Tieu chi: MVC — handler truy xuat chi tiet tu DAO + BidDao]
-     *
-     * @param session session cua client
-     * @param payload {auctionId}
-     * @return JSON response voi chi tiet auction + bid history
-     */
-    private String handleGetAuctionDetail(Session session, JsonNode payload) {
-        String auctionId = payload.path("auctionId").asText("");
-        if (auctionId.isBlank()) {
-            throw new ValidationException("auctionId khong duoc de trong");
-        }
-
-        // Thu lay tu RAM truoc, neu khong co thi lay tu DB
-        Auction auction = AuctionManager.getInstance().getAuction(auctionId)
-                .orElseGet(() -> auctionDao.findById(auctionId)
-                        .orElseThrow(() -> new AuctionNotFoundException(
-                                "Phien dau gia khong ton tai: " + auctionId)));
-
-        // Lay lich su bid
-        List<BidTransaction> bidHistory = bidDao.findByAuctionId(auctionId);
-
-        return MessageMapper.toJson(MessageResponse.ok("GET_AUCTION_DETAIL",
-                Map.of("auction", auction, "bidHistory", bidHistory)));
     }
 
     // === HELPER ===

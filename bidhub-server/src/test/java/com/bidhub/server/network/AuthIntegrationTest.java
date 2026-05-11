@@ -47,7 +47,6 @@ class AuthIntegrationTest {
                         + "id TEXT PRIMARY KEY, username TEXT UNIQUE, "
                         + "password_hash TEXT, email TEXT, role TEXT, "
                         + "extra_int INTEGER DEFAULT 0, "
-                        + "is_locked INTEGER NOT NULL DEFAULT 0, "   // ← thêm dòng này
                         + "created_at TEXT, updated_at TEXT)");
         testConn.createStatement().executeUpdate(
                 "CREATE TABLE items ("

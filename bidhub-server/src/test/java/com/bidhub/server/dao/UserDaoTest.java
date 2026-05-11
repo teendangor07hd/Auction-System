@@ -21,18 +21,12 @@ class UserDaoTest {
         conn = DriverManager.getConnection("jdbc:sqlite::memory:");
         try (Statement s = conn.createStatement()) {
             s.execute("""
-    CREATE TABLE users (
-        id TEXT PRIMARY KEY,
-        username TEXT UNIQUE NOT NULL,
-        password_hash TEXT NOT NULL,
-        email TEXT NOT NULL,
-        role TEXT NOT NULL,
-        extra_int INTEGER NOT NULL DEFAULT 0,
-        is_locked INTEGER NOT NULL DEFAULT 0,
-        created_at TEXT NOT NULL,
-        updated_at TEXT NOT NULL
-    )
-""");
+          CREATE TABLE users (
+            id TEXT PRIMARY KEY, username TEXT UNIQUE NOT NULL,
+            password_hash TEXT NOT NULL, email TEXT NOT NULL,
+            role TEXT NOT NULL, extra_int INTEGER NOT NULL DEFAULT 0,
+            created_at TEXT NOT NULL, updated_at TEXT NOT NULL)
+          """);
         }
         dao = new UserDao(conn); // inject in-memory connection
     }
