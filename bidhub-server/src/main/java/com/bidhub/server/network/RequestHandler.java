@@ -35,6 +35,7 @@ import java.util.List;
 import com.bidhub.server.event.BidUpdateEvent;
 import com.bidhub.server.event.AuctionClosedEvent;
 import com.bidhub.server.service.NotificationBroker;
+import com.bidhub.server.service.ReportService;
 
 /**
  * Dispatcher chinh: nhan JSON tho → parse → auth-guard → switch type → goi handler.
@@ -49,7 +50,8 @@ public final class RequestHandler {
     private static final Set<String> AUTH_REQUIRED = Set.of(
             "LOGOUT", "CREATE_ITEM", "DELETE_ITEM",
             "LIST_MY_ITEMS", "PLACE_BID", "GET_AUCTION_DETAIL",
-            "GET_USER_LIST", "LOCK_USER", "UNLOCK_USER"
+            "GET_USER_LIST", "LOCK_USER", "UNLOCK_USER",
+            "GET_BID_HISTORY_REPORT", "GET_AUDIT_LOG"
     );
 
     // ← THÊM: field DAO (null ở T4 — sẽ được gán thực sự ở T5)
@@ -63,6 +65,7 @@ public final class RequestHandler {
     private final AuctionDao auctionDao;
     private final BidDao bidDao;
     private final BidValidator bidValidator;
+    private final ReportService reportService;
 
     public RequestHandler() {
         this.injectedUserDao = null;
@@ -74,6 +77,7 @@ public final class RequestHandler {
         this.itemDao = new ItemDao();
         this.adminUserService = new AdminUserService();
         this.bidValidator = new BidValidator(itemDao);
+        this.reportService = new ReportService();
     }
 
     RequestHandler(Object injectedUserDao, Object injectedItemDao) {
@@ -88,6 +92,7 @@ public final class RequestHandler {
         this.bidDao = new BidDao();
         this.adminUserService = new AdminUserService();
         this.bidValidator = new BidValidator(itemDao);
+        this.reportService = new ReportService();
     }
 
     RequestHandler(Object injectedUserDao, Object injectedItemDao,
@@ -103,6 +108,7 @@ public final class RequestHandler {
         this.bidDao = new BidDao();
         this.adminUserService = new AdminUserService();
         this.bidValidator = new BidValidator(itemDao);
+        this.reportService = new ReportService();
     }
 
     /**
@@ -147,15 +153,10 @@ public final class RequestHandler {
                 case "LOGIN"         -> handleLogin(session, payload);
                 case "REGISTER"      -> handleRegister(session, payload);
                 case "LOGOUT"        -> handleLogout(session, req.getToken());
-                // Khoa se them cac case sau
-                case "CREATE_ITEM"   -> MessageMapper.toJson(
-                        MessageResponse.error("CREATE_ITEM", "Chua implement — Khoa se them"));
-                case "GET_ITEM_LIST" -> MessageMapper.toJson(
-                        MessageResponse.error("GET_ITEM_LIST", "Chua implement — Khoa se them"));
-                case "GET_ITEM_DETAIL" -> MessageMapper.toJson(
-                        MessageResponse.error("GET_ITEM_DETAIL", "Chua implement — Khoa se them"));
-                case "DELETE_ITEM"   -> MessageMapper.toJson(
-                        MessageResponse.error("DELETE_ITEM", "Chua implement — Khoa se them"));
+                case "CREATE_ITEM"   -> handleCreateItem(session, payload);
+                case "GET_ITEM_LIST" -> handleGetItemList();
+                case "GET_ITEM_DETAIL" -> handleGetItemDetail(payload);
+                case "DELETE_ITEM"   -> handleDeleteItem(session, payload);
                 case "GET_USER_LIST"  -> handleGetUserList(session, payload);
                 case "LOCK_USER"      -> handleLockUser(session, payload);
                 case "UNLOCK_USER"    -> handleUnlockUser(session, payload);
@@ -163,6 +164,9 @@ public final class RequestHandler {
                 case "GET_AUCTION_LIST"  -> handleGetAuctionList(session, payload);
                 case "GET_AUCTION_DETAIL" -> handleGetAuctionDetail(session, payload);
                 case "SUBSCRIBE_AUCTION" -> handleSubscribeAuction(session, payload);
+                case "GET_AUCTION_REPORT"     -> handleGetAuctionReport(session, payload);
+                case "GET_BID_HISTORY_REPORT" -> handleGetBidHistoryReport(session, payload);
+                case "GET_AUDIT_LOG"          -> handleGetAuditLog(session, payload);
                 default              -> MessageMapper.toJson(
                         MessageResponse.error(type, "Lenh khong xac dinh: " + type));
             };
@@ -707,6 +711,58 @@ public final class RequestHandler {
                 "sessionId", session.getSessionId()
         );
         return MessageMapper.toJson(MessageResponse.ok("PING", payload));
+    }
+
+    /**
+     * Xu ly lay bao cao auction (SELLER hoac ADMIN).
+     *
+     * <p>// 📌 [Tieu chi: MVC — handler truy xuat bao cao tu Service]
+     *
+     * @param session session cua client
+     * @param payload payload rong
+     * @return JSON response voi danh sach auction report
+     */
+    private String handleGetAuctionReport(Session session, JsonNode payload) {
+        String userId = SecurityContext.requireAuthenticated(session);
+        // Cho phep SELLER va ADMIN xem auction report
+        return MessageMapper.toJson(MessageResponse.ok("GET_AUCTION_REPORT",
+                reportService.exportAuctionReport()));
+    }
+
+    /**
+     * Xu ly lay lich su bid cua auction.
+     *
+     * @param session session cua client
+     * @param payload {auctionId}
+     * @return JSON response voi danh sach bid
+     */
+    private String handleGetBidHistoryReport(Session session, JsonNode payload) {
+        SecurityContext.requireAuthenticated(session);
+        String auctionId = payload.path("auctionId").asText("");
+        if (auctionId.isBlank()) {
+            throw new ValidationException("auctionId khong duoc de trong");
+        }
+        return MessageMapper.toJson(MessageResponse.ok("GET_BID_HISTORY_REPORT",
+                reportService.exportBidHistory(auctionId)));
+    }
+
+    /**
+     * Xu ly lay audit log (ADMIN only).
+     *
+     * <p>// 📌 [Tieu chi: Quan ly nguoi dung — Admin xem audit log]
+     *
+     * @param session session cua client
+     * @param payload {limit} (default 50)
+     * @return JSON response voi danh sach audit log
+     */
+    private String handleGetAuditLog(Session session, JsonNode payload) {
+        SecurityContext.requireRole(session, UserRole.ADMIN);
+        int limit = payload.path("limit").asInt(50);
+        if (limit <= 0 || limit > 500) {
+            limit = 50;
+        }
+        return MessageMapper.toJson(MessageResponse.ok("GET_AUDIT_LOG",
+                reportService.exportAuditLog(limit)));
     }
 
     /**
