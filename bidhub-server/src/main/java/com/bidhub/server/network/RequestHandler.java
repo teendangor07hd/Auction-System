@@ -6,9 +6,7 @@ import com.bidhub.common.network.MessageRequest;
 import com.bidhub.common.network.MessageResponse;
 import com.bidhub.server.dao.UserDao;
 import com.bidhub.server.model.*;
-import com.bidhub.server.service.AdminUserService;
-import com.bidhub.server.service.AuditLogService;
-import com.bidhub.server.service.SessionManager;
+import com.bidhub.server.service.*;
 import com.bidhub.server.dao.ItemDao;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.bidhub.server.model.AuditActions;
@@ -16,7 +14,6 @@ import com.bidhub.server.model.Bidder;
 import com.bidhub.server.model.Seller;
 import com.bidhub.server.model.User;
 import com.bidhub.server.model.UserRole;
-import com.bidhub.server.service.AuthService;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import java.time.LocalDateTime;
 import java.util.HashMap;
@@ -29,13 +26,10 @@ import com.bidhub.server.dao.ItemDao;
 import com.bidhub.server.model.Auction;
 import com.bidhub.server.model.AuctionStatus;
 import com.bidhub.server.model.BidTransaction;
-import com.bidhub.server.service.AuctionManager;
-import com.bidhub.server.service.BidValidator;
+
 import java.util.List;
 import com.bidhub.server.event.BidUpdateEvent;
 import com.bidhub.server.event.AuctionClosedEvent;
-import com.bidhub.server.service.NotificationBroker;
-import com.bidhub.server.service.ReportService;
 
 /**
  * Dispatcher chinh: nhan JSON tho → parse → auth-guard → switch type → goi handler.
@@ -618,6 +612,10 @@ public final class RequestHandler {
 
             // Cap nhat DB
             auctionDao.updateHighestBid(auctionId, bidAmount, userId);
+            // 📌 [Tieu chi: Anti-Sniping — kiem tra va gia han neu bid trong snipe window]
+            // Chay trong lock block → thread-safe, khong race voi lifecycle task
+            AntiSnipingEngine antiSnipingEngine = new AntiSnipingEngine();
+            antiSnipingEngine.check(auction);
         } finally {
             auction.getLock().unlock();
         }
