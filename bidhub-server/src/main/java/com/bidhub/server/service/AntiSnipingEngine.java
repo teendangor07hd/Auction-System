@@ -6,6 +6,8 @@ import com.bidhub.server.event.AuctionExtendedEvent;
 import com.bidhub.server.model.Auction;
 import com.bidhub.server.model.AuctionStatus;
 import java.time.LocalDateTime;
+import com.bidhub.server.model.AuditActions;
+import com.bidhub.server.service.AuditLogService;
 
 /**
  * Engine kiem tra va gia han auction khi co bid dat trong snipe window (giay cuoi).
@@ -79,8 +81,9 @@ public final class AntiSnipingEngine {
 
         // 📌 [Tieu chi: Anti-Sniping — isAfter() OR isEqual() de bao gom canh]
         if (now.isAfter(snipeWindow) || now.isEqual(snipeWindow)) {
-            // Gia han auction
-            LocalDateTime newEndTime = auction.getEndTime().plusSeconds(extensionSeconds);
+            // 📌 [Tieu chi: Anti-Sniping — luu endTime cu truoc khi gia han]
+            LocalDateTime oldEndTime = auction.getEndTime();
+            LocalDateTime newEndTime = oldEndTime.plusSeconds(extensionSeconds);
 
             // Cap nhat RAM
             auction.extendEndTime(newEndTime);
@@ -92,6 +95,14 @@ public final class AntiSnipingEngine {
             NotificationBroker.getInstance().publish(
                     auction.getId(),
                     new AuctionExtendedEvent(auction.getId(), newEndTime));
+
+            // 📌 [Tieu chi: Audit Log — log AUCTION_EXTENDED sau gia han thanh cong]
+            // Chay trong handlePlaceBid lock block → thread-safe
+            AuditLogService auditLogService = new AuditLogService();
+            auditLogService.log("SYSTEM", AuditActions.AUCTION_EXTENDED,
+                    "{\"auctionId\":\"" + auction.getId()
+                            + "\",\"oldEndTime\":\"" + oldEndTime.toString()
+                            + "\",\"newEndTime\":\"" + newEndTime.toString() + "\"}");
 
             System.out.println("[AntiSnipingEngine] Auction " + auction.getId()
                     + " gia han den " + newEndTime);
