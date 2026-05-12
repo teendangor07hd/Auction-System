@@ -2,6 +2,9 @@
 <?import javafx.scene.control.*?>
 <?import javafx.scene.layout.*?>
 
+<?import javafx.scene.chart.NumberAxis?>
+<?import javafx.scene.chart.CategoryAxis?>
+<?import javafx.scene.chart.LineChart?>
 <VBox xmlns:fx="http://javafx.com/fxml/1"
       fx:controller="com.bidhub.client.controller.AuctionDetailController"
       stylesheets="@/css/styles.css"
@@ -50,6 +53,16 @@
 
         <Separator/>
 
+        <!-- 📌 [Tieu chi: Price Chart — LineChart hien thi lich su gia realtime] -->
+        <LineChart fx:id="bidChart" title="Lịch sử giá đấu giá" legendVisible="true"
+                   createSymbols="false" prefHeight="250.0">
+            <xAxis>
+                <CategoryAxis label="Thời gian" />
+            </xAxis>
+            <yAxis>
+                <NumberAxis label="Giá (VNĐ)" />
+            </yAxis>
+        </LineChart>
         <!-- Form đặt giá + nút Back -->
         <HBox spacing="15" alignment="CENTER_LEFT">
             <Label text="Giá đặt (VNĐ):" styleClass="form-label"/>
