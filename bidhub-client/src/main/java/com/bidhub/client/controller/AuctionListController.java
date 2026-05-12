@@ -16,7 +16,6 @@ import javafx.scene.control.*;
 import javafx.scene.input.MouseButton;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.Priority;
-import javafx.scene.text.Text;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -26,21 +25,18 @@ import java.util.Map;
  */
 public class AuctionListController {
 
-    // TableView va cac cot
+    // TableView va cac cot (Columns)
     @FXML private TableView<JsonNode> auctionTable;
     @FXML private TableColumn<JsonNode, String> colItemName;
     @FXML private TableColumn<JsonNode, String> colPrice;
     @FXML private TableColumn<JsonNode, String> colEndTime;
     @FXML private TableColumn<JsonNode, String> colStatus;
 
-    // Nut bam trong Sidebar
+    // Nut bam (Buttons) trong Sidebar
     @FXML private Button btnCreateAuction;
     @FXML private Button btnCreateItem;
-    @FXML private Button btnAccount;    // Nút Tài khoản mới
+    @FXML private Button btnAccount;
     @FXML private Button btnLogout;
-
-    // Label hien thi vai tro nguoi dung (goc duoi sidebar)
-    @FXML private Label lblUserRole;
 
     private final ObjectMapper mapper = new ObjectMapper();
     private final ObservableList<JsonNode> auctionData =
@@ -48,7 +44,7 @@ public class AuctionListController {
 
     @FXML
     public void initialize() {
-        // 1. Cau hinh cac cot cho TableView
+        // 1. Cau hinh cac cot cho TableView (Setup columns)
         colItemName.setCellValueFactory(cellData -> {
             JsonNode node = cellData.getValue();
             String name = node.has("itemName") ? node.get("itemName").asText("") : node.path("id").asText("");
@@ -65,7 +61,7 @@ public class AuctionListController {
                         cellData.getValue().path("status").asText("")));
         auctionTable.setItems(auctionData);
 
-        // 2. Double-click de xem chi tiet phien dau gia
+        // 2. Double-click de xem chi tiet phien dau gia (View details)
         auctionTable.setRowFactory(tv -> {
             TableRow<JsonNode> row = new TableRow<>();
             row.setOnMouseClicked(event -> {
@@ -83,14 +79,14 @@ public class AuctionListController {
             return row;
         });
 
-        // 3. Dieu huong nut
+        // 3. Dieu huong nut (Navigation)
         btnCreateAuction.setOnAction(e -> ViewRouter.getInstance().navigateTo(Views.CREATE_AUCTION));
         btnCreateItem.setOnAction(e -> ViewRouter.getInstance().navigateTo(Views.CREATE_ITEM));
 
-        // 4. Nut Tai khoan (popup xem thong tin)
+        // 4. Nut Tai khoan (popup xem thong tin - Account info)
         btnAccount.setOnAction(e -> showAccountPopup());
 
-        // 5. Nut Dang xuat
+        // 5. Nut Dang xuat (Logout)
         btnLogout.setOnAction(e -> {
             NetworkTask<MessageResponse> task = new NetworkTask<>(() -> {
                 MessageRequest req = new MessageRequest();
@@ -109,10 +105,7 @@ public class AuctionListController {
             new Thread(task).start();
         });
 
-        // 6. Hien thi thong tin nguoi dung (ten + vai tro)
-        updateUserLabel();
-
-        // 7. Load danh sach phien dau gia
+        // 6. Load danh sach phien dau gia (Fetch data)
         loadAuctionList();
     }
 
@@ -131,7 +124,7 @@ public class AuctionListController {
         alert.setTitle("Thông tin tài khoản");
         alert.setHeaderText(null);
 
-        // Tạo layout cho nội dung
+        // Tạo layout cho nội dung (Layout configuration)
         GridPane grid = new GridPane();
         grid.setHgap(10);
         grid.setVgap(10);
@@ -151,23 +144,13 @@ public class AuctionListController {
         grid.add(lblRoleTitle, 0, 1);
         grid.add(lblRoleValue, 1, 1);
 
-        // Để label value co giãn
+        // Để label value co giãn (Responsive behavior)
         GridPane.setHgrow(lblUsernameValue, Priority.ALWAYS);
         GridPane.setHgrow(lblRoleValue, Priority.ALWAYS);
 
         alert.getDialogPane().setContent(grid);
         alert.getDialogPane().setMinWidth(300);
         alert.showAndWait();
-    }
-
-    private void updateUserLabel() {
-        String role = ClientSession.getInstance().getCurrentRole();
-        String username = ClientSession.getInstance().getCurrentUsername();
-        if (username != null && role != null) {
-            lblUserRole.setText(username + " (" + role + ")");
-        } else {
-            lblUserRole.setText("Chưa đăng nhập");
-        }
     }
 
     private void loadAuctionList() {
