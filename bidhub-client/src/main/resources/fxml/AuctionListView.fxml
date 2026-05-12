@@ -7,30 +7,24 @@
             stylesheets="@/css/styles.css"
             styleClass="root">
 
-    <!-- SIDEBAR TRÁI -->
     <left>
         <VBox spacing="10" style="-fx-background-color: #1E1B4B; -fx-padding: 20; -fx-min-width: 220;">
             <Label text="BidHub" style="-fx-text-fill: white; -fx-font-size: 18px; -fx-font-weight: bold;"/>
 
-            <!-- Các nút điều hướng -->
             <Button fx:id="btnCreateItem"    text="➕ Thêm sản phẩm"
                     maxWidth="Infinity" styleClass="button, btn-primary" />
             <Button fx:id="btnCreateAuction" text="📊 Tạo phiên mới"
                     maxWidth="Infinity" styleClass="button, btn-primary" />
+
+            <Region VBox.vgrow="ALWAYS" />
+
             <Button fx:id="btnAccount"       text="👤 Tài khoản"
                     maxWidth="Infinity" styleClass="button, btn-primary" />
             <Button fx:id="btnLogout"        text="🚪 Đăng xuất"
                     maxWidth="Infinity" style="button, btn-danger-outline" />
-
-            <Separator/>
-
-            <!-- Thông tin người dùng (tên + vai trò) -->
-            <Label fx:id="lblUserRole" text="Chưa đăng nhập"
-                   style="-fx-text-fill: white; -fx-font-size: 12px;" wrapText="true"/>
         </VBox>
     </left>
 
-    <!-- NỘI DUNG CHÍNH -->
     <center>
         <VBox spacing="20" style="-fx-padding: 20;">
             <Label text="Danh sách phiên đấu giá" style="-fx-font-size: 20px; -fx-font-weight: bold;"/>

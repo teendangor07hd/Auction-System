@@ -78,7 +78,7 @@ public class CreateItemController {
         // Kiem tra role — chi SELLER duoc tao item
         String role = ClientSession.getInstance().getCurrentRole();
         if (!"SELLER".equals(role)) {
-            lblMessage.setText("Chi nguoi ban (SELLER) moi duoc tao san pham.");
+            lblMessage.setText("Chỉ người bán (SELLER) mới được tạo sản phẩm.");
             lblMessage.setVisible(true);
         }
     }
@@ -90,8 +90,7 @@ public class CreateItemController {
     public void handleSubmit() {
         String role = ClientSession.getInstance().getCurrentRole();
         if (!"SELLER".equals(role)) {
-            lblMessage.setText("Chi nguoi ban (SELLER) moi duoc tao san pham.");
-            lblMessage.setVisible(true);
+            showError("Chỉ người bán (SELLER) mới được tạo sản phẩm.");
             return;
         }
 
@@ -101,8 +100,7 @@ public class CreateItemController {
         String itemType = itemTypeComboBox.getValue();
 
         if (name.isBlank() || priceStr.isBlank() || itemType == null) {
-            lblMessage.setText("Vui long dien day du thong tin.");
-            lblMessage.setVisible(true);
+            showError("Vui lòng điền đầy đủ thông tin cơ bản.");
             return;
         }
 
@@ -112,34 +110,53 @@ public class CreateItemController {
         try {
             startingPrice = Double.parseDouble(priceStr);
             if (startingPrice <= 0) {
-                // Ném lỗi chung để catch bên dưới bắt được
-                throw new NumberFormatException();
+                showError("Giá khởi điểm phải lớn hơn 0.");
+                return;
             }
 
-            // Chuyển khối switch vào trong try-catch để an toàn khi parse Integer
+            // Kiểm tra và gán dữ liệu (assign data) tùy theo itemType
             switch (itemType) {
                 case "ELECTRONICS" -> {
-                    extras.put("brand", brandField.getText().trim());
-                    extras.put("warrantyMonths", Integer.parseInt(warrantyMonthsField.getText().trim()));
+                    String brand = brandField.getText().trim();
+                    String warranty = warrantyMonthsField.getText().trim();
+                    if (brand.isBlank() || warranty.isBlank()) {
+                        showError("Vui lòng điền đủ Brand và Warranty.");
+                        return;
+                    }
+                    extras.put("brand", brand);
+                    extras.put("warrantyMonths", Integer.parseInt(warranty));
                 }
                 case "ART" -> {
-                    extras.put("artist", artistField.getText().trim());
-                    extras.put("yearCreated", Integer.parseInt(yearCreatedField.getText().trim()));
+                    String artist = artistField.getText().trim();
+                    String year = yearCreatedField.getText().trim();
+                    if (artist.isBlank() || year.isBlank()) {
+                        showError("Vui lòng điền đủ Artist và Year Created.");
+                        return;
+                    }
+                    extras.put("artist", artist);
+                    extras.put("yearCreated", Integer.parseInt(year));
                 }
                 case "VEHICLE" -> {
-                    extras.put("manufacturer", manufacturerField.getText().trim());
-                    extras.put("year", Integer.parseInt(yearField.getText().trim()));
-                    extras.put("mileageKm", Integer.parseInt(mileageKmField.getText().trim()));
+                    String manufacturer = manufacturerField.getText().trim();
+                    String year = yearField.getText().trim();
+                    String mileage = mileageKmField.getText().trim();
+                    if (manufacturer.isBlank() || year.isBlank() || mileage.isBlank()) {
+                        showError("Vui lòng điền đủ Manufacturer, Year và Mileage.");
+                        return;
+                    }
+                    extras.put("manufacturer", manufacturer);
+                    extras.put("year", Integer.parseInt(year));
+                    extras.put("mileageKm", Integer.parseInt(mileage));
                 }
             }
         } catch (NumberFormatException e) {
-            // Catch này giờ đây sẽ bắt lỗi của cả startingPrice lẫn các trường động (extras)
-            lblMessage.setText("Dữ liệu số không hợp lệ (Giá, năm, số tháng, số km).");
-            lblMessage.setVisible(true);
-            return; // Dừng lại, không gửi request
+            // Catch Exception khi người dùng nhập chữ vào ô yêu cầu nhập số
+            showError("Dữ liệu số không hợp lệ (Giá, năm, số tháng, số km).");
+            e.printStackTrace(); // In log ra console để dễ debug
+            return;
         }
 
-// 📌 [Tieu chi: Quan ly san pham — tao payload voi extras theo itemType]
+        // 📌 [Tieu chi: Quan ly san pham — tao payload voi extras theo itemType]
         ObjectNode payload = JsonNodeFactory.instance.objectNode();
         payload.put("name", name);
         payload.put("description", description);
@@ -160,14 +177,12 @@ public class CreateItemController {
             if (response.isOk()) {
                 ViewRouter.getInstance().navigateTo(Views.AUCTION_LIST);
             } else {
-                lblMessage.setText(response.getMessage());
-                lblMessage.setVisible(true);
+                showError(response.getMessage());
             }
         });
 
         task.setOnFailed(e -> {
-            lblMessage.setText("Khong ket noi duoc may chu. Thu lai sau.");
-            lblMessage.setVisible(true);
+            showError("Không kết nối được máy chủ. Thử lại sau.");
         });
 
         new Thread(task).start();
@@ -179,5 +194,13 @@ public class CreateItemController {
     @FXML
     public void handleCancel() {
         ViewRouter.getInstance().navigateTo(Views.AUCTION_LIST);
+    }
+
+    /**
+     * Hàm helper để hiển thị lỗi (Display error message)
+     */
+    private void showError(String message) {
+        lblMessage.setText(message);
+        lblMessage.setVisible(true);
     }
 }
