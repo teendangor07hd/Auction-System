@@ -85,6 +85,7 @@ public class AuctionDetailController implements ContextAware {
         }
     }
 
+
     /**
      * Tải thông tin chi tiết phiên đấu giá từ Server.
      */
