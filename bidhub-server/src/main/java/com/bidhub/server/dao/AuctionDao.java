@@ -235,4 +235,37 @@ public class AuctionDao {
         }
         return result;
     }
+
+  /**
+   * Lay tat ca auction voi thong tin bid — dung cho DataIntegrityService.
+   *
+   * <p>Tra ve List<Map> thay vi List<Auction> de lay ca currentHighestBid
+   * va highestBidderId dang raw cho so sanh.
+   *
+   * @return danh sach map chua thong tin auction
+   */
+  public List<Map<String, Object>> findAllWithBidInfo() {
+    List<Map<String, Object>> result = new ArrayList<>();
+    String sql = "SELECT id, current_highest_bid, highest_bidder_id FROM auctions";
+    Connection conn = null;
+    try {
+      conn = acquireConnection();
+      try (PreparedStatement ps = conn.prepareStatement(sql);
+           ResultSet rs = ps.executeQuery()) {
+        while (rs.next()) {
+          Map<String, Object> row = new HashMap<>();
+          row.put("id", rs.getString("id"));
+          row.put("currentHighestBid", rs.getDouble("current_highest_bid"));
+          row.put("highestBidderId", rs.getString("highest_bidder_id"));
+          result.add(row);
+        }
+      }
+    } catch (SQLException e) {
+      throw new RuntimeException("AuctionDao.findAllWithBidInfo that bai: "
+          + e.getMessage(), e);
+    } finally {
+      releaseConnection(conn);
+    }
+    return result;
+  }
 }
