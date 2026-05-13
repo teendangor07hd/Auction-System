@@ -5,6 +5,7 @@ import com.bidhub.client.network.BidUpdateCallback;
 import com.bidhub.client.network.EventListenerThread;
 import com.bidhub.client.network.ServerGateway;
 import com.bidhub.client.network.NetworkTask;
+import com.bidhub.client.service.BidChartService; // Import service
 import com.bidhub.common.network.MessageRequest;
 import com.bidhub.common.network.MessageResponse;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -13,6 +14,7 @@ import javafx.animation.KeyFrame;
 import javafx.animation.Timeline;
 import javafx.application.Platform;
 import javafx.fxml.FXML;
+import javafx.scene.chart.LineChart; // Import LineChart
 import javafx.scene.control.*;
 import javafx.util.Duration;
 
@@ -40,6 +42,10 @@ public class AuctionDetailController implements ContextAware {
     @FXML private Button btnPlaceBid;
     @FXML private Button btnBack;
 
+    // 📌 [Tieu chi: Price Chart — FXML inject LineChart]
+    @FXML
+    private LineChart<String, Number> bidChart;
+
     // --- Logic Fields ---
     private String auctionId;
     private LocalDateTime endTime;
@@ -49,6 +55,9 @@ public class AuctionDetailController implements ContextAware {
     // Fields cho Real-time Event Listener
     private EventListenerThread eventListener;
     private boolean isSubscribed = false;
+
+    // 📌 [Tieu chi: Price Chart — BidChartService quan ly du lieu chart]
+    private BidChartService bidChartService;
 
     @Override
     public void setContext(Map<String, Object> params) {
@@ -66,7 +75,16 @@ public class AuctionDetailController implements ContextAware {
             com.bidhub.client.navigation.ViewRouter.getInstance()
                     .navigateTo(com.bidhub.client.util.Views.AUCTION_LIST);
         });
+
+        // 📌 [Tieu chi: Price Chart — khoi tao BidChartService va bind vao LineChart]
+        bidChartService = new BidChartService();
+        if (bidChart != null) {
+            bidChart.getData().clear();
+            bidChart.getData().add(bidChartService.getSeries());
+            bidChart.setAnimated(false); // Tat animation de realtime update nhanh hon
+        }
     }
+
 
     /**
      * Tải thông tin chi tiết phiên đấu giá từ Server.
@@ -166,8 +184,21 @@ public class AuctionDetailController implements ContextAware {
                             String bidder = eventNode.path("bidderId").asText("Unknown");
                             lblCurrentPrice.setText("Giá hiện tại: " + newPrice);
                             lblHighestBidder.setText("Người dẫn đầu: " + bidder);
+
+                            // 📌 [Tieu chi: Price Chart — realtime addDataPoint khi nhan BID_UPDATE]
+                            bidChartService.addDataPoint(LocalDateTime.now(), newPrice);
+
                         } else if ("AUCTION_CLOSED".equals(eventType)) {
                             disableBiddingUI();
+
+                        } else if ("AUCTION_EXTENDED".equals(eventType)) {
+                            // 📌 [Tieu chi: Anti-Sniping — reset countdown khi nhan AUCTION_EXTENDED]
+                            // Lay newEndTime tu event → cap nhat countdown
+                            String newEndTimeStr = eventNode.path("newEndTime").asText("");
+                            if (!newEndTimeStr.isEmpty()) {
+                                endTime = LocalDateTime.parse(newEndTimeStr);
+                                startCountdown(); // Khởi động lại timeline với thời gian mới
+                            }
                         }
                     });
                 } catch (Exception e) {
