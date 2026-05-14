@@ -60,20 +60,20 @@ public final class AuctionManager {
     }
 
     /**
-     * Khoi dong AuctionManager — load tat ca RUNNING auction tu DB vao RAM,
+     * Khoi dong AuctionManager — load tat ca OPEN va RUNNING auction tu DB vao RAM,
      * schedule {@link AuctionLifecycleTask} chay moi 5 giay.
      *
      * <p>// 📌 [Tieu chi: Chuc nang dau gia — tu dong kiem tra va dong phien]
      */
     public void start() {
-        // Load tat ca RUNNING auction tu DB
+        // Load tat ca OPEN + RUNNING auction tu DB
         AuctionDao auctionDao = new AuctionDao();
         List<Auction> activeAuctions = auctionDao.findActiveAuctions();
         for (Auction auction : activeAuctions) {
             auctions.put(auction.getId(), auction);
         }
         System.out.println("[AuctionManager] Da load " + activeAuctions.size()
-                + " RUNNING auctions vao RAM.");
+                + " active auctions (OPEN + RUNNING) vao RAM.");
 
         // Schedule lifecycle task moi 5 giay
         AuctionLifecycleTask task = new AuctionLifecycleTask();
