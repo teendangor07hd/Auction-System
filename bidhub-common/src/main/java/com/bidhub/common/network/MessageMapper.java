@@ -1,6 +1,8 @@
 package com.bidhub.common.network;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 
 /**
  * Utility serialize/deserialize JSON cho toàn bộ server protocol.
@@ -11,6 +13,12 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 public final class MessageMapper {
 
     private static final ObjectMapper MAPPER = new ObjectMapper();
+
+    static {
+        // 📌 [Tieu chi: Ky thuat quan trong — JavaTimeModule cho LocalDateTime serialization]
+        MAPPER.registerModule(new JavaTimeModule());
+        MAPPER.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
+    }
 
     private MessageMapper() {}
 

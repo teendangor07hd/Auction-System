@@ -1,6 +1,7 @@
 package com.bidhub.server.model;
 
 import com.bidhub.common.model.Entity;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import java.time.LocalDateTime;
 import java.util.Objects;
 import java.util.concurrent.locks.ReentrantLock;
@@ -255,6 +256,7 @@ public class Auction extends Entity {
      *
      * @return ReentrantLock instance
      */
+    @JsonIgnore
     public ReentrantLock getLock() {
         return lock;
     }

@@ -1,11 +1,13 @@
 package com.bidhub.client.controller;
 
+import com.bidhub.client.network.ClientSession;
 import com.bidhub.client.network.NetworkTask;
 import com.bidhub.client.network.ServerGateway;
 import com.bidhub.client.util.UiUtils; // THÊM IMPORT UiUtils
 import com.bidhub.common.network.MessageRequest;
 import com.bidhub.common.network.MessageResponse;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import javafx.application.Platform;
 import javafx.fxml.FXML;
@@ -31,6 +33,9 @@ public class CreateAuctionController {
 
     private final ObjectMapper mapper = new ObjectMapper();
 
+    /** Map luu itemId theo display name de tra cuu khi submit */
+    private final java.util.Map<String, String> itemDisplayToId = new java.util.LinkedHashMap<>();
+
     @FXML
     public void initialize() {
         SpinnerValueFactory<Integer> startHourFactory =
@@ -51,13 +56,70 @@ public class CreateAuctionController {
         // 📌 [Tieu chi: UX — TextField chi nhan so]
         UiUtils.applyNumericFilter(tfStartingPrice);
         UiUtils.applyNumericFilter(tfMinIncrement);
+
+        // 📌 [Tieu chi: Chuc nang dau gia — load danh sach item cua seller vao ComboBox]
+        loadMyItems();
+    }
+
+    /**
+     * Gui request LIST_MY_ITEMS den server de lay danh sach san pham cua seller.
+     * Populate ComboBox voi ket qua tra ve.
+     */
+    private void loadMyItems() {
+        MessageRequest req = new MessageRequest();
+        req.setType("LIST_MY_ITEMS");
+        req.setToken(ClientSession.getInstance().getToken());
+        req.setPayload(mapper.createObjectNode());
+
+        NetworkTask<MessageResponse> task = new NetworkTask<>(
+                () -> ServerGateway.getInstance().sendRequest(req));
+
+        task.setOnSucceeded(e -> {
+            MessageResponse response = task.getValue();
+            if ("OK".equals(response.getStatus())) {
+                javafx.application.Platform.runLater(() -> {
+                    cbItemId.getItems().clear();
+                    itemDisplayToId.clear();
+                    try {
+                        // payload la List<Map> — parse tung item
+                        JsonNode payloadNode = mapper.valueToTree(response.getPayload());
+                        if (payloadNode.isArray()) {
+                            for (JsonNode itemNode : payloadNode) {
+                                String itemId = itemNode.path("itemId").asText("");
+                                String name = itemNode.path("name").asText("???");
+                                String type = itemNode.path("itemType").asText("");
+                                String display = name + " [" + type + "]";
+                                itemDisplayToId.put(display, itemId);
+                                cbItemId.getItems().add(display);
+                            }
+                        }
+                    } catch (Exception ex) {
+                        System.err.println("[CreateAuction] Loi parse item list: " + ex.getMessage());
+                    }
+                });
+            } else {
+                javafx.application.Platform.runLater(() ->
+                        UiUtils.showError("Lỗi", "Không thể tải danh sách sản phẩm: " + response.getMessage()));
+            }
+        });
+
+        task.setOnFailed(e ->
+                javafx.application.Platform.runLater(() ->
+                        UiUtils.showError("Lỗi", "Lỗi tải danh sách sản phẩm: " + task.getException().getMessage())));
+
+        new Thread(task).start();
     }
 
     /**
      * Gui request CREATE_AUCTION den server.
      */
     private void createAuction() {
-        String itemId = cbItemId.getValue();
+        String selectedDisplay = cbItemId.getValue();
+        // Tra cuu itemId thuc tu map
+        String itemId = (selectedDisplay != null) ? itemDisplayToId.get(selectedDisplay) : null;
+        if (itemId == null) {
+            itemId = cbItemId.getValue(); // fallback in case manual entry
+        }
         if (itemId == null || itemId.isBlank()) {
             UiUtils.showError("Lỗi nhập liệu", "Vui lòng chọn sản phẩm.");
             return;
@@ -95,6 +157,7 @@ public class CreateAuctionController {
 
         MessageRequest req = new MessageRequest();
         req.setType("CREATE_AUCTION");
+        req.setToken(ClientSession.getInstance().getToken());
         req.setPayload(payload);
 
         NetworkTask<MessageResponse> task = new NetworkTask<>(

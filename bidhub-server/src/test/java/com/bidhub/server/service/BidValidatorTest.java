@@ -150,10 +150,10 @@ class BidValidatorTest {
     }
 
     @Test
-    @DisplayName("validate auction OPEN (chua bat dau) → AuctionClosedException")
+    @DisplayName("validate auction OPEN (chua bat dau) → InvalidBidException")
     void validate_openAuction_throwsClosed() {
         Auction a = createAuctionWithStatus(AuctionStatus.OPEN, 0, 50, null);
-        assertThrows(AuctionClosedException.class,
+        assertThrows(InvalidBidException.class,
             () -> validator.validate(a, "user1", 100));
     }
 
