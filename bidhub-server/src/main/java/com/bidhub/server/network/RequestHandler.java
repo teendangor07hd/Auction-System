@@ -30,6 +30,8 @@ import com.bidhub.server.model.BidTransaction;
 import java.util.List;
 import com.bidhub.server.event.BidUpdateEvent;
 import com.bidhub.server.event.AuctionClosedEvent;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Dispatcher chinh: nhan JSON tho → parse → auth-guard → switch type → goi handler.
@@ -39,6 +41,8 @@ import com.bidhub.server.event.AuctionClosedEvent;
  * Tuan 6: PLACE_BID / LIST_AUCTIONS · Tuan 7+: chi them case.
  */
 public final class RequestHandler {
+
+    private static final Logger logger = LoggerFactory.getLogger(RequestHandler.class);
 
     // 📌 [Tieu chi: MVC — RequestHandler la tang dieu phoi server]
     private static final Set<String> AUTH_REQUIRED = Set.of(
@@ -172,7 +176,7 @@ public final class RequestHandler {
         } catch (BidHubException e) {
             return MessageMapper.toJson(MessageResponse.error(type, e.getMessage()));
         } catch (Exception e) {
-            System.err.println("[RequestHandler] Loi xu ly " + type + ": " + e.getMessage());
+            logger.error("Loi xu ly {}: {}", type, e.getMessage(), e);
             return MessageMapper.toJson(MessageResponse.error(type, "Loi he thong noi bo."));
         }
     }

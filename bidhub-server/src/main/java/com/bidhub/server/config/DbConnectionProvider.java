@@ -4,6 +4,8 @@ import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.sql.Statement;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Cung cấp kết nối JDBC tới SQLite. Singleton đảm bảo cùng URL được dùng xuyên suốt server.
@@ -12,6 +14,8 @@ import java.sql.Statement;
  * đồng thờii. Mỗi lần gọi {@link #getConnection()} trả về connection mới với WAL mode bật.
  */
 public final class DbConnectionProvider {
+
+    private static final Logger logger = LoggerFactory.getLogger(DbConnectionProvider.class);
 
     // 📌 [Tiêu chí: Singleton Pattern — 1.0đ] volatile ngăn CPU reorder instruction khi khởi tạo
     private static volatile DbConnectionProvider instance;
@@ -58,7 +62,7 @@ public final class DbConnectionProvider {
             try {
                 conn.close();
             } catch (SQLException e) {
-                System.err.println("[DbConnectionProvider] Lỗi đóng kết nối: " + e.getMessage());
+                logger.error("Loi dong ket noi: {}", e.getMessage());
             }
         }
     }

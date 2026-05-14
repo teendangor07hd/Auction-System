@@ -8,6 +8,8 @@ import com.bidhub.server.model.AuctionStatus;
 import java.time.LocalDateTime;
 import com.bidhub.server.model.AuditActions;
 import com.bidhub.server.service.AuditLogService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Engine kiem tra va gia han auction khi co bid dat trong snipe window (giay cuoi).
@@ -23,9 +25,11 @@ import com.bidhub.server.service.AuditLogService;
  * </ul>
  *
  * <p>// 📌 [Tieu chi: Anti-Sniping — gia han tu dong phien dau gia khi bid sat gio]
- * // 📌 [Tieu chi: Kỹ thuật quan trọng — LocalDateTime arithmetic + ConfigLoader]
+ * // 📌 [Tieu chi: Ky thuat quan trong — LocalDateTime arithmetic + ConfigLoader]
  */
 public final class AntiSnipingEngine {
+
+    private static final Logger logger = LoggerFactory.getLogger(AntiSnipingEngine.class);
 
     private final AuctionDao auctionDao;
     private final int thresholdSeconds;
@@ -43,7 +47,7 @@ public final class AntiSnipingEngine {
     }
 
     /**
-     * Constructor test — cho phep inject gia trị config de test.
+     * Constructor test — cho phep inject gia tri config de test.
      *
      * @param auctionDao        AuctionDao (mock hoac real)
      * @param thresholdSeconds  snipe threshold tinh bang giay
@@ -64,7 +68,7 @@ public final class AntiSnipingEngine {
      * {@link AuctionExtendedEvent} cho tat ca client subscribe.
      *
      * <p>// 📌 [Tieu chi: Anti-Sniping — logic detect va gia han auction]
-     * // 📌 [Tieu chi: Kỹ thuật quan trọng — LocalDateTime.isAfter() / minusSeconds() / plusSeconds()]
+     * // 📌 [Tieu chi: Ky thuat quan trong — LocalDateTime.isAfter() / minusSeconds() / plusSeconds()]
      *
      * @param auction auction can kiem tra (phai la RUNNING)
      */
@@ -104,8 +108,7 @@ public final class AntiSnipingEngine {
                             + "\",\"oldEndTime\":\"" + oldEndTime.toString()
                             + "\",\"newEndTime\":\"" + newEndTime.toString() + "\"}");
 
-            System.out.println("[AntiSnipingEngine] Auction " + auction.getId()
-                    + " gia han den " + newEndTime);
+            logger.info("Auction {} gia han den {}.", auction.getId(), newEndTime);
         }
     }
 }
