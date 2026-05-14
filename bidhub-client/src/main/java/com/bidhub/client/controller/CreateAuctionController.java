@@ -2,22 +2,17 @@ package com.bidhub.client.controller;
 
 import com.bidhub.client.network.NetworkTask;
 import com.bidhub.client.network.ServerGateway;
+import com.bidhub.client.util.UiUtils; // THÊM IMPORT UiUtils
 import com.bidhub.common.network.MessageRequest;
 import com.bidhub.common.network.MessageResponse;
-import com.bidhub.common.network.MessageMapper;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import javafx.application.Platform;
 import javafx.fxml.FXML;
 import javafx.scene.control.*;
-import javafx.scene.control.Alert.AlertType;
 
 /**
  * Controller tao phien dau gia — chi cho SELLER.
- *
- * <p>Form: chon Item, nhap startingPrice, startTime/endTime, minimumIncrement.
- * Submit gui request CREATE_AUCTION den server.
- *
- * <p>// 📌 [Tieu chi: MVC — Controller thuc hien business logic tren client]
  */
 public class CreateAuctionController {
 
@@ -31,17 +26,18 @@ public class CreateAuctionController {
     @FXML private Button btnSubmit;
     @FXML private Button btnBack;
 
+    // 📌 [Tieu chi: UX — Loading state component]
+    @FXML private ProgressIndicator loadingSpinner;
+
     private final ObjectMapper mapper = new ObjectMapper();
 
     @FXML
     public void initialize() {
-        // Factory riêng cho giờ bắt đầu
         SpinnerValueFactory<Integer> startHourFactory =
                 new SpinnerValueFactory.IntegerSpinnerValueFactory(0, 23, 12);
         spStartHour.setValueFactory(startHourFactory);
         spStartHour.setEditable(true);
 
-        // Factory riêng cho giờ kết thúc
         SpinnerValueFactory<Integer> endHourFactory =
                 new SpinnerValueFactory.IntegerSpinnerValueFactory(0, 23, 12);
         spEndHour.setValueFactory(endHourFactory);
@@ -51,45 +47,44 @@ public class CreateAuctionController {
         btnBack.setOnAction(e ->
                 com.bidhub.client.navigation.ViewRouter.getInstance()
                         .navigateTo(com.bidhub.client.util.Views.AUCTION_LIST));
+
+        // 📌 [Tieu chi: UX — TextField chi nhan so]
+        UiUtils.applyNumericFilter(tfStartingPrice);
+        UiUtils.applyNumericFilter(tfMinIncrement);
     }
 
     /**
      * Gui request CREATE_AUCTION den server.
-     *
-     * <p>// 📌 [Tieu chi: Chuc nang dau gia — client tao phien moi]
      */
     private void createAuction() {
         String itemId = cbItemId.getValue();
-        String priceStr = tfStartingPrice.getText().trim();
-        String incStr = tfMinIncrement.getText().trim();
-
         if (itemId == null || itemId.isBlank()) {
-            showError("Vui long chon san pham.");
-            return;
-        }
-        if (priceStr.isEmpty()) {
-            showError("Vui long nhap gia khoi diem.");
-            return;
-        }
-        if (dpStartTime.getValue() == null || dpEndTime.getValue() == null) {
-            showError("Vui long chon thoi gian bat dau va ket thuc.");
+            UiUtils.showError("Lỗi nhập liệu", "Vui lòng chọn sản phẩm.");
             return;
         }
 
-        double startingPrice;
-        double minIncrement;
-        try {
-            startingPrice = Double.parseDouble(priceStr);
-            minIncrement = incStr.isEmpty() ? 1.0 : Double.parseDouble(incStr);
-        } catch (NumberFormatException ex) {
-            showError("Gia khong hop le. Vui long nhap so.");
+        // 📌 [Tieu chi: UX — Form validation client-side]
+        if (!UiUtils.validateNotEmpty(tfStartingPrice, "Giá khởi điểm")) return;
+        if (!UiUtils.validatePositiveNumber(tfStartingPrice, "Giá khởi điểm")) return;
+
+        if (dpStartTime.getValue() == null || dpEndTime.getValue() == null) {
+            UiUtils.showError("Lỗi nhập liệu", "Vui lòng chọn thời gian bắt đầu và kết thúc.");
             return;
         }
+
+        String incStr = tfMinIncrement.getText().trim();
+        double startingPrice = Double.parseDouble(tfStartingPrice.getText().trim());
+        double minIncrement = incStr.isEmpty() ? 1.0 : Double.parseDouble(incStr);
 
         String startTime = dpStartTime.getValue().toString() + "T"
                 + String.format("%02d:00:00", spStartHour.getValue());
         String endTime = dpEndTime.getValue().toString() + "T"
                 + String.format("%02d:00:00", spEndHour.getValue());
+
+        // 📌 [Tieu chi: UX — Loading state]
+        Runnable onComplete = (btnSubmit != null && loadingSpinner != null)
+                ? UiUtils.showLoading(btnSubmit, loadingSpinner)
+                : () -> { if (btnSubmit != null) btnSubmit.setDisable(false); };
 
         ObjectNode payload = mapper.createObjectNode();
         payload.put("itemId", itemId);
@@ -108,25 +103,21 @@ public class CreateAuctionController {
         task.setOnSucceeded(e -> {
             MessageResponse response = task.getValue();
             if ("OK".equals(response.getStatus())) {
-                javafx.application.Platform.runLater(() ->
+                UiUtils.showInfo("Thành công", "Đã tạo phiên đấu giá thành công!");
+                Platform.runLater(() ->
                         com.bidhub.client.navigation.ViewRouter.getInstance()
                                 .navigateTo(com.bidhub.client.util.Views.AUCTION_LIST));
             } else {
-                javafx.application.Platform.runLater(() ->
-                        showError(response.getMessage()));
+                Platform.runLater(() -> UiUtils.showError("Lỗi tạo phiên", response.getMessage()));
             }
+            onComplete.run();
         });
 
-        task.setOnFailed(e ->
-                javafx.application.Platform.runLater(() ->
-                        showError(task.getException().getMessage())));
+        task.setOnFailed(e -> {
+            Platform.runLater(() -> UiUtils.showError("Lỗi kết nối", "Không kết nối được máy chủ. Thử lại sau."));
+            onComplete.run();
+        });
 
-        new Thread(task).start();
-    }
-
-    private void showError(String message) {
-        Alert alert = new Alert(AlertType.ERROR, message);
-        alert.setTitle("Loi");
-        alert.showAndWait();
+        new Thread(task, "create-auction").start();
     }
 }

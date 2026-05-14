@@ -12,7 +12,6 @@
 
     <padding><Insets top="20" right="20" bottom="20" left="20"/></padding>
 
-    <!-- Khung trắng chứa form -->
     <VBox styleClass="content-pane" spacing="16" alignment="TOP_CENTER"
           maxWidth="600" maxHeight="Infinity">
 
@@ -55,6 +54,8 @@
         </HBox>
 
         <HBox spacing="16" alignment="CENTER">
+            <ProgressIndicator fx:id="loadingSpinner" visible="false" prefWidth="25" prefHeight="25" />
+
             <Button fx:id="btnSubmit" text="Tạo phiên" styleClass="button btn-primary btn-full-width"
                     prefWidth="120"/>
             <Button fx:id="btnBack" text="Quay lại" styleClass="button" prefWidth="120"/>

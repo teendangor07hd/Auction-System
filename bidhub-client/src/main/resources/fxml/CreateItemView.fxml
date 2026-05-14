@@ -12,10 +12,10 @@
     </padding>
 
     <VBox alignment="CENTER" spacing="5.0">
-        <Label style="-fx-font-size: 28px; -fx-text-fill: #2c3e50;" styleClass="login-title" text="THÔNG TIN ĐẤU GIÁ">
-         <VBox.margin>
-            <Insets />
-         </VBox.margin></Label>
+        <Label style="-fx-font-size: 28px; -fx-text-fill: #2c3e50;" styleClass="login-title" text="THÔNG TIN SẢN PHẨM">
+            <VBox.margin>
+                <Insets />
+            </VBox.margin></Label>
         <Label style="-fx-text-fill: #7f8c8d; -fx-font-size: 13px;" text="Vui lòng điền đầy đủ thông tin sản phẩm bên dưới" />
         <Label fx:id="lblMessage" managed="false" styleClass="error-message" visible="false" />
     </VBox>
@@ -41,12 +41,12 @@
             <Label text="Loại sản phẩm:" GridPane.rowIndex="3" />
             <ComboBox fx:id="itemTypeComboBox" maxWidth="Infinity" promptText="-- Chọn danh mục --" styleClass="text-input-field" GridPane.columnIndex="1" GridPane.rowIndex="3" />
         </children>
-      <rowConstraints>
-         <RowConstraints />
-         <RowConstraints />
-         <RowConstraints />
-         <RowConstraints />
-      </rowConstraints>
+        <rowConstraints>
+            <RowConstraints />
+            <RowConstraints />
+            <RowConstraints />
+            <RowConstraints />
+        </rowConstraints>
     </GridPane>
 
     <VBox spacing="15.0">
@@ -61,10 +61,10 @@
                 <TextField fx:id="brandField" styleClass="text-input-field" GridPane.columnIndex="1" />
                 <Label text="Bảo hành (tháng):" GridPane.rowIndex="1" />
                 <TextField fx:id="warrantyMonthsField" styleClass="text-input-field" GridPane.columnIndex="1" GridPane.rowIndex="1" />
-            <rowConstraints>
-               <RowConstraints />
-               <RowConstraints />
-            </rowConstraints>
+                <rowConstraints>
+                    <RowConstraints />
+                    <RowConstraints />
+                </rowConstraints>
             </GridPane>
         </VBox>
 
@@ -79,10 +79,10 @@
                 <TextField fx:id="artistField" styleClass="text-input-field" GridPane.columnIndex="1" />
                 <Label text="Năm sáng tác:" GridPane.rowIndex="1" />
                 <TextField fx:id="yearCreatedField" styleClass="text-input-field" GridPane.columnIndex="1" GridPane.rowIndex="1" />
-            <rowConstraints>
-               <RowConstraints />
-               <RowConstraints />
-            </rowConstraints>
+                <rowConstraints>
+                    <RowConstraints />
+                    <RowConstraints />
+                </rowConstraints>
             </GridPane>
         </VBox>
 
@@ -99,27 +99,30 @@
                 <TextField fx:id="yearField" styleClass="text-input-field" GridPane.columnIndex="1" GridPane.rowIndex="1" />
                 <Label text="Số KM đã đi:" GridPane.rowIndex="2" />
                 <TextField fx:id="mileageKmField" styleClass="text-input-field" GridPane.columnIndex="1" GridPane.rowIndex="2" />
-            <rowConstraints>
-               <RowConstraints />
-               <RowConstraints />
-               <RowConstraints />
-            </rowConstraints>
+                <rowConstraints>
+                    <RowConstraints />
+                    <RowConstraints />
+                    <RowConstraints />
+                </rowConstraints>
             </GridPane>
         </VBox>
     </VBox>
 
-    <Region VBox.vgrow="ALWAYS" /> <HBox alignment="CENTER_RIGHT" spacing="15.0">
-    <Button onAction="#handleCancel" text="Hủy bỏ">
-        <styleClass>
-            <String fx:value="button" />
-            <String fx:value="btn-danger-outline" />
-        </styleClass>
-    </Button>
-    <Button onAction="#handleSubmit" prefWidth="150.0" text="Đăng sản phẩm">
-        <styleClass>
-            <String fx:value="button" />
-            <String fx:value="btn-primary" />
-        </styleClass>
-    </Button>
-</HBox>
+    <Region VBox.vgrow="ALWAYS" />
+
+    <HBox alignment="CENTER_RIGHT" spacing="15.0">
+        <ProgressIndicator fx:id="loadingSpinner" visible="false" prefWidth="25" prefHeight="25" />
+        <Button fx:id="btnCancel" onAction="#handleCancel" text="Hủy bỏ">
+            <styleClass>
+                <String fx:value="button" />
+                <String fx:value="btn-danger-outline" />
+            </styleClass>
+        </Button>
+        <Button fx:id="btnSubmit" onAction="#handleSubmit" prefWidth="150.0" text="Đăng sản phẩm">
+            <styleClass>
+                <String fx:value="button" />
+                <String fx:value="btn-primary" />
+            </styleClass>
+        </Button>
+    </HBox>
 </VBox>
