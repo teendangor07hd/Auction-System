@@ -5,7 +5,7 @@ import com.bidhub.client.network.NetworkTask;
 import com.bidhub.client.network.ServerGateway;
 import com.bidhub.client.navigation.ViewRouter;
 import com.bidhub.client.util.Views;
-import com.bidhub.client.util.UiUtils; // THÊM IMPORT UiUtils
+import com.bidhub.client.util.UiUtils;
 import com.bidhub.common.network.MessageRequest;
 import com.bidhub.common.network.MessageResponse;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -18,115 +18,182 @@ import javafx.scene.control.*;
 import javafx.scene.input.MouseButton;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.Priority;
+
 import java.util.HashMap;
 import java.util.Map;
 
 /**
- * Controller danh sach phien dau gia — giao dien co Sidebar Menu.
- * Dong bo voi AuctionListView.fxml (su dung BorderPane + VBox sidebar).
+ * Controller danh sách phiên đấu giá — hiển thị lưới dữ liệu và Sidebar Menu.
+ * Đồng bộ với màn hình AuctionListView.fxml.
  */
 public class AuctionListController {
 
-    // TableView va cac cot (Columns)
+    // ========================================================================
+    // CONSTANTS (Nguyên tắc tránh Magic Strings)
+    // ========================================================================
+    private static final String CMD_LOGOUT = "LOGOUT";
+    private static final String CMD_GET_AUCTION_LIST = "GET_AUCTION_LIST";
+    private static final String ROLE_ADMIN = "ADMIN";
+    private static final String STATUS_OK = "OK";
+
+    // ========================================================================
+    // FXML INJECTIONS
+    // ========================================================================
     @FXML private TableView<JsonNode> auctionTable;
     @FXML private TableColumn<JsonNode, String> colItemName;
     @FXML private TableColumn<JsonNode, String> colPrice;
     @FXML private TableColumn<JsonNode, String> colEndTime;
     @FXML private TableColumn<JsonNode, String> colStatus;
 
-    // Nut bam (Buttons) trong Sidebar & Main View
+    // Sidebar & Navigation Buttons
     @FXML private Button btnCreateAuction;
     @FXML private Button btnCreateItem;
     @FXML private Button btnAccount;
     @FXML private Button btnLogout;
+    @FXML private Button adminBtn; // Nút dành riêng cho Admin
 
-    // 📌 [Tieu chi: UX — Loading state & Empty list handler]
+    // UX Components
     @FXML private Button btnRefresh;
     @FXML private ProgressIndicator loadingSpinner;
     @FXML private Label lblEmptyMessage;
 
+    // ========================================================================
+    // INTERNAL STATE
+    // ========================================================================
     private final ObjectMapper mapper = new ObjectMapper();
-    private final ObservableList<JsonNode> auctionData =
-            FXCollections.observableArrayList();
+    private final ObservableList<JsonNode> auctionData = FXCollections.observableArrayList();
 
+    /**
+     * Vòng đời JavaFX: Khởi tạo dữ liệu và sự kiện ngay sau khi load xong UI.
+     */
     @FXML
     public void initialize() {
-        // 1. Cau hinh cac cot cho TableView (Setup columns)
+        setupTableColumns();
+        setupTableDoubleClickHandler();
+        setupNavigationAndSecurity();
+        setupActionHandlers();
+
+        // Tải dữ liệu lần đầu tiên khi mở màn hình
+        loadAuctionList();
+    }
+
+    /**
+     * Ràng buộc (Bind) dữ liệu từ JsonNode vào các cột của TableView.
+     */
+    private void setupTableColumns() {
         colItemName.setCellValueFactory(cellData -> {
             JsonNode node = cellData.getValue();
             String name = node.has("itemName") ? node.get("itemName").asText("") : node.path("id").asText("");
             return new javafx.beans.property.SimpleStringProperty(name);
         });
+
         colPrice.setCellValueFactory(cellData ->
                 new javafx.beans.property.SimpleStringProperty(
                         String.valueOf(cellData.getValue().path("currentHighestBid").asDouble(0))));
+
         colEndTime.setCellValueFactory(cellData ->
                 new javafx.beans.property.SimpleStringProperty(
                         cellData.getValue().path("endTime").asText("")));
+
         colStatus.setCellValueFactory(cellData ->
                 new javafx.beans.property.SimpleStringProperty(
                         cellData.getValue().path("status").asText("")));
-        auctionTable.setItems(auctionData);
 
-        // 2. Double-click de xem chi tiet phien dau gia (View details)
+        auctionTable.setItems(auctionData);
+    }
+
+    /**
+     * Bắt sự kiện nhấp đúp (Double-click) vào một dòng trên bảng để xem chi tiết.
+     */
+    private void setupTableDoubleClickHandler() {
         auctionTable.setRowFactory(tv -> {
             TableRow<JsonNode> row = new TableRow<>();
             row.setOnMouseClicked(event -> {
                 if (event.getClickCount() == 2 && !row.isEmpty() && event.getButton() == MouseButton.PRIMARY) {
                     JsonNode selected = row.getItem();
                     String auctionId = selected.path("id").asText("");
+
                     if (!auctionId.isEmpty()) {
                         Map<String, Object> params = new HashMap<>();
                         params.put("auctionId", auctionId);
-                        ViewRouter.getInstance()
-                                .navigateTo(Views.AUCTION_DETAIL, params);
+                        ViewRouter.getInstance().navigateTo(Views.AUCTION_DETAIL, params);
                     }
                 }
             });
             return row;
         });
+    }
 
-        // 3. Dieu huong nut (Navigation)
+    /**
+     * Xử lý hiển thị các nút điều hướng dựa trên phân quyền (Role-based UI).
+     */
+    private void setupNavigationAndSecurity() {
         btnCreateAuction.setOnAction(e -> ViewRouter.getInstance().navigateTo(Views.CREATE_AUCTION));
         btnCreateItem.setOnAction(e -> ViewRouter.getInstance().navigateTo(Views.CREATE_ITEM));
+
+        // Security Check: Hiển thị nút Admin Panel nếu user hiện tại là ADMIN
+        String currentRole = String.valueOf(ClientSession.getInstance().getCurrentRole());
+        boolean isAdmin = ROLE_ADMIN.equals(currentRole);
+
+        if (adminBtn != null) {
+            adminBtn.setVisible(isAdmin);
+            // managed = false giúp thu gọn không gian UI nếu nút bị ẩn, tránh bị khoảng trống thừa
+            adminBtn.setManaged(isAdmin);
+        }
+    }
+
+    /**
+     * Cài đặt logic cho các nút hành động (Refresh, Account, Logout).
+     */
+    private void setupActionHandlers() {
         if (btnRefresh != null) {
             btnRefresh.setOnAction(e -> loadAuctionList());
         }
 
-        // 4. Nut Tai khoan (popup xem thong tin - Account info)
         btnAccount.setOnAction(e -> showAccountPopup());
 
-        // 5. Nut Dang xuat (Logout)
-        btnLogout.setOnAction(e -> {
-            NetworkTask<MessageResponse> task = new NetworkTask<>(() -> {
-                MessageRequest req = new MessageRequest();
-                req.setType("LOGOUT");
-                req.setToken(ClientSession.getInstance().getToken());
-                return ServerGateway.getInstance().sendRequest(req);
-            });
-            task.setOnSucceeded(ev -> {
-                ClientSession.getInstance().logout();
-                ViewRouter.getInstance().navigateTo(Views.LOGIN);
-            });
-            task.setOnFailed(ev -> {
-                ClientSession.getInstance().logout();
-                ViewRouter.getInstance().navigateTo(Views.LOGIN);
-            });
-            new Thread(task).start();
-        });
-
-        // 6. Load danh sach phien dau gia (Fetch data)
-        loadAuctionList();
+        btnLogout.setOnAction(e -> handleLogout());
     }
 
     /**
-     * Hiển thị popup thông tin tài khoản (username, role)
+     * Luồng xử lý sự kiện bấm nút Admin Panel (chỉ ADMIN mới thấy nút này).
+     */
+    @FXML
+    public void handleAdminPanel() {
+        ViewRouter.getInstance().navigateTo(Views.ADMIN_VIEW);
+    }
+
+    /**
+     * Gọi API đăng xuất và xóa cache Session hiện tại.
+     */
+    private void handleLogout() {
+        NetworkTask<MessageResponse> task = new NetworkTask<>(() -> {
+            MessageRequest req = new MessageRequest();
+            req.setType(CMD_LOGOUT);
+            req.setToken(ClientSession.getInstance().getToken());
+            return ServerGateway.getInstance().sendRequest(req);
+        });
+
+        // Bất kể server trả về thành công hay thất bại, client vẫn phải clear session và văng ra màn Login
+        Runnable forceLogout = () -> {
+            ClientSession.getInstance().logout();
+            ViewRouter.getInstance().navigateTo(Views.LOGIN);
+        };
+
+        task.setOnSucceeded(ev -> forceLogout.run());
+        task.setOnFailed(ev -> forceLogout.run());
+        new Thread(task, "logout-thread").start();
+    }
+
+    /**
+     * Hiển thị popup thông tin tài khoản (Username, Role)
      */
     private void showAccountPopup() {
         ClientSession session = ClientSession.getInstance();
         String username = session.getCurrentUsername();
         String role = session.getCurrentRole();
-        if (username == null) {
+
+        if (username == null || username.isEmpty()) {
             username = "Chưa đăng nhập";
         }
 
@@ -162,23 +229,24 @@ public class AuctionListController {
     }
 
     /**
-     * Load danh sach phien dau gia kem hieu ung Loading + Empty State.
+     * Call API lấy danh sách phiên đấu giá kèm hiệu ứng UX (Loading Spinner & Empty State).
      */
     private void loadAuctionList() {
-        // 📌 [Tieu chi: UX — Loading state]
+        // [Tiêu chí UX]: Disable nút refresh và hiện con xoay loading
         Runnable onComplete = (btnRefresh != null && loadingSpinner != null)
                 ? UiUtils.showLoading(btnRefresh, loadingSpinner)
                 : () -> { if (btnRefresh != null) btnRefresh.setDisable(false); };
 
         MessageRequest req = new MessageRequest();
-        req.setType("GET_AUCTION_LIST");
+        req.setType(CMD_GET_AUCTION_LIST);
 
         NetworkTask<MessageResponse> task = new NetworkTask<>(() ->
                 ServerGateway.getInstance().sendRequest(req));
 
         task.setOnSucceeded(e -> {
             MessageResponse response = task.getValue();
-            if ("OK".equals(response.getStatus()) && response.getPayload() != null) {
+
+            if (STATUS_OK.equals(response.getStatus()) && response.getPayload() != null) {
                 JsonNode payload = mapper.valueToTree(response.getPayload());
                 if (payload.isArray()) {
                     auctionData.clear();
@@ -190,15 +258,8 @@ public class AuctionListController {
                 Platform.runLater(() -> UiUtils.showError("Lỗi hệ thống", response.getMessage()));
             }
 
-            // 📌 [Tieu chi: UX — Empty data list handler]
-            if (auctionData.isEmpty()) {
-                if (lblEmptyMessage != null) lblEmptyMessage.setVisible(true);
-                if (auctionTable != null) auctionTable.setVisible(false);
-            } else {
-                if (lblEmptyMessage != null) lblEmptyMessage.setVisible(false);
-                if (auctionTable != null) auctionTable.setVisible(true);
-            }
-
+            // [Tiêu chí UX]: Cập nhật UI hiển thị bảng data hoặc thông báo dữ liệu trống
+            updateEmptyStateUI();
             onComplete.run();
         });
 
@@ -207,6 +268,20 @@ public class AuctionListController {
             onComplete.run();
         });
 
-        new Thread(task, "load-auctions").start();
+        new Thread(task, "fetch-auctions-thread").start();
+    }
+
+    /**
+     * Bật/tắt hiển thị TableView và Label dựa trên việc list data có rỗng hay không.
+     */
+    private void updateEmptyStateUI() {
+        boolean isEmpty = auctionData.isEmpty();
+
+        if (lblEmptyMessage != null) {
+            lblEmptyMessage.setVisible(isEmpty);
+        }
+        if (auctionTable != null) {
+            auctionTable.setVisible(!isEmpty);
+        }
     }
 }
