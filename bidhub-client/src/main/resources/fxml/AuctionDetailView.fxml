@@ -11,22 +11,17 @@
       styleClass="root"
       spacing="0">
 
-    <!-- Header -->
     <HBox alignment="CENTER_LEFT" styleClass="header-bar">
         <Label fx:id="lblTitle" text="Đang tải..." styleClass="header-title"/>
     </HBox>
 
-    <!-- Tên sản phẩm nổi bật -->
     <Label fx:id="lblItemName" text="—"
            style="-fx-font-size: 20px; -fx-font-weight: bold; -fx-padding: 15 20 0 20;"/>
 
-    <!-- Nội dung chính -->
     <VBox styleClass="content-pane" spacing="15" style="-fx-margin: 0 20 20 20;">
 
-        <!-- Mô tả sản phẩm -->
         <Label fx:id="lblDescription" text="—" wrapText="true"/>
 
-        <!-- Hàng thông tin cơ bản -->
         <HBox spacing="30">
             <VBox spacing="5">
                 <Label text="Trạng thái:" styleClass="form-label"/>
@@ -53,7 +48,6 @@
 
         <Separator/>
 
-        <!-- 📌 [Tieu chi: Price Chart — LineChart hien thi lich su gia realtime] -->
         <LineChart fx:id="bidChart" title="Lịch sử giá đấu giá" legendVisible="true"
                    createSymbols="false" prefHeight="250.0">
             <xAxis>
@@ -63,13 +57,16 @@
                 <NumberAxis label="Giá (VNĐ)" />
             </yAxis>
         </LineChart>
-        <!-- Form đặt giá + nút Back -->
+
         <HBox spacing="15" alignment="CENTER_LEFT">
             <Label text="Giá đặt (VNĐ):" styleClass="form-label"/>
             <TextField fx:id="tfBidAmount" promptText="Nhập số tiền..." prefWidth="200"
                        styleClass="text-input-field"/>
             <Button fx:id="btnPlaceBid" text="Đặt giá"
                     styleClass="button, btn-primary"/>
+
+            <ProgressIndicator fx:id="loadingSpinner" visible="false" prefWidth="30" prefHeight="30" />
+
             <Button fx:id="btnBack" text="Quay lại"
                     styleClass="button"/>
         </HBox>

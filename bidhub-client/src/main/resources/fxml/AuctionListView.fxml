@@ -27,16 +27,27 @@
 
     <center>
         <VBox spacing="20" style="-fx-padding: 20;">
-            <Label text="Danh sách phiên đấu giá" style="-fx-font-size: 20px; -fx-font-weight: bold;"/>
+            <HBox alignment="CENTER_LEFT" spacing="15">
+                <Label text="Danh sách phiên đấu giá" style="-fx-font-size: 20px; -fx-font-weight: bold;"/>
+                <Region HBox.hgrow="ALWAYS" />
 
-            <TableView fx:id="auctionTable" VBox.vgrow="ALWAYS">
-                <columns>
-                    <TableColumn fx:id="colItemName"  text="Sản phẩm"       prefWidth="250"/>
-                    <TableColumn fx:id="colPrice"     text="Giá hiện tại"   prefWidth="150"/>
-                    <TableColumn fx:id="colEndTime"   text="Kết thúc"       prefWidth="150"/>
-                    <TableColumn fx:id="colStatus"    text="Trạng thái"     prefWidth="120"/>
-                </columns>
-            </TableView>
+                <ProgressIndicator fx:id="loadingSpinner" visible="false" prefWidth="25" prefHeight="25" />
+                <Button fx:id="btnRefresh" text="🔄 Làm mới" styleClass="button" />
+            </HBox>
+
+            <StackPane VBox.vgrow="ALWAYS">
+                <TableView fx:id="auctionTable">
+                    <columns>
+                        <TableColumn fx:id="colItemName"  text="Sản phẩm"       prefWidth="250"/>
+                        <TableColumn fx:id="colPrice"     text="Giá hiện tại"   prefWidth="150"/>
+                        <TableColumn fx:id="colEndTime"   text="Kết thúc"       prefWidth="150"/>
+                        <TableColumn fx:id="colStatus"    text="Trạng thái"     prefWidth="120"/>
+                    </columns>
+                </TableView>
+
+                <Label fx:id="lblEmptyMessage" text="Không có phiên đấu giá nào"
+                       visible="false" style="-fx-font-size: 16px; -fx-text-fill: #666;" />
+            </StackPane>
         </VBox>
     </center>
 
