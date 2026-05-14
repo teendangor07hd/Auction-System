@@ -49,22 +49,23 @@ class NotificationBrokerTest {
   @DisplayName("publish voi khong co subscriber — khong crash")
   void publish_noSubscribers_noCrash() {
     assertDoesNotThrow(() ->
-        broker.publish("auc-nonexistent", new BidUpdateEvent("auc-nonexistent", "user-1", 1500.0)));
+        broker.publish("auc-nonexistent", new BidUpdateEvent("auc-nonexistent", "user-1", "Test User", 1500.0)));
   }
 
   @Test
   @DisplayName("publish voi null auctionId — khong crash")
   void publish_nullAuctionId_noCrash() {
     assertDoesNotThrow(() ->
-        broker.publish(null, new BidUpdateEvent("auc-001", "user-1", 1500.0)));
+        broker.publish(null, new BidUpdateEvent("auc-001", "user-1", "Test User", 1500.0)));
   }
 
   @Test
   @DisplayName("BidUpdateEvent field dung gia tri")
   void bidUpdateEvent_correctFields() {
-    BidUpdateEvent event = new BidUpdateEvent("auc-001", "user-1", 2000.0);
+    BidUpdateEvent event = new BidUpdateEvent("auc-001", "user-1", "Test User", 2000.0);
     assertEquals("auc-001", event.getAuctionId());
     assertEquals("user-1", event.getBidderId());
+    assertEquals("Test User", event.getBidderName());
     assertEquals(2000.0, event.getBidAmount());
     assertEquals("BID_UPDATE", event.getEventType());
     assertNotNull(event.getTimestamp());
