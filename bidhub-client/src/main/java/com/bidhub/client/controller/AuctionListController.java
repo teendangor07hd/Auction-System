@@ -5,10 +5,12 @@ import com.bidhub.client.network.NetworkTask;
 import com.bidhub.client.network.ServerGateway;
 import com.bidhub.client.navigation.ViewRouter;
 import com.bidhub.client.util.Views;
+import com.bidhub.client.util.UiUtils; // THÊM IMPORT UiUtils
 import com.bidhub.common.network.MessageRequest;
 import com.bidhub.common.network.MessageResponse;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import javafx.application.Platform;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.fxml.FXML;
@@ -32,11 +34,16 @@ public class AuctionListController {
     @FXML private TableColumn<JsonNode, String> colEndTime;
     @FXML private TableColumn<JsonNode, String> colStatus;
 
-    // Nut bam (Buttons) trong Sidebar
+    // Nut bam (Buttons) trong Sidebar & Main View
     @FXML private Button btnCreateAuction;
     @FXML private Button btnCreateItem;
     @FXML private Button btnAccount;
     @FXML private Button btnLogout;
+
+    // 📌 [Tieu chi: UX — Loading state & Empty list handler]
+    @FXML private Button btnRefresh;
+    @FXML private ProgressIndicator loadingSpinner;
+    @FXML private Label lblEmptyMessage;
 
     private final ObjectMapper mapper = new ObjectMapper();
     private final ObservableList<JsonNode> auctionData =
@@ -82,6 +89,9 @@ public class AuctionListController {
         // 3. Dieu huong nut (Navigation)
         btnCreateAuction.setOnAction(e -> ViewRouter.getInstance().navigateTo(Views.CREATE_AUCTION));
         btnCreateItem.setOnAction(e -> ViewRouter.getInstance().navigateTo(Views.CREATE_ITEM));
+        if (btnRefresh != null) {
+            btnRefresh.setOnAction(e -> loadAuctionList());
+        }
 
         // 4. Nut Tai khoan (popup xem thong tin - Account info)
         btnAccount.setOnAction(e -> showAccountPopup());
@@ -124,7 +134,6 @@ public class AuctionListController {
         alert.setTitle("Thông tin tài khoản");
         alert.setHeaderText(null);
 
-        // Tạo layout cho nội dung (Layout configuration)
         GridPane grid = new GridPane();
         grid.setHgap(10);
         grid.setVgap(10);
@@ -144,7 +153,6 @@ public class AuctionListController {
         grid.add(lblRoleTitle, 0, 1);
         grid.add(lblRoleValue, 1, 1);
 
-        // Để label value co giãn (Responsive behavior)
         GridPane.setHgrow(lblUsernameValue, Priority.ALWAYS);
         GridPane.setHgrow(lblRoleValue, Priority.ALWAYS);
 
@@ -153,7 +161,15 @@ public class AuctionListController {
         alert.showAndWait();
     }
 
+    /**
+     * Load danh sach phien dau gia kem hieu ung Loading + Empty State.
+     */
     private void loadAuctionList() {
+        // 📌 [Tieu chi: UX — Loading state]
+        Runnable onComplete = (btnRefresh != null && loadingSpinner != null)
+                ? UiUtils.showLoading(btnRefresh, loadingSpinner)
+                : () -> { if (btnRefresh != null) btnRefresh.setDisable(false); };
+
         MessageRequest req = new MessageRequest();
         req.setType("GET_AUCTION_LIST");
 
@@ -170,14 +186,27 @@ public class AuctionListController {
                         auctionData.add(node);
                     }
                 }
+            } else {
+                Platform.runLater(() -> UiUtils.showError("Lỗi hệ thống", response.getMessage()));
             }
+
+            // 📌 [Tieu chi: UX — Empty data list handler]
+            if (auctionData.isEmpty()) {
+                if (lblEmptyMessage != null) lblEmptyMessage.setVisible(true);
+                if (auctionTable != null) auctionTable.setVisible(false);
+            } else {
+                if (lblEmptyMessage != null) lblEmptyMessage.setVisible(false);
+                if (auctionTable != null) auctionTable.setVisible(true);
+            }
+
+            onComplete.run();
         });
 
         task.setOnFailed(e -> {
-            System.err.println("[AuctionListController] Lỗi load danh sách: " +
-                    task.getException().getMessage());
+            Platform.runLater(() -> UiUtils.showError("Lỗi tải dữ liệu", "Không thể tải danh sách phiên đấu giá. Vui lòng thử lại."));
+            onComplete.run();
         });
 
-        new Thread(task).start();
+        new Thread(task, "load-auctions").start();
     }
 }
