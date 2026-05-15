@@ -95,13 +95,13 @@ public class AuctionDao {
     }
 
     /**
-     * Trả về tất cả phiên có status = RUNNING.
-     * Dùng trong AuctionListController (Tuần 5) để hiển thị danh sách đang diễn ra.
+     * Trả về tất cả phiên có status = OPEN hoặc RUNNING.
+     * Dùng trong AuctionListController để hiển thị danh sách đang chờ và đang diễn ra.
      *
-     * @return danh sách phiên RUNNING, có thể rỗng
+     * @return danh sách phiên OPEN + RUNNING, có thể rỗng
      */
     public List<Auction> findActiveAuctions() {
-        String sql = "SELECT * FROM auctions WHERE status = \'RUNNING\'";
+        String sql = "SELECT * FROM auctions WHERE status IN ('OPEN', 'RUNNING')";
         Connection conn = null;
         try {
             conn = acquireConnection();
@@ -235,4 +235,37 @@ public class AuctionDao {
         }
         return result;
     }
+
+  /**
+   * Lay tat ca auction voi thong tin bid — dung cho DataIntegrityService.
+   *
+   * <p>Tra ve List<Map> thay vi List<Auction> de lay ca currentHighestBid
+   * va highestBidderId dang raw cho so sanh.
+   *
+   * @return danh sach map chua thong tin auction
+   */
+  public List<Map<String, Object>> findAllWithBidInfo() {
+    List<Map<String, Object>> result = new ArrayList<>();
+    String sql = "SELECT id, current_highest_bid, highest_bidder_id FROM auctions";
+    Connection conn = null;
+    try {
+      conn = acquireConnection();
+      try (PreparedStatement ps = conn.prepareStatement(sql);
+           ResultSet rs = ps.executeQuery()) {
+        while (rs.next()) {
+          Map<String, Object> row = new HashMap<>();
+          row.put("id", rs.getString("id"));
+          row.put("currentHighestBid", rs.getDouble("current_highest_bid"));
+          row.put("highestBidderId", rs.getString("highest_bidder_id"));
+          result.add(row);
+        }
+      }
+    } catch (SQLException e) {
+      throw new RuntimeException("AuctionDao.findAllWithBidInfo that bai: "
+          + e.getMessage(), e);
+    } finally {
+      releaseConnection(conn);
+    }
+    return result;
+  }
 }

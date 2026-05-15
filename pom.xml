@@ -52,6 +52,13 @@
                 <version>${jackson.version}</version>
             </dependency>
 
+            <!-- Jackson JSR310 — hỗ trợ serialize LocalDateTime, LocalDate... -->
+            <dependency>
+                <groupId>com.fasterxml.jackson.datatype</groupId>
+                <artifactId>jackson-datatype-jsr310</artifactId>
+                <version>${jackson.version}</version>
+            </dependency>
+
             <!-- SQLite JDBC -->
             <dependency>
                 <groupId>org.xerial</groupId>
@@ -69,6 +76,18 @@
                 <groupId>org.openjfx</groupId>
                 <artifactId>javafx-fxml</artifactId>
                 <version>${javafx.version}</version>
+            </dependency>
+            <!-- SLF4J API -->
+            <dependency>
+                <groupId>org.slf4j</groupId>
+                <artifactId>slf4j-api</artifactId>
+                <version>2.0.9</version>
+            </dependency>
+            <!-- Logback Classic -->
+            <dependency>
+                <groupId>ch.qos.logback</groupId>
+                <artifactId>logback-classic</artifactId>
+                <version>1.4.14</version>
             </dependency>
         </dependencies>
     </dependencyManagement>

@@ -18,4 +18,5 @@ public interface AuditActions {
     String AUCTION_EXTENDED = "AUCTION_EXTENDED";
     String ITEM_CREATED    = "ITEM_CREATED";
     String ITEM_DELETED    = "ITEM_DELETED";
+    String RUN_INTEGRITY_CHECK = "RUN_INTEGRITY_CHECK";
 }

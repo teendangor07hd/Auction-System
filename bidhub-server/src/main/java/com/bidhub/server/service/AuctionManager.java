@@ -10,6 +10,8 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Singleton quan ly auction trong RAM — luu tru va lifecycle tu dong.
@@ -25,6 +27,8 @@ import java.util.concurrent.TimeUnit;
  * // 📌 [Tieu chi: Chuc nang dau gia — lifecycle tu dong dong phien]
  */
 public final class AuctionManager {
+
+    private static final Logger logger = LoggerFactory.getLogger(AuctionManager.class);
 
     private static volatile AuctionManager instance;
 
@@ -60,25 +64,24 @@ public final class AuctionManager {
     }
 
     /**
-     * Khoi dong AuctionManager — load tat ca RUNNING auction tu DB vao RAM,
+     * Khoi dong AuctionManager — load tat ca OPEN va RUNNING auction tu DB vao RAM,
      * schedule {@link AuctionLifecycleTask} chay moi 5 giay.
      *
      * <p>// 📌 [Tieu chi: Chuc nang dau gia — tu dong kiem tra va dong phien]
      */
     public void start() {
-        // Load tat ca RUNNING auction tu DB
+        // Load tat ca OPEN + RUNNING auction tu DB
         AuctionDao auctionDao = new AuctionDao();
         List<Auction> activeAuctions = auctionDao.findActiveAuctions();
         for (Auction auction : activeAuctions) {
             auctions.put(auction.getId(), auction);
         }
-        System.out.println("[AuctionManager] Da load " + activeAuctions.size()
-                + " RUNNING auctions vao RAM.");
+        logger.info("Da load {} RUNNING auctions vao RAM.", activeAuctions.size());
 
         // Schedule lifecycle task moi 5 giay
         AuctionLifecycleTask task = new AuctionLifecycleTask();
         scheduler.scheduleAtFixedRate(task, 5, 5, TimeUnit.SECONDS);
-        System.out.println("[AuctionManager] Lifecycle task scheduled (5s interval).");
+        logger.info("Lifecycle task scheduled (5s interval).");
     }
 
     /**
@@ -94,7 +97,7 @@ public final class AuctionManager {
             scheduler.shutdownNow();
             Thread.currentThread().interrupt();
         }
-        System.out.println("[AuctionManager] Da dung lifecycle scheduler.");
+        logger.info("Da dung lifecycle scheduler.");
     }
 
     /**

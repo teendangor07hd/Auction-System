@@ -57,7 +57,7 @@ class AuctionDaoTest {
     }
 
     @Test
-    @DisplayName("findActiveAuctions chỉ trả về phiên có status RUNNING")
+    @DisplayName("findActiveAuctions trả về phiên có status OPEN và RUNNING")
     void findActiveAuctions_onlyReturnsRunning() throws SQLException {
         LocalDateTime now = LocalDateTime.now();
         Auction running = new Auction("item-2", now, now.plusHours(1), 500_000.0, 10_000.0);
@@ -68,8 +68,7 @@ class AuctionDaoTest {
         auctionDao.save(open);
 
         List<Auction> active = auctionDao.findActiveAuctions();
-        assertEquals(1, active.size(), "Chỉ 1 phiên RUNNING trong DB");
-        assertEquals(running.getId(), active.get(0).getId());
+        assertEquals(2, active.size(), "Cả 2 phiên OPEN và RUNNING đều trong DB");
     }
 
     @Test
