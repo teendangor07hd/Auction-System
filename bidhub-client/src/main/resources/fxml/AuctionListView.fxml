@@ -16,6 +16,10 @@
             <Button fx:id="btnCreateAuction" text="📊 Tạo phiên mới"
                     maxWidth="Infinity" styleClass="button, btn-primary" />
 
+            <Button fx:id="adminBtn"         text="🛡️ Admin Panel"
+                    maxWidth="Infinity" styleClass="button, btn-warning"
+                    visible="false" managed="false" onAction="#handleAdminPanel" />
+
             <Region VBox.vgrow="ALWAYS" />
 
             <Button fx:id="btnAccount"       text="👤 Tài khoản"

@@ -5,54 +5,89 @@ import com.bidhub.client.network.NetworkTask;
 import com.bidhub.client.network.ServerGateway;
 import com.bidhub.client.navigation.ViewRouter;
 import com.bidhub.client.util.Views;
-import com.bidhub.client.util.UiUtils; // THÊM IMPORT UiUtils
+import com.bidhub.client.util.UiUtils;
 import com.bidhub.common.network.MessageRequest;
 import com.bidhub.common.network.MessageResponse;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import javafx.application.Platform;
 import javafx.fxml.FXML;
-import javafx.scene.control.Button;
-import javafx.scene.control.Label;
-import javafx.scene.control.PasswordField;
-import javafx.scene.control.TextField;
-import javafx.scene.control.ProgressIndicator;
+import javafx.scene.control.*;
 import java.util.Map;
 
 public class LoginController {
 
     @FXML private TextField usernameField;
     @FXML private PasswordField passwordField;
+    @FXML private TextField passwordTextField;
+    @FXML private Button togglePasswordBtn;
     @FXML private Label errorLabel;
     @FXML private Button loginButton;
-
-    // 📌 [Tieu chi: UX — Loading state component]
     @FXML private ProgressIndicator loadingSpinner;
+
+    private boolean isPasswordVisible = false;
 
     @FXML
     public void initialize() {
         errorLabel.setVisible(false);
+        if (passwordTextField != null) {
+            passwordTextField.setManaged(false);
+            passwordTextField.setVisible(false);
+        }
+    }
+
+    @FXML
+    private void handleTogglePassword() {
+        isPasswordVisible = !isPasswordVisible;
+        if (isPasswordVisible) {
+            passwordTextField.setText(passwordField.getText());
+            passwordTextField.setVisible(true);
+            passwordTextField.setManaged(true);
+            passwordField.setVisible(false);
+            passwordField.setManaged(false);
+            togglePasswordBtn.setText("🙈");
+            passwordTextField.requestFocus();
+            passwordTextField.selectEnd();
+        } else {
+            passwordField.setText(passwordTextField.getText());
+            passwordField.setVisible(true);
+            passwordField.setManaged(true);
+            passwordTextField.setVisible(false);
+            passwordTextField.setManaged(false);
+            togglePasswordBtn.setText("👁");
+            passwordField.requestFocus();
+            passwordField.selectEnd();
+        }
     }
 
     @FXML
     public void handleLogin() {
-        // 📌 [Tieu chi: UX — Form validation client-side]
-        if (!UiUtils.validateNotEmpty(usernameField, "Tên đăng nhập")) return;
-        if (!UiUtils.validateNotEmpty(passwordField, "Mật khẩu")) return;
+        // 1. Lấy password từ ô đang hiển thị
+        String password = isPasswordVisible ? passwordTextField.getText() : passwordField.getText();
+
+        // 2. Validate thủ công để chắc chắn không bị lỗi do ô nhập bị ẩn
+        if (usernameField.getText().trim().isEmpty()) {
+            errorLabel.setText("Vui lòng nhập tên đăng nhập.");
+            errorLabel.setVisible(true);
+            return;
+        }
+
+        if (password == null || password.isEmpty()) {
+            errorLabel.setText("Vui lòng nhập mật khẩu.");
+            errorLabel.setVisible(true);
+            return;
+        }
 
         String username = usernameField.getText().trim();
-        String password = passwordField.getText();
-
         errorLabel.setVisible(false);
 
-        // 📌 [Tieu chi: UX — Loading state]
         Runnable onComplete = (loginButton != null && loadingSpinner != null)
                 ? UiUtils.showLoading(loginButton, loadingSpinner)
                 : () -> { if (loginButton != null) loginButton.setDisable(false); };
 
         ObjectNode payload = JsonNodeFactory.instance.objectNode();
         payload.put("username", username);
-        payload.put("password", password);
+        payload.put("password", password); // Gửi mật khẩu dạng text thuần túy lên Server
 
         MessageRequest request = new MessageRequest(
                 "LOGIN", ClientSession.getInstance().getToken(), payload);
@@ -75,7 +110,7 @@ public class LoginController {
 
         task.setOnFailed(e -> {
             Platform.runLater(() -> {
-                errorLabel.setText("Không kết nối được máy chủ. Thử lại sau.");
+                errorLabel.setText("Lỗi kết nối máy chủ.");
                 errorLabel.setVisible(true);
             });
             onComplete.run();
@@ -87,11 +122,12 @@ public class LoginController {
     private void handleLoginSuccess(MessageResponse response) {
         Object payload = response.getPayload();
         if (payload instanceof Map<?, ?> map) {
-            String token = (String) map.get("token");
-            String userId = (String) map.get("userId");
-            String username = (String) map.get("username");
-            String role = (String) map.get("role");
-            ClientSession.getInstance().login(token, userId, username, role);
+            ClientSession.getInstance().login(
+                    (String) map.get("token"),
+                    (String) map.get("userId"),
+                    (String) map.get("username"),
+                    (String) map.get("role")
+            );
         }
         Platform.runLater(() -> ViewRouter.getInstance().navigateTo(Views.AUCTION_LIST));
     }

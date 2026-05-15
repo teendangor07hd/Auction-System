@@ -1,27 +1,30 @@
+-- 1. Bảng người dùng (Khớp UserDao: 9 cột)
 CREATE TABLE IF NOT EXISTS users (
-                                     id           TEXT    PRIMARY KEY,
-                                     username     TEXT    UNIQUE NOT NULL,
-                                     password_hash TEXT   NOT NULL,
-                                     email        TEXT    NOT NULL,
-                                     role         TEXT    NOT NULL,
-                                     is_locked    INTEGER NOT NULL DEFAULT 0,
-                                     extra_int    INTEGER NOT NULL DEFAULT 0,
-                                     created_at   TEXT    NOT NULL,
-                                     updated_at   TEXT    NOT NULL
-);
-
-CREATE TABLE IF NOT EXISTS items (
                                      id            TEXT PRIMARY KEY,
-                                     name          TEXT NOT NULL,
-                                     description   TEXT NOT NULL DEFAULT '',
-                                     starting_price REAL NOT NULL,
-                                     item_type     TEXT NOT NULL,
-                                     seller_id     TEXT NOT NULL,
-                                     extra_data    TEXT NOT NULL DEFAULT '{}',
+                                     username      TEXT UNIQUE NOT NULL,
+                                     password_hash TEXT NOT NULL,
+                                     email         TEXT NOT NULL,
+                                     role          TEXT NOT NULL,
+                                     extra_int     INTEGER NOT NULL DEFAULT 0,
+                                     is_locked     INTEGER NOT NULL DEFAULT 0,
                                      created_at    TEXT NOT NULL,
                                      updated_at    TEXT NOT NULL
 );
 
+-- 2. Bảng sản phẩm (Khớp ItemDao: 9 cột, dùng starting_price)
+CREATE TABLE IF NOT EXISTS items (
+                                     id             TEXT PRIMARY KEY,
+                                     name           TEXT NOT NULL,
+                                     description    TEXT NOT NULL DEFAULT '',
+                                     starting_price REAL NOT NULL,
+                                     item_type      TEXT NOT NULL,
+                                     seller_id      TEXT NOT NULL,
+                                     extra_data     TEXT NOT NULL DEFAULT '{}',
+                                     created_at     TEXT NOT NULL,
+                                     updated_at     TEXT NOT NULL
+);
+
+-- 3. Bảng phiên đấu giá (Khớp AuctionDao: 11 cột, không có seller_id)
 CREATE TABLE IF NOT EXISTS auctions (
                                         id                  TEXT PRIMARY KEY,
                                         item_id             TEXT NOT NULL,
@@ -33,17 +36,22 @@ CREATE TABLE IF NOT EXISTS auctions (
                                         status              TEXT NOT NULL,
                                         minimum_increment   REAL NOT NULL DEFAULT 1.0,
                                         created_at          TEXT NOT NULL,
-                                        updated_at          TEXT NOT NULL
-);
+                                        updated_at          TEXT NOT NULL,
+                                        FOREIGN KEY(item_id) REFERENCES items(id)
+    );
 
+-- 4. Bảng đặt giá (Khớp BidDao: 5 cột)
 CREATE TABLE IF NOT EXISTS bid_transactions (
                                                 id         TEXT PRIMARY KEY,
                                                 auction_id TEXT NOT NULL,
                                                 bidder_id  TEXT NOT NULL,
                                                 bid_amount REAL NOT NULL,
-                                                bid_time   TEXT NOT NULL
-);
+                                                bid_time   TEXT NOT NULL,
+                                                FOREIGN KEY(auction_id) REFERENCES auctions(id),
+    FOREIGN KEY(bidder_id) REFERENCES users(id)
+    );
 
+-- 5. Bảng nhật ký (Khớp AuditLogDao: 5 cột)
 CREATE TABLE IF NOT EXISTS audit_logs (
                                           id         TEXT PRIMARY KEY,
                                           user_id    TEXT,
