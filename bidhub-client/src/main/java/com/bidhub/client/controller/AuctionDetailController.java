@@ -2,9 +2,12 @@ package com.bidhub.client.controller;
 
 import com.bidhub.client.navigation.ContextAware;
 import com.bidhub.client.network.BidUpdateCallback;
+import com.bidhub.client.network.ClientSession;
 import com.bidhub.client.network.EventListenerThread;
 import com.bidhub.client.network.ServerGateway;
 import com.bidhub.client.network.NetworkTask;
+import com.bidhub.client.service.BidChartService; // Import service
+import com.bidhub.common.network.MessageMapper;
 import com.bidhub.common.network.MessageRequest;
 import com.bidhub.common.network.MessageResponse;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -13,6 +16,7 @@ import javafx.animation.KeyFrame;
 import javafx.animation.Timeline;
 import javafx.application.Platform;
 import javafx.fxml.FXML;
+import javafx.scene.chart.LineChart; // Import LineChart
 import javafx.scene.control.*;
 import javafx.util.Duration;
 
@@ -40,8 +44,13 @@ public class AuctionDetailController implements ContextAware {
     @FXML private Button btnPlaceBid;
     @FXML private Button btnBack;
 
+    // 📌 [Tieu chi: Price Chart — FXML inject LineChart]
+    @FXML
+    private LineChart<String, Number> bidChart;
+
     // --- Logic Fields ---
     private String auctionId;
+    private LocalDateTime startTime;
     private LocalDateTime endTime;
     private Timeline countdownTimeline;
     private final ObjectMapper mapper = new ObjectMapper();
@@ -49,6 +58,9 @@ public class AuctionDetailController implements ContextAware {
     // Fields cho Real-time Event Listener
     private EventListenerThread eventListener;
     private boolean isSubscribed = false;
+
+    // 📌 [Tieu chi: Price Chart — BidChartService quan ly du lieu chart]
+    private BidChartService bidChartService;
 
     @Override
     public void setContext(Map<String, Object> params) {
@@ -66,7 +78,16 @@ public class AuctionDetailController implements ContextAware {
             com.bidhub.client.navigation.ViewRouter.getInstance()
                     .navigateTo(com.bidhub.client.util.Views.AUCTION_LIST);
         });
+
+        // 📌 [Tieu chi: Price Chart — khoi tao BidChartService va bind vao LineChart]
+        bidChartService = new BidChartService();
+        if (bidChart != null) {
+            bidChart.getData().clear();
+            bidChart.getData().add(bidChartService.getSeries());
+            bidChart.setAnimated(false); // Tat animation de realtime update nhanh hon
+        }
     }
+
 
     /**
      * Tải thông tin chi tiết phiên đấu giá từ Server.
@@ -74,6 +95,7 @@ public class AuctionDetailController implements ContextAware {
     private void loadAuctionDetail() {
         MessageRequest req = new MessageRequest();
         req.setType("GET_AUCTION_DETAIL");
+        req.setToken(ClientSession.getInstance().getToken());
         req.setPayload(mapper.createObjectNode().put("auctionId", auctionId));
 
         NetworkTask<MessageResponse> task = new NetworkTask<>(
@@ -102,17 +124,40 @@ public class AuctionDetailController implements ContextAware {
         JsonNode auction = payload.path("auction");
 
         lblTitle.setText("Chi tiết phiên đấu giá");
-        lblItemName.setText(auction.path("itemId").asText("Sản phẩm không tên"));
+        lblItemName.setText(auction.path("itemName").asText(auction.path("itemId").asText("Sản phẩm không tên")));
         lblDescription.setText(auction.path("description").asText("Không có mô tả."));
 
         lblStartingPrice.setText("Giá khởi điểm: " + auction.path("startingPrice").asDouble(0));
         lblCurrentPrice.setText("Giá hiện tại: " + auction.path("currentHighestBid").asDouble(0));
-        lblHighestBidder.setText("Người dẫn đầu: " + auction.path("highestBidderId").asText("Chưa có"));
+        lblHighestBidder.setText("Người dẫn đầu: " + auction.path("highestBidderName").asText(auction.path("highestBidderId").asText("Chưa có")));
+
+        // 📌 [Tieu chi: Price Chart — load history data tu server de ve bieu do]
+        JsonNode bidHistoryNode = payload.path("bidHistory");
+        if (bidHistoryNode != null && bidHistoryNode.isArray()) {
+            bidChartService.clearData();
+            for (JsonNode bid : bidHistoryNode) {
+                double amount = bid.path("bidAmount").asDouble(0);
+                String timeStr = bid.path("bidTime").asText("");
+                if (!timeStr.isEmpty()) {
+                    try {
+                        LocalDateTime time = LocalDateTime.parse(timeStr);
+                        bidChartService.addDataPoint(time, amount);
+                    } catch (Exception ignored) {}
+                }
+            }
+        }
 
         String status = auction.path("status").asText("");
         lblStatus.setText("Trạng thái: " + status);
 
         // Xử lý Countdown
+        String startTimeStr = auction.path("startTime").asText("");
+        if (!startTimeStr.isEmpty()) {
+            try {
+                startTime = LocalDateTime.parse(startTimeStr);
+            } catch (Exception ex) {}
+        }
+        
         String endTimeStr = auction.path("endTime").asText("");
         if (!endTimeStr.isEmpty()) {
             try {
@@ -132,28 +177,40 @@ public class AuctionDetailController implements ContextAware {
         subscribeRealtimeEvents();
     }
 
+    private java.net.Socket eventSocket;
+
     /**
      * Đăng ký nhận sự kiện realtime từ server cho phiên đấu giá này.
+     * Sử dụng một Socket ĐỘC LẬP để không tranh chấp InputStream với ServerGateway.
      */
     private void subscribeRealtimeEvents() {
         if (isSubscribed) return;
 
         try {
-            // 1. Gửi lệnh SUBSCRIBE lên server
+            // 1. Tao ket noi Socket doc lap cho realtime events
+            String host = ServerGateway.getInstance().getServerHost();
+            int port = ServerGateway.getInstance().getServerPort();
+            eventSocket = new java.net.Socket(host, port);
+            
+            java.io.PrintWriter writer = new java.io.PrintWriter(eventSocket.getOutputStream(), true);
+            BufferedReader reader = new BufferedReader(new InputStreamReader(eventSocket.getInputStream()));
+
+            // 2. Gửi lệnh SUBSCRIBE lên server qua socket moi
             MessageRequest subReq = new MessageRequest();
             subReq.setType("SUBSCRIBE_AUCTION");
             subReq.setPayload(mapper.createObjectNode().put("auctionId", auctionId));
+            writer.println(MessageMapper.toJson(subReq));
 
-            MessageResponse subResp = ServerGateway.getInstance().sendRequest(subReq);
+            // Doc response cho lenh SUBSCRIBE
+            String responseLine = reader.readLine();
+            MessageResponse subResp = MessageMapper.fromJson(responseLine, MessageResponse.class);
             if (!"OK".equals(subResp.getStatus())) {
                 System.err.println("[AuctionDetail] Subscribe failed: " + subResp.getMessage());
+                eventSocket.close();
                 return;
             }
 
-            // 2. Thiết lập Listener Thread để đọc stream từ Socket
-            BufferedReader reader = new BufferedReader(
-                    new InputStreamReader(ServerGateway.getInstance().getSocket().getInputStream()));
-
+            // 3. Thiết lập Listener Thread để đọc stream từ Socket nay
             BidUpdateCallback callback = eventJson -> {
                 try {
                     JsonNode eventNode = mapper.readTree(eventJson);
@@ -163,11 +220,24 @@ public class AuctionDetailController implements ContextAware {
                     Platform.runLater(() -> {
                         if ("BID_UPDATE".equals(eventType)) {
                             double newPrice = eventNode.path("bidAmount").asDouble(0);
-                            String bidder = eventNode.path("bidderId").asText("Unknown");
+                            String bidder = eventNode.path("bidderName").asText(eventNode.path("bidderId").asText("Unknown"));
                             lblCurrentPrice.setText("Giá hiện tại: " + newPrice);
                             lblHighestBidder.setText("Người dẫn đầu: " + bidder);
+
+                            // 📌 [Tieu chi: Price Chart — realtime addDataPoint khi nhan BID_UPDATE]
+                            bidChartService.addDataPoint(LocalDateTime.now(), newPrice);
+
                         } else if ("AUCTION_CLOSED".equals(eventType)) {
                             disableBiddingUI();
+
+                        } else if ("AUCTION_EXTENDED".equals(eventType)) {
+                            // 📌 [Tieu chi: Anti-Sniping — reset countdown khi nhan AUCTION_EXTENDED]
+                            // Lay newEndTime tu event → cap nhat countdown
+                            String newEndTimeStr = eventNode.path("newEndTime").asText("");
+                            if (!newEndTimeStr.isEmpty()) {
+                                endTime = LocalDateTime.parse(newEndTimeStr);
+                                startCountdown(); // Khởi động lại timeline với thời gian mới
+                            }
                         }
                     });
                 } catch (Exception e) {
@@ -181,7 +251,7 @@ public class AuctionDetailController implements ContextAware {
             thread.start();
 
             isSubscribed = true;
-            System.out.println("[AuctionDetail] Real-time subscription active.");
+            System.out.println("[AuctionDetail] Real-time subscription active via dedicated socket.");
         } catch (Exception e) {
             System.err.println("[AuctionDetail] Subscribe error: " + e.getMessage());
         }
@@ -204,6 +274,7 @@ public class AuctionDetailController implements ContextAware {
 
         MessageRequest req = new MessageRequest();
         req.setType("PLACE_BID");
+        req.setToken(ClientSession.getInstance().getToken());
         req.setPayload(mapper.createObjectNode()
                 .put("auctionId", auctionId)
                 .put("bidAmount", bidAmount));
@@ -236,10 +307,26 @@ public class AuctionDetailController implements ContextAware {
 
     private void updateCountdown() {
         LocalDateTime now = LocalDateTime.now();
+        
+        // Nếu chưa tới giờ bắt đầu
+        if (startTime != null && now.isBefore(startTime)) {
+            java.time.Duration d = java.time.Duration.between(now, startTime);
+            long hours = d.toHours();
+            int minutes = d.toMinutesPart();
+            int seconds = d.toSecondsPart();
+            lblCountdown.setText(String.format("Bắt đầu sau: %02d:%02d:%02d", hours, minutes, seconds));
+            btnPlaceBid.setDisable(true); // Không cho phép đặt giá
+            return;
+        }
+
+        // Đã bắt đầu, kiểm tra kết thúc
         if (now.isAfter(endTime)) {
             disableBiddingUI();
             return;
         }
+        
+        // Đang diễn ra
+        btnPlaceBid.setDisable(false);
         java.time.Duration d = java.time.Duration.between(now, endTime);
         long hours = d.toHours();
         int minutes = d.toMinutesPart();
@@ -285,5 +372,14 @@ public class AuctionDetailController implements ContextAware {
     public void cleanup() {
         stopCountdown();
         stopEventListener();
+
+        // Dong dedicated socket cho realtime events
+        if (eventSocket != null && !eventSocket.isClosed()) {
+            try {
+                eventSocket.close();
+            } catch (Exception e) {
+                System.err.println("[AuctionDetail] Loi dong eventSocket: " + e.getMessage());
+            }
+        }
     }
 }

@@ -47,7 +47,7 @@ public final class RequestHandler {
     // 📌 [Tieu chi: MVC — RequestHandler la tang dieu phoi server]
     private static final Set<String> AUTH_REQUIRED = Set.of(
             "LOGOUT", "CREATE_ITEM", "DELETE_ITEM",
-            "LIST_MY_ITEMS", "PLACE_BID", "GET_AUCTION_DETAIL",
+            "LIST_MY_ITEMS", "CREATE_AUCTION", "PLACE_BID", "GET_AUCTION_DETAIL",
             "GET_USER_LIST", "LOCK_USER", "UNLOCK_USER",
             "GET_BID_HISTORY_REPORT", "GET_AUDIT_LOG", "RUN_INTEGRITY_CHECK"
     );
@@ -159,6 +159,8 @@ public final class RequestHandler {
                 case "GET_ITEM_LIST" -> handleGetItemList();
                 case "GET_ITEM_DETAIL" -> handleGetItemDetail(payload);
                 case "DELETE_ITEM"   -> handleDeleteItem(session, payload);
+                case "LIST_MY_ITEMS" -> handleListMyItems(session, payload);
+                case "CREATE_AUCTION" -> handleCreateAuction(session, payload);
                 case "GET_USER_LIST"  -> handleGetUserList(session, payload);
                 case "LOCK_USER"      -> handleLockUser(session, payload);
                 case "UNLOCK_USER"    -> handleUnlockUser(session, payload);
@@ -495,6 +497,159 @@ public final class RequestHandler {
         return MessageMapper.toJson(MessageResponse.ok("DELETE_ITEM", result));
     }
 
+    /**
+     * Lay danh sach item cua seller hien tai.
+     *
+     * <p>// 📌 [Tieu chi: Quan ly san pham — seller xem item cua minh]
+     *
+     * @param session session cua client
+     * @param payload payload rong
+     * @return JSON response voi danh sach item cua seller
+     */
+    private String handleListMyItems(Session session, JsonNode payload) {
+        String sellerId = SecurityContext.requireRole(session, UserRole.SELLER);
+        java.util.List<Item> items = itemDao.findBySellerId(sellerId);
+
+        java.util.List<Map<String, Object>> result = new java.util.ArrayList<>();
+        for (Item item : items) {
+            Map<String, Object> info = new HashMap<>();
+            info.put("itemId", item.getId());
+            info.put("name", item.getName());
+            info.put("itemType", item.getItemType().name());
+            info.put("startingPrice", item.getStartingPrice());
+            result.add(info);
+        }
+        return MessageMapper.toJson(MessageResponse.ok("LIST_MY_ITEMS", result));
+    }
+
+    // === AUCTION HANDLERS ===
+
+    /**
+     * Tao phien dau gia moi — yeu cau role SELLER.
+     *
+     * <p>// 📌 [Tieu chi: Chuc nang dau gia — tao phien moi + audit log]
+     *
+     * @param session session cua client
+     * @param payload chua {itemId, startingPrice, minimumIncrement, startTime, endTime}
+     * @return JSON response voi auction info
+     */
+    private String handleCreateAuction(Session session, JsonNode payload) {
+        String sellerId = SecurityContext.requireRole(session, UserRole.SELLER);
+
+        String itemId = getTextSafe(payload, "itemId");
+        if (itemId == null || itemId.isBlank()) {
+            return MessageMapper.toJson(
+                    MessageResponse.error("CREATE_AUCTION", "itemId khong duoc de trong."));
+        }
+
+        // Kiem tra item ton tai va thuoc ve seller
+        java.util.Optional<Item> itemOpt = itemDao.findById(itemId);
+        if (itemOpt.isEmpty()) {
+            return MessageMapper.toJson(
+                    MessageResponse.error("CREATE_AUCTION", "San pham khong ton tai."));
+        }
+        Item item = itemOpt.get();
+        if (!item.getSellerId().equals(sellerId)) {
+            return MessageMapper.toJson(
+                    MessageResponse.error("CREATE_AUCTION",
+                            "Ban khong co quyen tao phien cho san pham nay."));
+        }
+
+        // Parse gia khoi diem
+        double startingPrice;
+        if (payload.has("startingPrice") && payload.get("startingPrice").isNumber()) {
+            startingPrice = payload.get("startingPrice").asDouble();
+        } else {
+            String priceStr = getTextSafe(payload, "startingPrice");
+            if (priceStr == null) {
+                return MessageMapper.toJson(
+                        MessageResponse.error("CREATE_AUCTION", "Gia khoi diem la bat buoc."));
+            }
+            try {
+                startingPrice = Double.parseDouble(priceStr);
+            } catch (NumberFormatException e) {
+                return MessageMapper.toJson(
+                        MessageResponse.error("CREATE_AUCTION", "Gia khoi diem khong hop le."));
+            }
+        }
+        if (startingPrice <= 0) {
+            return MessageMapper.toJson(
+                    MessageResponse.error("CREATE_AUCTION", "Gia khoi diem phai lon hon 0."));
+        }
+
+        // Parse minimum increment
+        double minimumIncrement = 1.0;
+        if (payload.has("minimumIncrement")) {
+            if (payload.get("minimumIncrement").isNumber()) {
+                minimumIncrement = payload.get("minimumIncrement").asDouble();
+            } else {
+                String incStr = getTextSafe(payload, "minimumIncrement");
+                if (incStr != null && !incStr.isBlank()) {
+                    try {
+                        minimumIncrement = Double.parseDouble(incStr);
+                    } catch (NumberFormatException e) {
+                        return MessageMapper.toJson(
+                                MessageResponse.error("CREATE_AUCTION",
+                                        "Buoc gia khong hop le."));
+                    }
+                }
+            }
+        }
+        if (minimumIncrement < 0) {
+            return MessageMapper.toJson(
+                    MessageResponse.error("CREATE_AUCTION",
+                            "Buoc gia khong duoc am."));
+        }
+
+        // Parse thoi gian
+        String startTimeStr = getTextSafe(payload, "startTime");
+        String endTimeStr = getTextSafe(payload, "endTime");
+        if (startTimeStr == null || endTimeStr == null) {
+            return MessageMapper.toJson(
+                    MessageResponse.error("CREATE_AUCTION",
+                            "Thoi gian bat dau va ket thuc la bat buoc."));
+        }
+
+        LocalDateTime startTime;
+        LocalDateTime endTime;
+        try {
+            startTime = LocalDateTime.parse(startTimeStr);
+            endTime = LocalDateTime.parse(endTimeStr);
+        } catch (Exception e) {
+            return MessageMapper.toJson(
+                    MessageResponse.error("CREATE_AUCTION",
+                            "Dinh dang thoi gian khong hop le (yyyy-MM-ddTHH:mm:ss)."));
+        }
+
+        if (!endTime.isAfter(startTime)) {
+            return MessageMapper.toJson(
+                    MessageResponse.error("CREATE_AUCTION",
+                            "Thoi gian ket thuc phai sau thoi gian bat dau."));
+        }
+
+        // Tao Auction object
+        Auction auction = new Auction(itemId, startTime, endTime, startingPrice, minimumIncrement);
+
+        // Luu vao DB
+        auctionDao.save(auction);
+
+        // Them vao RAM cache (AuctionManager)
+        AuctionManager.getInstance().addAuction(auction);
+
+        // Audit log
+        auditLogService.log(sellerId, AuditActions.AUCTION_CREATED,
+                "{\"auctionId\":\"" + auction.getId()
+                        + "\",\"itemId\":\"" + itemId + "\"}");
+
+        Map<String, Object> result = new HashMap<>();
+        result.put("auctionId", auction.getId());
+        result.put("itemId", itemId);
+        result.put("startingPrice", startingPrice);
+        result.put("status", auction.getStatus().name());
+
+        return MessageMapper.toJson(MessageResponse.ok("CREATE_AUCTION", result));
+    }
+
     // === ADMIN HANDLERS ===
 
     /**
@@ -635,9 +790,16 @@ public final class RequestHandler {
             auction.getLock().unlock();
         }
 
+        // Lay ten nguoi dung
+        String bidderName = userId;
+        java.util.Optional<com.bidhub.server.model.User> userOpt = userDao.findById(userId);
+        if (userOpt.isPresent()) {
+            bidderName = userOpt.get().getUsername();
+        }
+
         // 📌 [Tieu chi: Realtime update — publish BID_UPDATE sau unlock]
         NotificationBroker.getInstance().publish(auctionId,
-                new BidUpdateEvent(auctionId, userId, bidAmount));
+                new BidUpdateEvent(auctionId, userId, bidderName, bidAmount));
 
         // NotificationBroker publish (sau khi unlock — Week 7, Quốc Minh them)
         // NotificationBroker.getInstance().publish(auctionId, new BidUpdateEvent(...));
@@ -659,8 +821,34 @@ public final class RequestHandler {
      */
     private String handleGetAuctionList(Session session, JsonNode payload) {
         List<Auction> auctions = auctionDao.findActiveAuctions();
+
+        // Enrich voi ten san pham tu ItemDao
+        java.util.List<Map<String, Object>> result = new java.util.ArrayList<>();
+        for (Auction auction : auctions) {
+            Map<String, Object> info = new HashMap<>();
+            info.put("id", auction.getId());
+            info.put("itemId", auction.getItemId());
+            info.put("startingPrice", auction.getStartingPrice());
+            info.put("currentHighestBid", auction.getCurrentHighestBid());
+            info.put("highestBidderId", auction.getHighestBidderId());
+            info.put("startTime", auction.getStartTime() != null ? auction.getStartTime().toString() : "");
+            info.put("endTime", auction.getEndTime() != null ? auction.getEndTime().toString() : "");
+            info.put("status", auction.getStatus().name());
+            info.put("minimumIncrement", auction.getMinimumIncrement());
+
+            // Tra cuu ten san pham tu ItemDao
+            String itemName = "San pham khong xac dinh";
+            java.util.Optional<Item> itemOpt = itemDao.findById(auction.getItemId());
+            if (itemOpt.isPresent()) {
+                itemName = itemOpt.get().getName();
+            }
+            info.put("itemName", itemName);
+
+            result.add(info);
+        }
+
         return MessageMapper.toJson(
-                MessageResponse.ok("GET_AUCTION_LIST", auctions));
+                MessageResponse.ok("GET_AUCTION_LIST", result));
     }
 
     /**
@@ -687,8 +875,40 @@ public final class RequestHandler {
         // Lay lich su bid
         List<BidTransaction> bidHistory = bidDao.findByAuctionId(auctionId);
 
+        // Enrich auction data voi ten san pham
+        Map<String, Object> auctionInfo = new HashMap<>();
+        auctionInfo.put("id", auction.getId());
+        auctionInfo.put("itemId", auction.getItemId());
+        auctionInfo.put("startingPrice", auction.getStartingPrice());
+        auctionInfo.put("currentHighestBid", auction.getCurrentHighestBid());
+        auctionInfo.put("highestBidderId", auction.getHighestBidderId());
+
+        String bidderId = auction.getHighestBidderId();
+        if (bidderId != null) {
+            java.util.Optional<com.bidhub.server.model.User> userOpt = userDao.findById(bidderId);
+            auctionInfo.put("highestBidderName", userOpt.map(com.bidhub.server.model.User::getUsername).orElse(bidderId));
+        } else {
+            auctionInfo.put("highestBidderName", "Chưa có");
+        }
+
+        auctionInfo.put("startTime", auction.getStartTime() != null ? auction.getStartTime().toString() : "");
+        auctionInfo.put("endTime", auction.getEndTime() != null ? auction.getEndTime().toString() : "");
+        auctionInfo.put("status", auction.getStatus().name());
+        auctionInfo.put("minimumIncrement", auction.getMinimumIncrement());
+
+        // Tra cuu ten va mo ta san pham
+        java.util.Optional<Item> itemOpt = itemDao.findById(auction.getItemId());
+        if (itemOpt.isPresent()) {
+            Item item = itemOpt.get();
+            auctionInfo.put("itemName", item.getName());
+            auctionInfo.put("description", item.getDescription());
+        } else {
+            auctionInfo.put("itemName", "San pham khong xac dinh");
+            auctionInfo.put("description", "");
+        }
+
         return MessageMapper.toJson(MessageResponse.ok("GET_AUCTION_DETAIL",
-                Map.of("auction", auction, "bidHistory", bidHistory)));
+                Map.of("auction", auctionInfo, "bidHistory", bidHistory)));
     }
 
     /**

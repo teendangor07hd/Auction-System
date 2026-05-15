@@ -1,11 +1,13 @@
 package com.bidhub.client.controller;
 
+import com.bidhub.client.network.ClientSession;
 import com.bidhub.client.network.NetworkTask;
 import com.bidhub.client.network.ServerGateway;
 import com.bidhub.common.network.MessageRequest;
 import com.bidhub.common.network.MessageResponse;
 import com.bidhub.common.network.MessageMapper;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import javafx.fxml.FXML;
 import javafx.scene.control.*;
@@ -33,6 +35,9 @@ public class CreateAuctionController {
 
     private final ObjectMapper mapper = new ObjectMapper();
 
+    /** Map luu itemId theo display name de tra cuu khi submit */
+    private final java.util.Map<String, String> itemDisplayToId = new java.util.LinkedHashMap<>();
+
     @FXML
     public void initialize() {
         // Factory riêng cho giờ bắt đầu
@@ -51,6 +56,58 @@ public class CreateAuctionController {
         btnBack.setOnAction(e ->
                 com.bidhub.client.navigation.ViewRouter.getInstance()
                         .navigateTo(com.bidhub.client.util.Views.AUCTION_LIST));
+
+        // 📌 [Tieu chi: Chuc nang dau gia — load danh sach item cua seller vao ComboBox]
+        loadMyItems();
+    }
+
+    /**
+     * Gui request LIST_MY_ITEMS den server de lay danh sach san pham cua seller.
+     * Populate ComboBox voi ket qua tra ve.
+     */
+    private void loadMyItems() {
+        MessageRequest req = new MessageRequest();
+        req.setType("LIST_MY_ITEMS");
+        req.setToken(ClientSession.getInstance().getToken());
+        req.setPayload(mapper.createObjectNode());
+
+        NetworkTask<MessageResponse> task = new NetworkTask<>(
+                () -> ServerGateway.getInstance().sendRequest(req));
+
+        task.setOnSucceeded(e -> {
+            MessageResponse response = task.getValue();
+            if ("OK".equals(response.getStatus())) {
+                javafx.application.Platform.runLater(() -> {
+                    cbItemId.getItems().clear();
+                    itemDisplayToId.clear();
+                    try {
+                        // payload la List<Map> — parse tung item
+                        JsonNode payloadNode = mapper.valueToTree(response.getPayload());
+                        if (payloadNode.isArray()) {
+                            for (JsonNode itemNode : payloadNode) {
+                                String itemId = itemNode.path("itemId").asText("");
+                                String name = itemNode.path("name").asText("???");
+                                String type = itemNode.path("itemType").asText("");
+                                String display = name + " [" + type + "]";
+                                itemDisplayToId.put(display, itemId);
+                                cbItemId.getItems().add(display);
+                            }
+                        }
+                    } catch (Exception ex) {
+                        System.err.println("[CreateAuction] Loi parse item list: " + ex.getMessage());
+                    }
+                });
+            } else {
+                javafx.application.Platform.runLater(() ->
+                        showError("Khong the tai danh sach san pham: " + response.getMessage()));
+            }
+        });
+
+        task.setOnFailed(e ->
+                javafx.application.Platform.runLater(() ->
+                        showError("Loi tai danh sach san pham: " + task.getException().getMessage())));
+
+        new Thread(task).start();
     }
 
     /**
@@ -59,7 +116,9 @@ public class CreateAuctionController {
      * <p>// 📌 [Tieu chi: Chuc nang dau gia — client tao phien moi]
      */
     private void createAuction() {
-        String itemId = cbItemId.getValue();
+        String selectedDisplay = cbItemId.getValue();
+        // Tra cuu itemId thuc tu map
+        String itemId = (selectedDisplay != null) ? itemDisplayToId.get(selectedDisplay) : null;
         String priceStr = tfStartingPrice.getText().trim();
         String incStr = tfMinIncrement.getText().trim();
 
@@ -100,6 +159,7 @@ public class CreateAuctionController {
 
         MessageRequest req = new MessageRequest();
         req.setType("CREATE_AUCTION");
+        req.setToken(ClientSession.getInstance().getToken());
         req.setPayload(payload);
 
         NetworkTask<MessageResponse> task = new NetworkTask<>(

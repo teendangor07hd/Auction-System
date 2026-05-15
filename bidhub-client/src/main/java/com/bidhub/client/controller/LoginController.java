@@ -15,24 +15,19 @@ import javafx.scene.control.Label;
 import javafx.scene.control.PasswordField;
 import javafx.scene.control.TextField;
 import javafx.beans.binding.Bindings;
-import javafx.scene.layout.VBox;
-import javafx.scene.effect.GaussianBlur;
-import java.net.URL;
-import java.util.ResourceBundle;
+import java.util.Map;
 
 public class LoginController {
     private javafx.beans.property.BooleanProperty isLoading = new javafx.beans.property.SimpleBooleanProperty(false);
 
-    @FXML private VBox backgroundContainer; // Field quan trọng để làm mờ ảnh nền
     @FXML private TextField usernameField;
     @FXML private PasswordField passwordField;
     @FXML private Label errorLabel;
     @FXML private Button loginButton;
 
-
     @FXML
     public void initialize() {
-        // 2. Logic Binding cho nút Login
+        // Logic Binding vô hiệu hóa nút Login khi chưa nhập đủ thông tin hoặc đang tải
         loginButton.disableProperty().bind(
                 Bindings.createBooleanBinding(
                         () -> usernameField.getText().isBlank()
@@ -45,7 +40,6 @@ public class LoginController {
         );
 
         errorLabel.setVisible(false);
-        errorLabel.getStyleClass().add("error-message");
     }
 
     @FXML
@@ -88,7 +82,7 @@ public class LoginController {
 
     private void handleLoginSuccess(MessageResponse response) {
         Object payload = response.getPayload();
-        if (payload instanceof java.util.Map<?, ?> map) {
+        if (payload instanceof Map<?, ?> map) {
             String token = (String) map.get("token");
             String userId = (String) map.get("userId");
             String username = (String) map.get("username");

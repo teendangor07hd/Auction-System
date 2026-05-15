@@ -95,13 +95,13 @@ public class AuctionDao {
     }
 
     /**
-     * Trả về tất cả phiên có status = RUNNING.
-     * Dùng trong AuctionListController (Tuần 5) để hiển thị danh sách đang diễn ra.
+     * Trả về tất cả phiên có status = OPEN hoặc RUNNING.
+     * Dùng trong AuctionListController để hiển thị danh sách đang chờ và đang diễn ra.
      *
-     * @return danh sách phiên RUNNING, có thể rỗng
+     * @return danh sách phiên OPEN + RUNNING, có thể rỗng
      */
     public List<Auction> findActiveAuctions() {
-        String sql = "SELECT * FROM auctions WHERE status = \'RUNNING\'";
+        String sql = "SELECT * FROM auctions WHERE status IN ('OPEN', 'RUNNING')";
         Connection conn = null;
         try {
             conn = acquireConnection();

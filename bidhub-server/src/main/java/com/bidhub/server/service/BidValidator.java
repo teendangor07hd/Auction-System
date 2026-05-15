@@ -54,11 +54,11 @@ public final class BidValidator {
      * @throws InvalidBidException   neu vi pham cac dieu kien dau gia
      */
     public void validate(Auction auction, String bidderId, double bidAmount) {
-        // 1. Auction phai dang RUNNING
-        // 📌 [Tieu chi: Chuc nang dau gia — chi cho dat gia khi RUNNING]
-        if (auction.getStatus() != AuctionStatus.RUNNING) {
+        if (auction.getStatus() == AuctionStatus.OPEN) {
+            throw new InvalidBidException("Phiên đấu giá chưa bắt đầu. Vui lòng chờ đến giờ.");
+        } else if (auction.getStatus() != AuctionStatus.RUNNING) {
             throw new AuctionClosedException(
-                    "Phien dau gia da dong. Trang thai: " + auction.getStatus().name());
+                    "Phiên đấu giá đã kết thúc. Trạng thái: " + auction.getStatus().name());
         }
 
         // 2. Bidder khong duoc la nguoi dan dau hien tai

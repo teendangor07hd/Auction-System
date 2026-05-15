@@ -52,6 +52,13 @@
                 <version>${jackson.version}</version>
             </dependency>
 
+            <!-- Jackson JSR310 — hỗ trợ serialize LocalDateTime, LocalDate... -->
+            <dependency>
+                <groupId>com.fasterxml.jackson.datatype</groupId>
+                <artifactId>jackson-datatype-jsr310</artifactId>
+                <version>${jackson.version}</version>
+            </dependency>
+
             <!-- SQLite JDBC -->
             <dependency>
                 <groupId>org.xerial</groupId>

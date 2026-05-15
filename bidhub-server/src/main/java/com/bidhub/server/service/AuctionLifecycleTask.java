@@ -34,8 +34,18 @@ public final class AuctionLifecycleTask implements Runnable {
             List<Auction> activeList = AuctionManager.getInstance().getAllActive();
             for (Auction auction : activeList) {
                 try {
+                    LocalDateTime now = LocalDateTime.now();
+
+                    // 📌 [Tieu chi: Chuc nang dau gia — tu dong chuyen OPEN → RUNNING khi den startTime]
+                    if (auction.getStatus() == AuctionStatus.OPEN
+                            && auction.getStartTime() != null
+                            && !auction.getStartTime().isAfter(now)) {
+                        activateAuction(auction);
+                    }
+
+                    // 📌 [Tieu chi: Chuc nang dau gia — tu dong dong phien RUNNING khi het han]
                     if (auction.getEndTime() != null
-                            && auction.getEndTime().isBefore(LocalDateTime.now())
+                            && auction.getEndTime().isBefore(now)
                             && auction.getStatus() == AuctionStatus.RUNNING) {
                         closeAuction(auction);
                     }
@@ -50,21 +60,30 @@ public final class AuctionLifecycleTask implements Runnable {
     }
 
     /**
-     * Dong 1 phien dau gia — chuyen status FINISHED, xac dinh winner, cap nhat DB.
+     * Kich hoat phien dau gia — chuyen status OPEN → RUNNING khi den startTime.
      *
-     * <p>Flow:
-     * <ol>
-     *   <li>transitionTo(FINISHED) — validate trong Auction class</li>
-     *   <li>updateStatus(FINISHED) trong DB</li>
-     *   <li>getHighestBid() — tim nguoi thang</li>
-     *   <li>Neu co winner → da cap nhat trong DB qua bidDao.save() truoc do</li>
-     *   <li>removeAuction() khoi RAM</li>
-     * </ol>
+     * <p>// 📌 [Tieu chi: Chuc nang dau gia — tu dong kich hoat phien khi den gio]
      *
-     * <p>// 📌 [Tieu chi: Chuc nang dau gia — dong phien tu dong, xac dinh winner]
-     *
-     * @param auction auction can dong
+     * @param auction auction can kich hoat
      */
+    private void activateAuction(Auction auction) {
+        String auctionId = auction.getId();
+        System.out.println("[LifecycleTask] Kich hoat phien: " + auctionId);
+
+        auction.getLock().lock();
+        try {
+            // Chuyen trang thai OPEN → RUNNING
+            auction.transitionTo(AuctionStatus.RUNNING);
+
+            // Cap nhat status trong DB
+            AuctionDao auctionDao = new AuctionDao();
+            auctionDao.updateStatus(auctionId, AuctionStatus.RUNNING);
+
+            System.out.println("[LifecycleTask] Da kich hoat phien: " + auctionId);
+        } finally {
+            auction.getLock().unlock();
+        }
+    }
 
     private void closeAuction(Auction auction) {
         String auctionId = auction.getId();
