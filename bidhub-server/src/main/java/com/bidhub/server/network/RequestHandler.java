@@ -173,7 +173,7 @@ public final class RequestHandler {
                 case "GET_AUDIT_LOG"          -> handleGetAuditLog(session, payload);
                 case "RUN_INTEGRITY_CHECK"    -> handleRunIntegrityCheck(session, payload);
                 default              -> MessageMapper.toJson(
-                        MessageResponse.error(type, "Lenh khong xac dinh: " + type));
+                        MessageResponse.error(type, "Lệnh không xác định: " + type));
             };
         } catch (BidHubException e) {
             return MessageMapper.toJson(MessageResponse.error(type, e.getMessage()));
