@@ -29,6 +29,9 @@ public final class Views {
     /** Màn hình đăng ký tài khoản mới */
     public static final String REGISTER = "RegisterView";
 
+    /** Admin panel — quản lý người dùng (ADMIN only) */
+    public static final String ADMIN_VIEW = "AdminView";
+
     /** Ngăn khởi tạo class này */
     private Views() {}
 }
