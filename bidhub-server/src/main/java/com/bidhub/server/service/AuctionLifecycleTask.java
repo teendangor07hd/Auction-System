@@ -12,6 +12,8 @@ import com.bidhub.server.event.AuctionClosedEvent;
 import com.bidhub.server.service.NotificationBroker;
 import com.bidhub.server.model.AuditActions;
 import com.bidhub.server.service.AuditLogService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Task chay dinh ky — kiem tra va dong cac phien dau gia het han.
@@ -20,9 +22,11 @@ import com.bidhub.server.service.AuditLogService;
  * kiem tra tung auction: neu {@code endTime} da qua → goi {@link #closeAuction(Auction)}.
  *
  * <p>// 📌 [Tieu chi: Chuc nang dau gia — lifecycle tu dong dong phien]
- * // 📌 [Tieu chi: Ky thuat quan trọng — Runnable duoc ScheduledExecutorService goi dinh ky]
+ * // 📌 [Tieu chi: Ky thuat quan trong — Runnable duoc ScheduledExecutorService goi dinh ky]
  */
 public final class AuctionLifecycleTask implements Runnable {
+
+    private static final Logger logger = LoggerFactory.getLogger(AuctionLifecycleTask.class);
 
     @Override
     public void run() {
@@ -47,12 +51,11 @@ public final class AuctionLifecycleTask implements Runnable {
                     }
                 } catch (Exception e) {
                     // 📌 [Tieu chi: Xu ly loi — khong de 1 auction loi block cac auction khac]
-                    System.err.println("[LifecycleTask] Loi xu ly auction "
-                            + auction.getId() + ": " + e.getMessage());
+                    logger.error("Loi xu ly auction {}: {}", auction.getId(), e.getMessage(), e);
                 }
             }
         } catch (Exception e) {
-            System.err.println("[LifecycleTask] Loi chung: " + e.getMessage());
+            logger.error("Loi chung AuctionLifecycleTask: {}", e.getMessage(), e);
         }
     }
 
@@ -84,9 +87,9 @@ public final class AuctionLifecycleTask implements Runnable {
 
     private void closeAuction(Auction auction) {
         String auctionId = auction.getId();
-        System.out.println("[LifecycleTask] Dang dong phien: " + auctionId);
+        logger.info("Dang dong phien: {}", auctionId);
 
-        // 📌 [Tieu chi: Ky thuat quan trọng — lock khi dong phien de chong race voi bid]
+        // 📌 [Tieu chi: Ky thuat quan trong — lock khi dong phien de chong race voi bid]
         auction.getLock().lock();
         try {
             // 1. Chuyen trang thai
@@ -106,11 +109,9 @@ public final class AuctionLifecycleTask implements Runnable {
                 BidTransaction winner = highestBidOpt.get();
                 winnerId = winner.getBidderId();
                 winningBid = winner.getBidAmount();
-                System.out.println("[LifecycleTask] Winner: " + winnerId
-                        + " voi gia " + winningBid);
+                logger.info("Winner: {} voi gia {}.", winnerId, winningBid);
             } else {
-                System.out.println("[LifecycleTask] Khong co bid nao — phien "
-                        + auctionId + " ket thuc khong co nguoi thang.");
+                logger.info("Khong co bid nao — phien {} ket thuc khong co nguoi thang.", auctionId);
             }
 
             // 4. Xoa khoi RAM
@@ -141,10 +142,10 @@ public final class AuctionLifecycleTask implements Runnable {
         NotificationBroker.getInstance().publish(auctionId,
                 new AuctionClosedEvent(auctionId, winnerId, winningBid));
 
-        // NotificationBroker publish (sau khi unlock — Week 7, Quốc Minh them)
+        // NotificationBroker publish (sau khi unlock — Week 7, Quoc Minh them)
         // NotificationBroker.getInstance().publish(auctionId,
         //     new AuctionClosedEvent(auctionId, winnerId, winningBid));
 
-        System.out.println("[LifecycleTask] Da dong phien: " + auctionId);
+        logger.info("Da dong phien: {}", auctionId);
     }
 }

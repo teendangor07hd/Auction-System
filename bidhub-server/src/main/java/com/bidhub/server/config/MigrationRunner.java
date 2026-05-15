@@ -6,12 +6,16 @@ import java.nio.charset.StandardCharsets;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.sql.Statement;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Đọc {@code schema.sql} từ classpath và thực thi khi server khởi động.
  * Dùng {@code CREATE TABLE IF NOT EXISTS} nên an toàn khi gọi nhiều lần.
  */
 public final class MigrationRunner {
+
+    private static final Logger logger = LoggerFactory.getLogger(MigrationRunner.class);
 
     private MigrationRunner() {}
 
@@ -40,13 +44,12 @@ public final class MigrationRunner {
                             + "INTEGER NOT NULL DEFAULT 0";
             try (Statement stmt = conn.createStatement()) {
                 stmt.execute(alterTableSql);
-                System.out.println("[MigrationRunner] Cot is_locked da san sang.");
+                logger.info("Cot is_locked da san sang.");
             } catch (SQLException e) {
                 // Cot da ton tai hoac loi khac — khong block server startup
-                System.err.println("[MigrationRunner] Canh bao migration is_locked: "
-                        + e.getMessage());
+                logger.warn("Canh bao migration is_locked: {}", e.getMessage());
             }
-            System.out.println("[MigrationRunner] Schema đã sẵn sàng.");
+            logger.info("Schema da san sang.");
         } catch (SQLException e) {
             throw new RuntimeException("Migration thất bại: " + e.getMessage(), e);
         } finally {

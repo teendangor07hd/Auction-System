@@ -30,6 +30,8 @@ import com.bidhub.server.model.BidTransaction;
 import java.util.List;
 import com.bidhub.server.event.BidUpdateEvent;
 import com.bidhub.server.event.AuctionClosedEvent;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Dispatcher chinh: nhan JSON tho → parse → auth-guard → switch type → goi handler.
@@ -40,12 +42,14 @@ import com.bidhub.server.event.AuctionClosedEvent;
  */
 public final class RequestHandler {
 
+    private static final Logger logger = LoggerFactory.getLogger(RequestHandler.class);
+
     // 📌 [Tieu chi: MVC — RequestHandler la tang dieu phoi server]
     private static final Set<String> AUTH_REQUIRED = Set.of(
             "LOGOUT", "CREATE_ITEM", "DELETE_ITEM",
             "LIST_MY_ITEMS", "CREATE_AUCTION", "PLACE_BID", "GET_AUCTION_DETAIL",
             "GET_USER_LIST", "LOCK_USER", "UNLOCK_USER",
-            "GET_BID_HISTORY_REPORT", "GET_AUDIT_LOG"
+            "GET_BID_HISTORY_REPORT", "GET_AUDIT_LOG", "RUN_INTEGRITY_CHECK"
     );
 
     // ← THÊM: field DAO (null ở T4 — sẽ được gán thực sự ở T5)
@@ -60,6 +64,7 @@ public final class RequestHandler {
     private final BidDao bidDao;
     private final BidValidator bidValidator;
     private final ReportService reportService;
+    private final DataIntegrityService dataIntegrityService;
 
     public RequestHandler() {
         this.injectedUserDao = null;
@@ -72,6 +77,7 @@ public final class RequestHandler {
         this.adminUserService = new AdminUserService();
         this.bidValidator = new BidValidator(itemDao);
         this.reportService = new ReportService();
+        this.dataIntegrityService = new DataIntegrityService();
     }
 
     RequestHandler(Object injectedUserDao, Object injectedItemDao) {
@@ -87,6 +93,7 @@ public final class RequestHandler {
         this.adminUserService = new AdminUserService();
         this.bidValidator = new BidValidator(itemDao);
         this.reportService = new ReportService();
+        this.dataIntegrityService = new DataIntegrityService();
     }
 
     RequestHandler(Object injectedUserDao, Object injectedItemDao,
@@ -103,6 +110,7 @@ public final class RequestHandler {
         this.adminUserService = new AdminUserService();
         this.bidValidator = new BidValidator(itemDao);
         this.reportService = new ReportService();
+        this.dataIntegrityService = new DataIntegrityService();
     }
 
     /**
@@ -163,13 +171,14 @@ public final class RequestHandler {
                 case "GET_AUCTION_REPORT"     -> handleGetAuctionReport(session, payload);
                 case "GET_BID_HISTORY_REPORT" -> handleGetBidHistoryReport(session, payload);
                 case "GET_AUDIT_LOG"          -> handleGetAuditLog(session, payload);
+                case "RUN_INTEGRITY_CHECK"    -> handleRunIntegrityCheck(session, payload);
                 default              -> MessageMapper.toJson(
                         MessageResponse.error(type, "Lenh khong xac dinh: " + type));
             };
         } catch (BidHubException e) {
             return MessageMapper.toJson(MessageResponse.error(type, e.getMessage()));
         } catch (Exception e) {
-            System.err.println("[RequestHandler] Loi xu ly " + type + ": " + e.getMessage());
+            logger.error("Loi xu ly {}: {}", type, e.getMessage(), e);
             return MessageMapper.toJson(MessageResponse.error(type, "Loi he thong noi bo."));
         }
     }
@@ -921,6 +930,28 @@ public final class RequestHandler {
                 MessageResponse.ok("SUBSCRIBE_AUCTION",
                         Map.of("auctionId", auctionId, "message", "Da subscribe thanh cong")));
     }
+
+  /**
+   * Xu ly kiem tra toan ven du lieu (ADMIN only).
+   *
+   * <p>// 📌 [Tieu chi: Clean Code — Admin kiem tra data consistency]
+   *
+   * @param session session cua client
+   * @param payload payload rong
+   * @return JSON response voi ket qua integrity check
+   */
+  private String handleRunIntegrityCheck(Session session, JsonNode payload) {
+    String userId = SecurityContext.requireRole(session, UserRole.ADMIN);
+
+    // Audit log
+    auditLogService.log(
+        userId,
+        AuditActions.RUN_INTEGRITY_CHECK,
+        "{}");
+
+    Map<String, Object> result = dataIntegrityService.runFullCheck();
+    return MessageMapper.toJson(MessageResponse.ok("RUN_INTEGRITY_CHECK", result));
+  }
 
     // === HELPER METHODS ===
 

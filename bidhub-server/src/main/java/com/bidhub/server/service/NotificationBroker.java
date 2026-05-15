@@ -7,6 +7,8 @@ import com.bidhub.server.network.Session;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Singleton Observer Pattern — quan ly subscribe/publish event realtime cho auction.
@@ -20,6 +22,8 @@ import java.util.concurrent.CopyOnWriteArrayList;
  * // 📌 [Tieu chi: Realtime update — push event qua socket]
  */
 public final class NotificationBroker {
+
+    private static final Logger logger = LoggerFactory.getLogger(NotificationBroker.class);
 
     private static volatile NotificationBroker instance;
 
@@ -63,8 +67,7 @@ public final class NotificationBroker {
         if (list != null && !list.contains(session)) {
             list.add(session);
         }
-        System.out.println("[NotificationBroker] Session subscribe auction: " + auctionId
-                + " (total: " + (list != null ? list.size() : 0) + ")");
+        logger.debug("Session subscribe auction: {} (total: {})", auctionId, (list != null ? list.size() : 0));
     }
 
     /**
@@ -97,7 +100,7 @@ public final class NotificationBroker {
         for (CopyOnWriteArrayList<Session> list : subscribers.values()) {
             list.remove(session);
         }
-        System.out.println("[NotificationBroker] UnsubscribeAll session completed.");
+        logger.debug("UnsubscribeAll session completed.");
     }
 
     /**
@@ -125,7 +128,7 @@ public final class NotificationBroker {
         try {
             eventJson = MessageMapper.toJson(event);
         } catch (Exception e) {
-            System.err.println("[NotificationBroker] Serialize event loi: " + e.getMessage());
+            logger.error("Serialize event loi: {}", e.getMessage(), e);
             return;
         }
 
@@ -134,8 +137,7 @@ public final class NotificationBroker {
                 session.sendMessage(eventJson);
             } catch (Exception e) {
                 // 📌 [Tieu chi: Xu ly loi — 1 session loi khong block cac session khac]
-                System.err.println("[NotificationBroker] Gui event loi cho session: "
-                        + e.getMessage());
+                logger.error("Gui event loi cho session: {}", e.getMessage(), e);
                 list.remove(session);
             }
         }
