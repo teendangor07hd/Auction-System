@@ -19,4 +19,5 @@ public interface AuditActions {
     String ITEM_CREATED    = "ITEM_CREATED";
     String ITEM_DELETED    = "ITEM_DELETED";
     String RUN_INTEGRITY_CHECK = "RUN_INTEGRITY_CHECK";
+    String AUCTION_CREATED="AUCTION_CREATED";
 }
