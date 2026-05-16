@@ -65,6 +65,7 @@ public final class DataIntegrityService {
 
       for (Map<String, Object> row : auctions) {
         String auctionId = (String) row.get("id");
+        String itemName = (String) row.get("itemName");
         double dbHighestBid = row.get("currentHighestBid") != null
             ? ((Number) row.get("currentHighestBid")).doubleValue() : 0.0;
         String dbHighestBidder = (String) row.get("highestBidderId");
@@ -75,20 +76,20 @@ public final class DataIntegrityService {
         if (maxBid.isPresent()) {
           double actualMaxBid = maxBid.get().getBidAmount();
           if (Math.abs(dbHighestBid - actualMaxBid) > 0.001) {
-            errors.add("Auction " + auctionId + ": currentHighestBid="
-                + dbHighestBid + " nhung MAX(bid) trong DB=" + actualMaxBid);
+            errors.add("Sản phẩm '" + itemName + "' (Auction " + auctionId + "): Giá cao nhất ghi nhận là "
+                + String.format("%,.0f VND", dbHighestBid) + " nhưng lịch sử Bid cao nhất trong DB chỉ có " + String.format("%,.0f VND", actualMaxBid));
           }
           // Kiem tra highestBidderId co khop voi MAX bidder
           if (dbHighestBidder != null && !dbHighestBidder.isEmpty()
               && !dbHighestBidder.equals(maxBid.get().getBidderId())) {
-            errors.add("Auction " + auctionId + ": highestBidderId="
-                + dbHighestBidder + " nhung MAX bidder=" + maxBid.get().getBidderId());
+            errors.add("Sản phẩm '" + itemName + "' (Auction " + auctionId + "): Người thắng ghi nhận là "
+                + dbHighestBidder + " nhưng người đặt giá cao nhất thực tế là " + maxBid.get().getBidderId());
           }
         } else {
           // Khong co bid nao — currentHighestBid phai = startingPrice hoac 0
           if (dbHighestBid > 0 && dbHighestBidder != null) {
-            errors.add("Auction " + auctionId + ": co highestBid="
-                + dbHighestBid + " nhung khong co bid nao trong DB");
+            errors.add("Sản phẩm '" + itemName + "' (Auction " + auctionId + "): Ghi nhận có người thắng với giá "
+                + String.format("%,.0f VND", dbHighestBid) + " nhưng không tồn tại bất kỳ lượt Bid nào trong DB");
           }
         }
       }

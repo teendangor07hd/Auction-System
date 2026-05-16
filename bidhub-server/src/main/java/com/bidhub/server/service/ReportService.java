@@ -109,7 +109,13 @@ public class ReportService {
       row.put("bidId", bid.getId());
       row.put("auctionId", bid.getAuctionId());
       row.put("bidderId", bid.getBidderId());
-      
+
+      String itemName = auctionDao.findById(bid.getAuctionId())
+          .flatMap(a -> itemDao.findById(a.getItemId()))
+          .map(item -> item.getName())
+          .orElse("Sản phẩm " + bid.getAuctionId());
+      row.put("itemName", itemName);
+
       String bidderId = bid.getBidderId();
       String bidderName = "N/A";
       if (bidderId != null && !bidderId.isEmpty()) {
