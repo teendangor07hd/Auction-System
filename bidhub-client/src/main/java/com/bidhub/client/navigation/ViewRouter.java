@@ -1,13 +1,14 @@
 package com.bidhub.client.navigation;
 
-
+import com.bidhub.client.util.Views;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
+import javafx.scene.layout.BorderPane;
+import javafx.scene.layout.Region;
 import javafx.stage.Stage;
 
 import java.io.IOException;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Objects;
@@ -24,6 +25,7 @@ public final class ViewRouter {
     private static volatile ViewRouter instance;
 
     private Stage primaryStage;
+    private BorderPane mainLayout;
 
     private ViewRouter() {}
 
@@ -70,6 +72,8 @@ public final class ViewRouter {
             throw new IllegalStateException("ViewRouter chưa được initialize(stage) — gọi trong BidHubApp");
         }
         try {
+            boolean isAuthView = viewName.equals(Views.LOGIN) || viewName.equals(Views.REGISTER) || viewName.equals(Views.HOME);
+
             String fxmlPath = "/fxml/" + viewName + ".fxml";
             FXMLLoader loader = new FXMLLoader(
                     Objects.requireNonNull(getClass().getResource(fxmlPath),
@@ -82,12 +86,22 @@ public final class ViewRouter {
                 ca.setContext(params);
             }
 
-            // Thay ruột Scene thay vì tạo mới để giữ nguyên kích thước cửa sổ (Window Size)
             Scene currentScene = primaryStage.getScene();
             if (currentScene == null) {
-                primaryStage.setScene(new Scene(root, 1024, 720)); // Ép cứng nếu chưa có
-            } else {
+                currentScene = new Scene(new Region(), 1024, 720);
+                primaryStage.setScene(currentScene);
+            }
+
+            if (isAuthView) {
                 currentScene.setRoot(root);
+                mainLayout = null;
+            } else {
+                if (mainLayout == null) {
+                    FXMLLoader mainLoader = new FXMLLoader(getClass().getResource("/fxml/MainLayout.fxml"));
+                    mainLayout = mainLoader.load();
+                    currentScene.setRoot(mainLayout);
+                }
+                mainLayout.setCenter(root);
             }
             primaryStage.show();
 

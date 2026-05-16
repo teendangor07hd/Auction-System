@@ -183,7 +183,7 @@ public class UserDao {
         User user = switch (role) {
             case BIDDER -> new Bidder(id, createdAt, updatedAt, username, passwordHash, email, extraInt);
             case SELLER -> new Seller(id, createdAt, updatedAt, username, passwordHash, email, extraInt);
-            case ADMIN  -> new Admin(id, createdAt, updatedAt, username, passwordHash, email, extraInt);
+            case ADMIN  -> new Admin(id, createdAt, updatedAt, username, passwordHash, email, extraInt < 1 ? 1 : extraInt);
         };
 
         // Đọc cột is_locked từ DB

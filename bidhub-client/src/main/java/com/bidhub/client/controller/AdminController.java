@@ -15,28 +15,22 @@ import javafx.collections.ObservableList;
 import javafx.fxml.FXML;
 import javafx.scene.control.*;
 import javafx.scene.control.cell.PropertyValueFactory;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 
-/**
- * Controller xử lý logic cho màn hình Quản trị viên (Admin Panel).
- * <p>
- * Trách nhiệm (Single Responsibility):
- * - Hiển thị danh sách người dùng (TableView).
- * - Cung cấp tính năng Khóa/Mở khóa tài khoản.
- * - Giao tiếp với Server thông qua Socket layer.
- */
 public class AdminController implements com.bidhub.client.navigation.ContextAware {
 
-    // ========================================================================
-    // CONSTANTS (Hằng số định nghĩa các Command và Role để tránh Magic Strings)
-    // ========================================================================
     private static final String ROLE_ADMIN = "ADMIN";
     private static final String CMD_GET_USER_LIST = "GET_USER_LIST";
     private static final String CMD_LOCK_USER = "LOCK_USER";
     private static final String CMD_UNLOCK_USER = "UNLOCK_USER";
+    
+    private static final String CMD_GET_AUCTION_REPORT = "GET_AUCTION_REPORT";
+    private static final String CMD_GET_BID_HISTORY_REPORT = "GET_BID_HISTORY_REPORT";
+    private static final String CMD_GET_AUDIT_LOG = "GET_AUDIT_LOG";
+    private static final String CMD_RUN_INTEGRITY_CHECK = "RUN_INTEGRITY_CHECK";
 
-    // ========================================================================
-    // FXML INJECTIONS (Các thành phần giao diện được bind từ file .fxml)
-    // ========================================================================
+    @FXML private TabPane adminTabPane;
+
     @FXML private TableView<UserInfo> userTable;
     @FXML private TableColumn<UserInfo, String> colUsername;
     @FXML private TableColumn<UserInfo, String> colEmail;
@@ -44,62 +38,178 @@ public class AdminController implements com.bidhub.client.navigation.ContextAwar
     @FXML private TableColumn<UserInfo, String> colStatus;
     @FXML private Button lockBtn;
     @FXML private Button unlockBtn;
+
+    @FXML private TableView<AuctionReportInfo> auctionReportTable;
+    @FXML private TableColumn<AuctionReportInfo, String> colAuctionItemName;
+    @FXML private TableColumn<AuctionReportInfo, String> colAuctionStatus;
+    @FXML private TableColumn<AuctionReportInfo, Double> colAuctionStartPrice;
+    @FXML private TableColumn<AuctionReportInfo, Double> colAuctionHighestBid;
+    @FXML private TableColumn<AuctionReportInfo, String> colAuctionWinnerName;
+    @FXML private TableColumn<AuctionReportInfo, String> colAuctionId;
+    @FXML private TableColumn<AuctionReportInfo, String> colAuctionItem;
+    @FXML private TableColumn<AuctionReportInfo, String> colAuctionWinner;
+
+    @FXML private TableView<BidHistoryInfo> bidHistoryTable;
+    @FXML private TableColumn<BidHistoryInfo, String> colBidderName;
+    @FXML private TableColumn<BidHistoryInfo, Double> colBidAmount;
+    @FXML private TableColumn<BidHistoryInfo, String> colBidTime;
+    @FXML private TableColumn<BidHistoryInfo, String> colBidId;
+    @FXML private TableColumn<BidHistoryInfo, String> colBidAuctionId;
+    @FXML private TableColumn<BidHistoryInfo, String> colBidderId;
+
+    @FXML private TableView<AuditLogInfo> auditLogTable;
+    @FXML private TableColumn<AuditLogInfo, String> colAuditTime;
+    @FXML private TableColumn<AuditLogInfo, String> colAuditUserName;
+    @FXML private TableColumn<AuditLogInfo, String> colAuditAction;
+    @FXML private TableColumn<AuditLogInfo, String> colAuditDetails;
+    @FXML private TableColumn<AuditLogInfo, String> colAuditId;
+    @FXML private TableColumn<AuditLogInfo, String> colAuditUser;
     @FXML private Label statusLabel;
 
-    // ========================================================================
-    // INTERNAL STATE (Trạng thái nội bộ của Controller)
-    // ========================================================================
+    @FXML private ComboBox<String> cbUserRoleFilter;
+    @FXML private ComboBox<String> cbUserStatusFilter;
+    @FXML private TextField tfUserSearch;
 
-    /** * Danh sách dữ liệu observable để bind trực tiếp vào TableView.
-     * Khi list này thay đổi, UI sẽ tự động update.
-     */
+    @FXML private ComboBox<String> cbAuctionStatusFilter;
+    @FXML private TextField tfAuctionSearch;
+
+    @FXML private TextField tfBidSearch;
+
+    @FXML private ComboBox<String> cbAuditActionFilter;
+    @FXML private TextField tfAuditSearch;
+
     private final ObservableList<UserInfo> userData = FXCollections.observableArrayList();
+    private final ObservableList<AuctionReportInfo> auctionData = FXCollections.observableArrayList();
+    private final ObservableList<BidHistoryInfo> bidData = FXCollections.observableArrayList();
+    private final ObservableList<AuditLogInfo> auditData = FXCollections.observableArrayList();
 
-    /** * Tái sử dụng (Reuse) ObjectMapper để tối ưu hiệu năng (Performance optimization).
-     * ObjectMapper là thread-safe sau khi cấu hình xong.
-     */
+    private javafx.collections.transformation.FilteredList<UserInfo> filteredUserData;
+    private javafx.collections.transformation.FilteredList<AuctionReportInfo> filteredAuctionData;
+    private javafx.collections.transformation.FilteredList<BidHistoryInfo> filteredBidData;
+    private javafx.collections.transformation.FilteredList<AuditLogInfo> filteredAuditData;
+
     private static final ObjectMapper mapper = new ObjectMapper();
+    private boolean auctionReportLoaded = false;
+    private boolean bidHistoryLoaded = false;
+    private boolean auditLogLoaded = false;
 
     @Override
-    public void setContext(java.util.Map<String, Object> params) {
-        // Màn hình này không yêu cầu tham số ngữ cảnh (context params) khi điều hướng tới
-    }
+    public void setContext(java.util.Map<String, Object> params) {}
 
-    /**
-     * Hàm lifecycle của JavaFX, được gọi tự động sau khi load FXML.
-     */
     @FXML
     public void initialize() {
         setupTableColumns();
-
-        // Security Check: Đảm bảo chỉ User có role ADMIN mới được truy cập.
-        // Ép kiểu (Type Casting) về String để giữ tính độc lập (Decoupling) giữa Client và Server.
+        setupFilterControls();
         String currentRole = String.valueOf(ClientSession.getInstance().getCurrentRole());
         if (!ROLE_ADMIN.equals(currentRole)) {
             ViewRouter.getInstance().navigateTo(Views.AUCTION_LIST);
             return;
         }
-
-        // Tải dữ liệu ban đầu
         loadUsers();
         setupTableSelectionListener();
     }
 
-    /**
-     * Cấu hình binding dữ liệu cho các cột trong TableView.
-     */
+    private void setupFilterControls() {
+        if (cbUserRoleFilter != null) {
+            cbUserRoleFilter.setItems(FXCollections.observableArrayList("Tất cả Vai trò", "ADMIN", "SELLER", "BIDDER"));
+            cbUserRoleFilter.getSelectionModel().selectFirst();
+        }
+        if (cbUserStatusFilter != null) {
+            cbUserStatusFilter.setItems(FXCollections.observableArrayList("Tất cả Trạng thái", "Bình thường", "Đã khóa"));
+            cbUserStatusFilter.getSelectionModel().selectFirst();
+        }
+        if (cbAuctionStatusFilter != null) {
+            cbAuctionStatusFilter.setItems(FXCollections.observableArrayList("Tất cả Trạng thái", "RUNNING", "PENDING", "FINISHED", "CLOSED"));
+            cbAuctionStatusFilter.getSelectionModel().selectFirst();
+        }
+        if (cbAuditActionFilter != null) {
+            cbAuditActionFilter.setItems(FXCollections.observableArrayList("Tất cả Hành động", "LOGIN", "PLACE_BID", "AUCTION_CREATED", "ITEM_CREATED", "USER_LOGIN", "USER_LOGOUT", "LOCK_USER", "UNLOCK_USER"));
+            cbAuditActionFilter.getSelectionModel().selectFirst();
+        }
+    }
+
     private void setupTableColumns() {
         colUsername.setCellValueFactory(new PropertyValueFactory<>("username"));
         colEmail.setCellValueFactory(new PropertyValueFactory<>("email"));
         colRole.setCellValueFactory(new PropertyValueFactory<>("role"));
         colStatus.setCellValueFactory(new PropertyValueFactory<>("status"));
-        userTable.setItems(userData);
+        filteredUserData = new javafx.collections.transformation.FilteredList<>(userData, p -> true);
+        javafx.collections.transformation.SortedList<UserInfo> sortedUserData = new javafx.collections.transformation.SortedList<>(filteredUserData);
+        sortedUserData.comparatorProperty().bind(userTable.comparatorProperty());
+        userTable.setItems(sortedUserData);
+
+        colAuctionItemName.setCellValueFactory(new PropertyValueFactory<>("itemName"));
+        colAuctionStatus.setCellValueFactory(new PropertyValueFactory<>("status"));
+        colAuctionStartPrice.setCellValueFactory(new PropertyValueFactory<>("startingPrice"));
+        colAuctionStartPrice.setCellFactory(column -> new TableCell<AuctionReportInfo, Double>() {
+            @Override
+            protected void updateItem(Double item, boolean empty) {
+                super.updateItem(item, empty);
+                if (empty || item == null) {
+                    setText(null);
+                } else {
+                    setText(String.format("%,.0f VND", item));
+                }
+            }
+        });
+
+        colAuctionHighestBid.setCellValueFactory(new PropertyValueFactory<>("currentHighestBid"));
+        colAuctionHighestBid.setCellFactory(column -> new TableCell<AuctionReportInfo, Double>() {
+            @Override
+            protected void updateItem(Double item, boolean empty) {
+                super.updateItem(item, empty);
+                if (empty || item == null) {
+                    setText(null);
+                } else {
+                    setText(String.format("%,.0f VND", item));
+                }
+            }
+        });
+
+        colAuctionWinnerName.setCellValueFactory(new PropertyValueFactory<>("winnerName"));
+        colAuctionId.setCellValueFactory(new PropertyValueFactory<>("auctionId"));
+        colAuctionItem.setCellValueFactory(new PropertyValueFactory<>("itemId"));
+        colAuctionWinner.setCellValueFactory(new PropertyValueFactory<>("highestBidderId"));
+        filteredAuctionData = new javafx.collections.transformation.FilteredList<>(auctionData, p -> true);
+        javafx.collections.transformation.SortedList<AuctionReportInfo> sortedAuctionData = new javafx.collections.transformation.SortedList<>(filteredAuctionData);
+        sortedAuctionData.comparatorProperty().bind(auctionReportTable.comparatorProperty());
+        auctionReportTable.setItems(sortedAuctionData);
+
+        colBidderName.setCellValueFactory(new PropertyValueFactory<>("bidderName"));
+        colBidAmount.setCellValueFactory(new PropertyValueFactory<>("bidAmount"));
+        colBidAmount.setCellFactory(column -> new TableCell<BidHistoryInfo, Double>() {
+            @Override
+            protected void updateItem(Double item, boolean empty) {
+                super.updateItem(item, empty);
+                if (empty || item == null) {
+                    setText(null);
+                } else {
+                    setText(String.format("%,.0f VND", item));
+                }
+            }
+        });
+
+        colBidTime.setCellValueFactory(new PropertyValueFactory<>("bidTime"));
+        colBidId.setCellValueFactory(new PropertyValueFactory<>("bidId"));
+        colBidAuctionId.setCellValueFactory(new PropertyValueFactory<>("auctionId"));
+        colBidderId.setCellValueFactory(new PropertyValueFactory<>("bidderId"));
+        filteredBidData = new javafx.collections.transformation.FilteredList<>(bidData, p -> true);
+        javafx.collections.transformation.SortedList<BidHistoryInfo> sortedBidData = new javafx.collections.transformation.SortedList<>(filteredBidData);
+        sortedBidData.comparatorProperty().bind(bidHistoryTable.comparatorProperty());
+        bidHistoryTable.setItems(sortedBidData);
+
+        colAuditTime.setCellValueFactory(new PropertyValueFactory<>("createdAt"));
+        colAuditUserName.setCellValueFactory(new PropertyValueFactory<>("userName"));
+        colAuditAction.setCellValueFactory(new PropertyValueFactory<>("action"));
+        colAuditDetails.setCellValueFactory(new PropertyValueFactory<>("details"));
+        colAuditId.setCellValueFactory(new PropertyValueFactory<>("id"));
+        colAuditUser.setCellValueFactory(new PropertyValueFactory<>("userId"));
+        filteredAuditData = new javafx.collections.transformation.FilteredList<>(auditData, p -> true);
+        javafx.collections.transformation.SortedList<AuditLogInfo> sortedAuditData = new javafx.collections.transformation.SortedList<>(filteredAuditData);
+        sortedAuditData.comparatorProperty().bind(auditLogTable.comparatorProperty());
+        auditLogTable.setItems(sortedAuditData);
     }
 
-    /**
-     * Lắng nghe sự kiện (Event Listener) khi người dùng chọn một dòng trên bảng.
-     * Dùng để bật/tắt (enable/disable) các nút hành động tương ứng.
-     */
     private void setupTableSelectionListener() {
         userTable.getSelectionModel().selectedItemProperty().addListener((observable, oldValue, newValue) -> {
             if (newValue == null) {
@@ -107,195 +217,341 @@ public class AdminController implements com.bidhub.client.navigation.ContextAwar
                 unlockBtn.setDisable(true);
                 return;
             }
-
-            // Business logic: Không cho phép Admin khóa tài khoản của một Admin khác.
             boolean isAdmin = ROLE_ADMIN.equals(newValue.getRole());
-            lockBtn.setDisable(isAdmin);
-            unlockBtn.setDisable(false); // Luôn cho phép mở khóa (nếu tài khoản đang bị khóa)
+            boolean isLocked = "Đã khóa".equals(newValue.getStatus());
+            lockBtn.setDisable(isAdmin || isLocked);
+            unlockBtn.setDisable(!isLocked);
         });
     }
 
-    /**
-     * Gửi request lấy danh sách User từ Server (Background Thread)
-     * và cập nhật lên TableView (UI Thread).
-     */
-    private void loadUsers() {
+    private void executeRequest(String cmd, ObjectNode payload, java.util.function.Consumer<JsonNode> onSuccess) {
         MessageRequest req = new MessageRequest();
-        req.setType(CMD_GET_USER_LIST);
+        req.setType(cmd);
         req.setToken(ClientSession.getInstance().getToken());
+        if (payload != null) req.setPayload(payload);
 
-        // Sử dụng NetworkTask để xử lý network I/O bất đồng bộ (Asynchronous)
         NetworkTask<String> task = new NetworkTask<>(() -> {
             MessageResponse resp = ServerGateway.getInstance().sendRequest(req);
             return com.bidhub.common.network.MessageMapper.toJson(resp);
         });
 
-        // Xử lý khi nhận response thành công (Callback chạy trên JavaFX Application Thread)
         task.setOnSucceeded(event -> {
-            String jsonResponse = task.getValue();
-            parseAndPopulateUserData(jsonResponse);
+            try {
+                JsonNode root = mapper.readTree(task.getValue());
+                String status = root.path("status").asText("");
+                if ("OK".equalsIgnoreCase(status) || "SUCCESS".equalsIgnoreCase(status)) {
+                    JsonNode payloadNode = root.has("payload") ? root.get("payload") : root.get("data");
+                    if (payloadNode == null && root.has("data")) payloadNode = root.get("data");
+                    onSuccess.accept(payloadNode);
+                } else {
+                    Platform.runLater(() -> statusLabel.setText("Lỗi: " + root.path("message").asText("Thao tác thất bại")));
+                }
+            } catch (Exception ex) {
+                Platform.runLater(() -> statusLabel.setText("Lỗi parse dữ liệu: " + ex.getMessage()));
+            }
         });
 
-        // Xử lý khi tác vụ mạng thất bại (Timeout, Mất kết nối, v.v.)
         task.setOnFailed(event -> {
-            Platform.runLater(() -> statusLabel.setText("Không thể kết nối đến máy chủ để tải danh sách."));
+            Platform.runLater(() -> statusLabel.setText("Lỗi mạng khi gọi " + cmd));
         });
 
-        // Khởi chạy thread mới
         new Thread(task).start();
     }
 
-    /**
-     * Phân tích (Parse) JSON response và đổ dữ liệu (Populate) vào TableView.
-     * * @param jsonResponse Chuỗi JSON trả về từ Server.
-     */
-    private void parseAndPopulateUserData(String jsonResponse) {
-        try {
-            JsonNode root = mapper.readTree(jsonResponse);
-            JsonNode dataArray = root.get("data");
-
-            if (dataArray != null && dataArray.isArray()) {
-                // Đảm bảo thao tác cập nhật UI luôn nằm trong Platform.runLater
-                Platform.runLater(() -> {
-                    userData.clear();
-                    for (JsonNode userNode : dataArray) {
+    @FXML
+    public void handleRefresh() {
+        loadUsers();
+    }
+    
+    private void loadUsers() {
+        statusLabel.setText("Đang tải danh sách người dùng...");
+        userData.clear();
+        userTable.setPlaceholder(new Label("Đang tải danh sách người dùng... ⏳"));
+        executeRequest(CMD_GET_USER_LIST, null, payload -> {
+            Platform.runLater(() -> {
+                userData.clear();
+                if (payload != null && payload.isArray()) {
+                    for (JsonNode node : payload) {
                         UserInfo info = new UserInfo();
-                        info.setUsername(userNode.has("username") ? userNode.get("username").asText() : "N/A");
-                        info.setEmail(userNode.has("email") ? userNode.get("email").asText() : "N/A");
-                        info.setRole(userNode.has("role") ? userNode.get("role").asText() : "UNKNOWN");
-
-                        // Parse status dựa trên boolean isLocked
-                        boolean isLocked = userNode.has("isLocked") && userNode.get("isLocked").asBoolean();
-                        info.setStatus(isLocked ? "Đã khóa" : "Bình thường");
-
-                        info.setUserId(userNode.has("id") ? userNode.get("id").asText() : "");
+                        info.setUsername(node.path("username").asText("N/A"));
+                        info.setEmail(node.path("email").asText("N/A"));
+                        info.setRole(node.path("role").asText("UNKNOWN"));
+                        info.setStatus(node.path("isLocked").asBoolean() ? "Đã khóa" : "Bình thường");
+                        info.setUserId(node.path("id").asText(""));
                         userData.add(info);
                     }
-                    statusLabel.setText("Đã tải " + userData.size() + " người dùng thành công.");
-                });
-            }
-        } catch (Exception ex) {
-            // Log lỗi cho developer và thông báo thân thiện cho user
-            ex.printStackTrace();
-            Platform.runLater(() -> statusLabel.setText("Lỗi xử lý dữ liệu: " + ex.getMessage()));
-        }
+                }
+                if (userData.isEmpty()) {
+                    userTable.setPlaceholder(new Label("Không có dữ liệu người dùng"));
+                }
+                statusLabel.setText("Đã tải " + userData.size() + " người dùng.");
+            });
+        });
     }
 
-    /**
-     * Xử lý sự kiện click nút Khóa tài khoản.
-     * Yêu cầu xác nhận (Confirmation) trước khi thực hiện luồng nguy hiểm (Dangerous action).
-     */
     @FXML
     public void handleLockUser() {
         UserInfo selectedUser = userTable.getSelectionModel().getSelectedItem();
         if (selectedUser == null) return;
-
-        Alert confirmDialog = new Alert(Alert.AlertType.CONFIRMATION);
-        confirmDialog.setTitle("Xác nhận thao tác");
-        confirmDialog.setHeaderText("Khóa tài khoản hệ thống");
-        confirmDialog.setContentText("Bạn có chắc chắn muốn khóa tài khoản '" + selectedUser.getUsername() + "' không?");
-
-        confirmDialog.showAndWait().ifPresent(response -> {
-            if (response == ButtonType.OK) {
-                sendLockRequest(selectedUser.getUserId(), true);
-            }
-        });
+        sendLockRequest(selectedUser.getUserId(), true);
     }
 
-    /**
-     * Xử lý sự kiện click nút Mở khóa tài khoản.
-     */
     @FXML
     public void handleUnlockUser() {
         UserInfo selectedUser = userTable.getSelectionModel().getSelectedItem();
         if (selectedUser == null) return;
-
-        // Mở khóa thường không phải là hành động phá hủy (destructive), có thể bỏ qua bước confirm.
         sendLockRequest(selectedUser.getUserId(), false);
     }
 
-    /**
-     * Gửi request Khóa/Mở khóa User xuống Server.
-     *
-     * @param userId ID của User cần tác động.
-     * @param isLock true nếu muốn khóa, false nếu muốn mở khóa.
-     */
     private void sendLockRequest(String userId, boolean isLock) {
-        MessageRequest req = new MessageRequest();
-        req.setType(isLock ? CMD_LOCK_USER : CMD_UNLOCK_USER);
-        req.setToken(ClientSession.getInstance().getToken());
-
-        // Tạo ObjectNode an toàn (Type-safe) thay vì cộng chuỗi String thủ công
-        // Giúp tránh các lỗi cú pháp JSON (như thiếu dấu ngoặc kép)
-        com.fasterxml.jackson.databind.node.ObjectNode payloadNode = mapper.createObjectNode();
-        payloadNode.put("userId", userId);
-        req.setPayload(payloadNode);
-
-        NetworkTask<String> task = new NetworkTask<>(() -> {
-            MessageResponse resp = ServerGateway.getInstance().sendRequest(req);
-            return com.bidhub.common.network.MessageMapper.toJson(resp);
-        });
-
-        task.setOnSucceeded(event -> {
+        ObjectNode payload = mapper.createObjectNode();
+        payload.put("targetUserId", userId);
+        payload.put("userId", userId);
+        executeRequest(isLock ? CMD_LOCK_USER : CMD_UNLOCK_USER, payload, res -> {
             Platform.runLater(() -> {
-                String actionMsg = isLock ? "Đã khóa" : "Đã mở khóa";
-                statusLabel.setText(actionMsg + " tài khoản thành công.");
-                loadUsers(); // Refresh lại danh sách (Data synchronization)
+                statusLabel.setText(isLock ? "Đã khóa tài khoản." : "Đã mở khóa tài khoản.");
+                loadUsers();
             });
         });
-
-        task.setOnFailed(event -> {
-            Platform.runLater(() -> statusLabel.setText("Thao tác mạng thất bại. Vui lòng kiểm tra kết nối."));
-        });
-
-        new Thread(task).start();
     }
 
-    /**
-     * Xử lý sự kiện làm mới (Refresh) danh sách thủ công.
-     */
     @FXML
-    public void handleRefresh() {
-        statusLabel.setText("Đang tải lại danh sách...");
-        loadUsers();
+    public void handleAuctionReportTab() {
+        if (!auctionReportLoaded) loadAuctionReport();
     }
 
-    /**
-     * Xử lý sự kiện nút Back, điều hướng về màn hình danh sách đấu giá.
-     */
+    @FXML
+    public void loadAuctionReport() {
+        statusLabel.setText("Đang tải báo cáo Auction...");
+        auctionData.clear();
+        auctionReportTable.setPlaceholder(new Label("Đang tải báo cáo Auction... ⏳"));
+        executeRequest(CMD_GET_AUCTION_REPORT, null, payload -> {
+            Platform.runLater(() -> {
+                auctionData.clear();
+                if (payload.isArray()) {
+                    for (JsonNode node : payload) {
+                        AuctionReportInfo info = new AuctionReportInfo();
+                        info.setAuctionId(node.path("auctionId").asText(""));
+                        info.setItemId(node.path("itemId").asText(""));
+                        info.setItemName(node.path("itemName").asText("N/A"));
+                        info.setStatus(node.path("status").asText(""));
+                        info.setStartingPrice(node.path("startingPrice").asDouble(0));
+                        info.setCurrentHighestBid(node.path("currentHighestBid").asDouble(0));
+                        info.setHighestBidderId(node.path("highestBidderId").asText(""));
+                        info.setWinnerName(node.path("winnerName").asText("N/A"));
+                        auctionData.add(info);
+                    }
+                }
+                if (auctionData.isEmpty()) {
+                    auctionReportTable.setPlaceholder(new Label("Không có dữ liệu báo cáo Auction"));
+                }
+                auctionReportLoaded = true;
+                statusLabel.setText("Đã tải " + auctionData.size() + " dòng báo cáo Auction.");
+            });
+        });
+    }
+
+    @FXML
+    public void handleBidHistoryTab() {
+        if (!bidHistoryLoaded) loadBidHistory();
+    }
+
+    @FXML
+    public void loadBidHistory() {
+        statusLabel.setText("Đang tải lịch sử Bid toàn hệ thống...");
+        bidData.clear();
+        bidHistoryTable.setPlaceholder(new Label("Đang tải lịch sử Bid... ⏳"));
+        ObjectNode payload = mapper.createObjectNode();
+        payload.put("auctionId", "ALL");
+        executeRequest(CMD_GET_BID_HISTORY_REPORT, payload, data -> {
+            Platform.runLater(() -> {
+                bidData.clear();
+                if (data.isArray()) {
+                    for (JsonNode node : data) {
+                        BidHistoryInfo info = new BidHistoryInfo();
+                        info.setBidId(node.path("bidId").asText(""));
+                        info.setAuctionId(node.path("auctionId").asText(""));
+                        info.setBidderId(node.path("bidderId").asText(""));
+                        info.setBidderName(node.path("bidderName").asText("N/A"));
+                        info.setBidAmount(node.path("bidAmount").asDouble(0));
+                        info.setBidTime(node.path("bidTime").asText(""));
+                        bidData.add(info);
+                    }
+                }
+                if (bidData.isEmpty()) {
+                    bidHistoryTable.setPlaceholder(new Label("Không có dữ liệu lịch sử Bid"));
+                }
+                bidHistoryLoaded = true;
+                statusLabel.setText("Đã tải " + bidData.size() + " lượt bid.");
+            });
+        });
+    }
+
+    @FXML
+    public void handleAuditLogTab() {
+        if (!auditLogLoaded) loadAuditLog();
+    }
+
+    @FXML
+    public void loadAuditLog() {
+        statusLabel.setText("Đang tải nhật ký hệ thống...");
+        auditData.clear();
+        auditLogTable.setPlaceholder(new Label("Đang tải nhật ký hệ thống... ⏳"));
+        ObjectNode payload = mapper.createObjectNode();
+        payload.put("limit", 200);
+        executeRequest(CMD_GET_AUDIT_LOG, payload, data -> {
+            Platform.runLater(() -> {
+                auditData.clear();
+                if (data.isArray()) {
+                    for (JsonNode node : data) {
+                        AuditLogInfo info = new AuditLogInfo();
+                        info.setId(node.path("id").asText(""));
+                        info.setCreatedAt(node.path("createdAt").asText(""));
+                        info.setUserId(node.path("userId").asText(""));
+                        info.setUserName(node.path("userName").asText("SYSTEM"));
+                        info.setAction(node.path("action").asText(""));
+                        info.setDetails(node.path("details").asText(""));
+                        auditData.add(info);
+                    }
+                }
+                if (auditData.isEmpty()) {
+                    auditLogTable.setPlaceholder(new Label("Không có dữ liệu nhật ký hệ thống"));
+                }
+                auditLogLoaded = true;
+                statusLabel.setText("Đã tải " + auditData.size() + " log hệ thống.");
+            });
+        });
+    }
+
+    @FXML
+    public void filterUsers() {
+        if (filteredUserData == null) return;
+        String roleFilter = cbUserRoleFilter != null ? cbUserRoleFilter.getValue() : "Tất cả Vai trò";
+        String statusFilter = cbUserStatusFilter != null ? cbUserStatusFilter.getValue() : "Tất cả Trạng thái";
+        String searchText = tfUserSearch != null ? tfUserSearch.getText().toLowerCase().trim() : "";
+
+        filteredUserData.setPredicate(user -> {
+            if (user == null) return false;
+            if (!"Tất cả Vai trò".equals(roleFilter) && roleFilter != null && !roleFilter.equalsIgnoreCase(user.getRole())) {
+                return false;
+            }
+            if (!"Tất cả Trạng thái".equals(statusFilter) && statusFilter != null && !statusFilter.equalsIgnoreCase(user.getStatus())) {
+                return false;
+            }
+            if (!searchText.isEmpty()) {
+                String uName = user.getUsername() != null ? user.getUsername().toLowerCase() : "";
+                String uEmail = user.getEmail() != null ? user.getEmail().toLowerCase() : "";
+                return uName.contains(searchText) || uEmail.contains(searchText);
+            }
+            return true;
+        });
+        statusLabel.setText("Đã lọc " + filteredUserData.size() + " / " + userData.size() + " người dùng.");
+    }
+
+    @FXML
+    public void filterAuctions() {
+        if (filteredAuctionData == null) return;
+        String statusFilter = cbAuctionStatusFilter != null ? cbAuctionStatusFilter.getValue() : "Tất cả Trạng thái";
+        String searchText = tfAuctionSearch != null ? tfAuctionSearch.getText().toLowerCase().trim() : "";
+
+        filteredAuctionData.setPredicate(auction -> {
+            if (auction == null) return false;
+            if (!"Tất cả Trạng thái".equals(statusFilter) && statusFilter != null && !statusFilter.equalsIgnoreCase(auction.getStatus())) {
+                return false;
+            }
+            if (!searchText.isEmpty()) {
+                String iName = auction.getItemName() != null ? auction.getItemName().toLowerCase() : "";
+                String wName = auction.getWinnerName() != null ? auction.getWinnerName().toLowerCase() : "";
+                return iName.contains(searchText) || wName.contains(searchText);
+            }
+            return true;
+        });
+        statusLabel.setText("Đã lọc " + filteredAuctionData.size() + " / " + auctionData.size() + " dòng báo cáo Auction.");
+    }
+
+    @FXML
+    public void filterBids() {
+        if (filteredBidData == null) return;
+        String searchText = tfBidSearch != null ? tfBidSearch.getText().toLowerCase().trim() : "";
+
+        filteredBidData.setPredicate(bid -> {
+            if (bid == null) return false;
+            if (!searchText.isEmpty()) {
+                String bName = bid.getBidderName() != null ? bid.getBidderName().toLowerCase() : "";
+                return bName.contains(searchText);
+            }
+            return true;
+        });
+        statusLabel.setText("Đã lọc " + filteredBidData.size() + " / " + bidData.size() + " lượt bid.");
+    }
+
+    @FXML
+    public void filterAuditLogs() {
+        if (filteredAuditData == null) return;
+        String actionFilter = cbAuditActionFilter != null ? cbAuditActionFilter.getValue() : "Tất cả Hành động";
+        String searchText = tfAuditSearch != null ? tfAuditSearch.getText().toLowerCase().trim() : "";
+
+        filteredAuditData.setPredicate(log -> {
+            if (log == null) return false;
+            if (!"Tất cả Hành động".equals(actionFilter) && actionFilter != null && !actionFilter.equalsIgnoreCase(log.getAction())) {
+                return false;
+            }
+            if (!searchText.isEmpty()) {
+                String uName = log.getUserName() != null ? log.getUserName().toLowerCase() : "";
+                String details = log.getDetails() != null ? log.getDetails().toLowerCase() : "";
+                return uName.contains(searchText) || details.contains(searchText);
+            }
+            return true;
+        });
+        statusLabel.setText("Đã lọc " + filteredAuditData.size() + " / " + auditData.size() + " log hệ thống.");
+    }
+
     @FXML
     public void handleBack() {
         ViewRouter.getInstance().navigateTo(Views.AUCTION_LIST);
     }
 
-    // ========================================================================
-    // INNER CLASSES (Lớp nội bộ dùng làm DTO - Data Transfer Object cho bảng)
-    // ========================================================================
-
-    /**
-     * DTO (Data Transfer Object) lưu trữ thông tin User để hiển thị lên UI.
-     * Phải có đầy đủ Getter/Setter đúng chuẩn Java Beans để PropertyValueFactory hoạt động.
-     */
+    // DTO Classes
     public static class UserInfo {
-        private String userId;
-        private String username;
-        private String email;
-        private String role;
-        private String status;
+        private String userId, username, email, role, status;
+        public String getUserId() { return userId; } public void setUserId(String userId) { this.userId = userId; }
+        public String getUsername() { return username; } public void setUsername(String username) { this.username = username; }
+        public String getEmail() { return email; } public void setEmail(String email) { this.email = email; }
+        public String getRole() { return role; } public void setRole(String role) { this.role = role; }
+        public String getStatus() { return status; } public void setStatus(String status) { this.status = status; }
+    }
 
-        public String getUsername() { return username; }
-        public void setUsername(String username) { this.username = username; }
+    public static class AuctionReportInfo {
+        private String auctionId, itemId, itemName, status, highestBidderId, winnerName;
+        private double startingPrice, currentHighestBid;
+        public String getAuctionId() { return auctionId; } public void setAuctionId(String auctionId) { this.auctionId = auctionId; }
+        public String getItemId() { return itemId; } public void setItemId(String itemId) { this.itemId = itemId; }
+        public String getItemName() { return itemName; } public void setItemName(String itemName) { this.itemName = itemName; }
+        public String getStatus() { return status; } public void setStatus(String status) { this.status = status; }
+        public String getHighestBidderId() { return highestBidderId; } public void setHighestBidderId(String highestBidderId) { this.highestBidderId = highestBidderId; }
+        public String getWinnerName() { return winnerName; } public void setWinnerName(String winnerName) { this.winnerName = winnerName; }
+        public double getStartingPrice() { return startingPrice; } public void setStartingPrice(double startingPrice) { this.startingPrice = startingPrice; }
+        public double getCurrentHighestBid() { return currentHighestBid; } public void setCurrentHighestBid(double currentHighestBid) { this.currentHighestBid = currentHighestBid; }
+    }
 
-        public String getEmail() { return email; }
-        public void setEmail(String email) { this.email = email; }
+    public static class BidHistoryInfo {
+        private String bidId, auctionId, bidderId, bidderName, bidTime;
+        private double bidAmount;
+        public String getBidId() { return bidId; } public void setBidId(String bidId) { this.bidId = bidId; }
+        public String getAuctionId() { return auctionId; } public void setAuctionId(String auctionId) { this.auctionId = auctionId; }
+        public String getBidderId() { return bidderId; } public void setBidderId(String bidderId) { this.bidderId = bidderId; }
+        public String getBidderName() { return bidderName; } public void setBidderName(String bidderName) { this.bidderName = bidderName; }
+        public String getBidTime() { return bidTime; } public void setBidTime(String bidTime) { this.bidTime = bidTime; }
+        public double getBidAmount() { return bidAmount; } public void setBidAmount(double bidAmount) { this.bidAmount = bidAmount; }
+    }
 
-        public String getRole() { return role; }
-        public void setRole(String role) { this.role = role; }
-
-        public String getStatus() { return status; }
-        public void setStatus(String status) { this.status = status; }
-
-        public String getUserId() { return userId; }
-        public void setUserId(String userId) { this.userId = userId; }
+    public static class AuditLogInfo {
+        private String id, createdAt, userId, userName, action, details;
+        public String getId() { return id; } public void setId(String id) { this.id = id; }
+        public String getCreatedAt() { return createdAt; } public void setCreatedAt(String createdAt) { this.createdAt = createdAt; }
+        public String getUserId() { return userId; } public void setUserId(String userId) { this.userId = userId; }
+        public String getUserName() { return userName; } public void setUserName(String userName) { this.userName = userName; }
+        public String getAction() { return action; } public void setAction(String action) { this.action = action; }
+        public String getDetails() { return details; } public void setDetails(String details) { this.details = details; }
     }
 }

@@ -122,6 +122,43 @@ public class ItemDao {
         }
     }
 
+    /**
+     * Cập nhật tên, mô tả, giá khởi điểm của sản phẩm.
+     * Không thay đổi item_type, seller_id, extra_data (chỉ sửa các trường metadata cơ bản).
+     *
+     * @param itemId         ID sản phẩm cần cập nhật
+     * @param newName        tên mới (null = giữ nguyên)
+     * @param newDescription mô tả mới (null = giữ nguyên)
+     * @param newPrice       giá mới (&lt;0 = giữ nguyên)
+     */
+    public void updateItem(String itemId, String newName, String newDescription, double newPrice) {
+        String sql = """
+            UPDATE items
+            SET name = COALESCE(?, name),
+                description = COALESCE(?, description),
+                starting_price = CASE WHEN ? >= 0 THEN ? ELSE starting_price END,
+                updated_at = ?
+            WHERE id = ?
+            """;
+        Connection conn = null;
+        try {
+            conn = acquireConnection();
+            try (PreparedStatement ps = conn.prepareStatement(sql)) {
+                ps.setString(1, newName);
+                ps.setString(2, newDescription);
+                ps.setDouble(3, newPrice);
+                ps.setDouble(4, newPrice);
+                ps.setString(5, java.time.LocalDateTime.now().toString());
+                ps.setString(6, itemId);
+                ps.executeUpdate();
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException("ItemDao.updateItem thất bại: " + e.getMessage(), e);
+        } finally {
+            releaseConnection(conn);
+        }
+    }
+
     private Optional<Item> querySingle(String sql, String param) {
         Connection conn = null;
         try {
@@ -171,39 +208,51 @@ public class ItemDao {
         // Parse JSON extra_data → Map; Jackson decode số nguyên thành Integer
         Map<String, Object> extras = MAPPER.readValue(rs.getString("extra_data"), MAP_TYPE);
 
-        return switch (type) {
+        Item newItem = switch (type) {
             case ELECTRONICS -> new Electronics(
                     id, createdAt, updatedAt, name, description, startingPrice, sellerId,
-                    (String) extras.get("brand"),
-                    ((Number) extras.get("warrantyMonths")).intValue());
+                    extras.get("brand") != null ? (String) extras.get("brand") : "Unknown Brand",
+                    extras.get("warrantyMonths") instanceof Number n ? n.intValue() : 0);
             case ART -> new Art(
                     id, createdAt, updatedAt, name, description, startingPrice, sellerId,
-                    (String) extras.get("artist"),
-                    ((Number) extras.get("yearCreated")).intValue());
+                    extras.get("artist") != null ? (String) extras.get("artist") : "Unknown Artist",
+                    extras.get("yearCreated") instanceof Number n ? n.intValue() : 0);
             case VEHICLE -> new Vehicle(
                     id, createdAt, updatedAt, name, description, startingPrice, sellerId,
-                    (String) extras.get("manufacturer"),
-                    ((Number) extras.get("year")).intValue(),
-                    ((Number) extras.get("mileageKm")).intValue());
+                    extras.get("manufacturer") != null ? (String) extras.get("manufacturer") : "Unknown Manufacturer",
+                    extras.get("year") instanceof Number n ? n.intValue() : 0,
+                    extras.get("mileageKm") instanceof Number n ? n.intValue() : 0);
         };
+        if (extras.containsKey("imageUrl") && extras.get("imageUrl") != null) {
+            newItem.setImageUrl((String) extras.get("imageUrl"));
+        }
+        return newItem;
     }
 
     // Tạo Map extras từ Item để serialize thành JSON
     private Map<String, Object> buildExtras(Item item) {
-        return switch (item.getItemType()) {
+        Map<String, Object> extras = new HashMap<>();
+        switch (item.getItemType()) {
             case ELECTRONICS -> {
                 Electronics e = (Electronics) item;
-                yield Map.of("brand", e.getBrand(), "warrantyMonths", e.getWarrantyMonths());
+                extras.put("brand", e.getBrand());
+                extras.put("warrantyMonths", e.getWarrantyMonths());
             }
             case ART -> {
                 Art a = (Art) item;
-                yield Map.of("artist", a.getArtist(), "yearCreated", a.getYearCreated());
+                extras.put("artist", a.getArtist());
+                extras.put("yearCreated", a.getYearCreated());
             }
             case VEHICLE -> {
                 Vehicle v = (Vehicle) item;
-                yield Map.of("manufacturer", v.getManufacturer(), "year", v.getYear(),
-                        "mileageKm", v.getMileageKm());
+                extras.put("manufacturer", v.getManufacturer());
+                extras.put("year", v.getYear());
+                extras.put("mileageKm", v.getMileageKm());
             }
-        };
+        }
+        if (item.getImageUrl() != null) {
+            extras.put("imageUrl", item.getImageUrl());
+        }
+        return extras;
     }
 }

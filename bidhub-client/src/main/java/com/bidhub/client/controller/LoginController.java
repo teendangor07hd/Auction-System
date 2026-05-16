@@ -136,4 +136,9 @@ public class LoginController {
     public void handleRegister() {
         ViewRouter.getInstance().navigateTo(Views.REGISTER);
     }
+
+    @FXML
+    public void handleBackToHome() {
+        ViewRouter.getInstance().navigateTo(Views.HOME);
+    }
 }

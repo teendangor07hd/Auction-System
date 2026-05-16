@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+
+<VBox xmlns:fx="http://javafx.com/fxml/1"
+      fx:controller="com.bidhub.client.controller.NotificationController"
+      stylesheets="@/css/styles.css"
+      styleClass="root"
+      spacing="0">
+
+    <!-- Header -->
+    <HBox alignment="CENTER_LEFT" styleClass="header-bar" spacing="15">
+        <Label text="🔔 Thông Báo Hệ Thống" styleClass="header-title"/>
+        <Region HBox.hgrow="ALWAYS"/>
+        <Button fx:id="btnMarkAllRead" text="✓ Đánh dấu đã đọc tất cả" onAction="#handleMarkAllRead"
+                style="-fx-background-color: rgba(255,255,255,0.1); -fx-text-fill: white; -fx-background-radius: 8; -fx-cursor: hand; -fx-padding: 8 16; -fx-font-size: 13px;"/>
+    </HBox>
+
+    <!-- Admin: Gửi thông báo toàn server -->
+    <VBox fx:id="adminPanel" spacing="10" visible="false" managed="false"
+          style="-fx-background-color: #1E2329; -fx-padding: 18 25; -fx-border-color: rgba(79,70,229,0.3); -fx-border-width: 0 0 1 0;">
+        <HBox alignment="CENTER_LEFT" spacing="10">
+            <Label text="📢 Gửi thông báo toàn hệ thống" 
+                   style="-fx-text-fill: #A5B4FC; -fx-font-size: 15px; -fx-font-weight: 900;"/>
+            <Label text="(Chỉ Admin)" style="-fx-text-fill: #64748B; -fx-font-size: 12px;"/>
+        </HBox>
+        <HBox spacing="12" alignment="CENTER_LEFT">
+            <TextField fx:id="tfNotifTitle" promptText="Tiêu đề thông báo..." prefWidth="220"
+                       style="-fx-background-color: #2B3139; -fx-border-color: #475569; -fx-border-radius: 8; -fx-background-radius: 8; -fx-text-fill: white; -fx-padding: 10; -fx-prompt-text-fill: #64748B;"/>
+            <TextField fx:id="tfNotifMessage" promptText="Nội dung thông báo..." HBox.hgrow="ALWAYS"
+                       style="-fx-background-color: #2B3139; -fx-border-color: #475569; -fx-border-radius: 8; -fx-background-radius: 8; -fx-text-fill: white; -fx-padding: 10; -fx-prompt-text-fill: #64748B;"/>
+            <Button fx:id="btnSendNotif" text="📤 Gửi ngay" onAction="#handleSendNotification"
+                    style="-fx-background-color: #4F46E5; -fx-text-fill: white; -fx-font-weight: bold; -fx-padding: 10 20; -fx-background-radius: 8; -fx-cursor: hand;"/>
+        </HBox>
+        <Label fx:id="lblSendStatus" text="" style="-fx-font-size: 12px; -fx-text-fill: #10B981;"/>
+    </VBox>
+
+    <!-- Filter Bar -->
+    <HBox spacing="12" alignment="CENTER_LEFT"
+          style="-fx-padding: 12 25; -fx-background-color: #161B22; -fx-border-color: rgba(255,255,255,0.05); -fx-border-width: 0 0 1 0;">
+        <Label text="Lọc:" style="-fx-text-fill: #B7BDC6; -fx-font-size: 13px;"/>
+        <Button fx:id="btnFilterAll" text="Tất cả" onAction="#handleFilterAll"
+                style="-fx-background-color: #4F46E5; -fx-text-fill: white; -fx-background-radius: 6; -fx-cursor: hand; -fx-padding: 6 14; -fx-font-size: 12px;"/>
+        <Button fx:id="btnFilterUnread" text="Chưa đọc" onAction="#handleFilterUnread"
+                style="-fx-background-color: #2B3139; -fx-text-fill: #B7BDC6; -fx-background-radius: 6; -fx-cursor: hand; -fx-padding: 6 14; -fx-font-size: 12px;"/>
+        <Button fx:id="btnFilterSystem" text="Hệ thống" onAction="#handleFilterSystem"
+                style="-fx-background-color: #2B3139; -fx-text-fill: #B7BDC6; -fx-background-radius: 6; -fx-cursor: hand; -fx-padding: 6 14; -fx-font-size: 12px;"/>
+        <Region HBox.hgrow="ALWAYS"/>
+        <Label fx:id="lblUnreadCount" text="" style="-fx-text-fill: #F59E0B; -fx-font-size: 12px; -fx-font-weight: bold;"/>
+    </HBox>
+
+    <!-- Danh sách thông báo -->
+    <ScrollPane fitToWidth="true" VBox.vgrow="ALWAYS"
+                style="-fx-background-color: #0B0E11; -fx-background: #0B0E11;">
+        <VBox fx:id="notifListContainer" spacing="8" style="-fx-padding: 20; -fx-background-color: #0B0E11;"/>
+    </ScrollPane>
+
+    <!-- Trạng thái dưới cùng -->
+    <HBox alignment="CENTER_LEFT" style="-fx-padding: 10 25; -fx-background-color: #161B22;">
+        <Label fx:id="lblStatus" text="Đang tải thông báo..." style="-fx-text-fill: #64748B; -fx-font-size: 12px;"/>
+        <Region HBox.hgrow="ALWAYS"/>
+        <Button text="⟳ Làm mới" onAction="#handleRefresh"
+                style="-fx-background-color: transparent; -fx-text-fill: #4F46E5; -fx-cursor: hand; -fx-font-size: 13px; -fx-padding: 4 10; -fx-underline: false;"/>
+    </HBox>
+
+</VBox>

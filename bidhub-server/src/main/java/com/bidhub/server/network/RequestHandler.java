@@ -49,7 +49,9 @@ public final class RequestHandler {
             "LOGOUT", "CREATE_ITEM", "DELETE_ITEM",
             "LIST_MY_ITEMS", "CREATE_AUCTION", "PLACE_BID", "GET_AUCTION_DETAIL",
             "GET_USER_LIST", "LOCK_USER", "UNLOCK_USER",
-            "GET_BID_HISTORY_REPORT", "GET_AUDIT_LOG", "RUN_INTEGRITY_CHECK"
+            "GET_BID_HISTORY_REPORT", "GET_AUDIT_LOG", "RUN_INTEGRITY_CHECK",
+            "SEND_NOTIFICATION", "GET_NOTIFICATIONS",
+            "GET_MY_AUCTIONS", "UPDATE_ITEM", "CANCEL_AUCTION"
     );
 
     // ← THÊM: field DAO (null ở T4 — sẽ được gán thực sự ở T5)
@@ -172,6 +174,12 @@ public final class RequestHandler {
                 case "GET_BID_HISTORY_REPORT" -> handleGetBidHistoryReport(session, payload);
                 case "GET_AUDIT_LOG"          -> handleGetAuditLog(session, payload);
                 case "RUN_INTEGRITY_CHECK"    -> handleRunIntegrityCheck(session, payload);
+                case "GET_HOME_STATS"         -> handleGetHomeStats();
+                case "SEND_NOTIFICATION"      -> handleSendNotification(session, payload);
+                case "GET_NOTIFICATIONS"      -> handleGetNotifications(session, payload);
+                case "GET_MY_AUCTIONS"        -> handleGetMyAuctions(session, payload);
+                case "UPDATE_ITEM"            -> handleUpdateItem(session, payload);
+                case "CANCEL_AUCTION"         -> handleCancelAuction(session, payload);
                 default              -> MessageMapper.toJson(
                         MessageResponse.error(type, "Lệnh không xác định: " + type));
             };
@@ -396,6 +404,9 @@ public final class RequestHandler {
         try {
             ItemCreator creator = ItemCreator.forType(itemType);
             item = creator.createItem(name, description, startingPrice, sellerId, extras);
+            if (payload.has("imageUrl")) {
+                item.setImageUrl(payload.get("imageUrl").asText(""));
+            }
         } catch (Exception e) {
             return MessageMapper.toJson(
                     MessageResponse.error("CREATE_ITEM",
@@ -426,7 +437,53 @@ public final class RequestHandler {
      */
     private String handleGetItemList() {
         java.util.List<Item> items = itemDao.findAll();
-        return MessageMapper.toJson(MessageResponse.ok("GET_ITEM_LIST", items));
+        java.util.List<Auction> allAuctions = auctionDao.findAll();
+
+        // Build map itemId -> auction status
+        java.util.Map<String, String> itemAuctionStatus = new HashMap<>();
+        for (Auction auc : allAuctions) {
+            String existing = itemAuctionStatus.get(auc.getItemId());
+            // ưu tiên RUNNING > PENDING > CLOSED
+            if (existing == null) {
+                itemAuctionStatus.put(auc.getItemId(), auc.getStatus().name());
+            } else if ("RUNNING".equals(auc.getStatus().name())) {
+                itemAuctionStatus.put(auc.getItemId(), "RUNNING");
+            }
+        }
+
+        java.util.List<Map<String, Object>> result = new java.util.ArrayList<>();
+        for (Item item : items) {
+            Map<String, Object> info = new HashMap<>();
+            info.put("id", item.getId());
+            info.put("name", item.getName());
+            info.put("description", item.getDescription());
+            info.put("itemType", item.getItemType().name());
+            info.put("startingPrice", item.getStartingPrice());
+            info.put("imageUrl", item.getImageUrl());
+
+            // Người bán
+            String sellerName = "Không rõ";
+            java.util.Optional<com.bidhub.server.model.User> sellerOpt = userDao.findById(item.getSellerId());
+            if (sellerOpt.isPresent()) sellerName = sellerOpt.get().getUsername();
+            info.put("sellerName", sellerName);
+
+            // Trạng thái đấu giá
+            String rawStatus = itemAuctionStatus.get(item.getId());
+            String auctionStatus;
+            if (rawStatus == null) {
+                auctionStatus = "AVAILABLE";
+            } else if ("RUNNING".equals(rawStatus)) {
+                auctionStatus = "AUCTIONING";
+            } else if ("CLOSED".equals(rawStatus) || "FINISHED".equals(rawStatus)) {
+                auctionStatus = "SOLD";
+            } else {
+                auctionStatus = "AVAILABLE";
+            }
+            info.put("auctionStatus", auctionStatus);
+
+            result.add(info);
+        }
+        return MessageMapper.toJson(MessageResponse.ok("GET_ITEM_LIST", result));
     }
 
     /**
@@ -509,14 +566,41 @@ public final class RequestHandler {
     private String handleListMyItems(Session session, JsonNode payload) {
         String sellerId = SecurityContext.requireRole(session, UserRole.SELLER);
         java.util.List<Item> items = itemDao.findBySellerId(sellerId);
+        java.util.List<Auction> allAuctions = auctionDao.findAll();
+
+        // Build map itemId -> auction status (giống handleGetItemList)
+        java.util.Map<String, String> itemAuctionStatus = new HashMap<>();
+        for (Auction auc : allAuctions) {
+            String ex = itemAuctionStatus.get(auc.getItemId());
+            if (ex == null || "RUNNING".equals(auc.getStatus().name())) {
+                itemAuctionStatus.put(auc.getItemId(), auc.getStatus().name());
+            }
+        }
 
         java.util.List<Map<String, Object>> result = new java.util.ArrayList<>();
         for (Item item : items) {
             Map<String, Object> info = new HashMap<>();
-            info.put("itemId", item.getId());
+            info.put("id", item.getId());
+            info.put("itemId", item.getId()); // giữ lại vì SellerDashboard có thể dùng cả 2
             info.put("name", item.getName());
+            info.put("description", item.getDescription());
             info.put("itemType", item.getItemType().name());
             info.put("startingPrice", item.getStartingPrice());
+            info.put("imageUrl", item.getImageUrl());
+
+            String rawStatus = itemAuctionStatus.get(item.getId());
+            String auctionStatus;
+            if (rawStatus == null) {
+                auctionStatus = "AVAILABLE";
+            } else if ("RUNNING".equals(rawStatus)) {
+                auctionStatus = "AUCTIONING";
+            } else if ("CLOSED".equals(rawStatus) || "FINISHED".equals(rawStatus)) {
+                auctionStatus = "SOLD";
+            } else {
+                auctionStatus = "AVAILABLE";
+            }
+            info.put("auctionStatus", auctionStatus);
+
             result.add(info);
         }
         return MessageMapper.toJson(MessageResponse.ok("LIST_MY_ITEMS", result));
@@ -691,6 +775,9 @@ public final class RequestHandler {
     private String handleLockUser(Session session, JsonNode payload) {
         String adminId = SecurityContext.requireRole(session, UserRole.ADMIN);
         String targetUserId = payload.path("targetUserId").asText("");
+        if (targetUserId.isBlank()) {
+            targetUserId = payload.path("userId").asText("");
+        }
 
         if (targetUserId.isBlank()) {
             throw new com.bidhub.common.exception.ValidationException(
@@ -715,6 +802,9 @@ public final class RequestHandler {
     private String handleUnlockUser(Session session, JsonNode payload) {
         String adminId = SecurityContext.requireRole(session, UserRole.ADMIN);
         String targetUserId = payload.path("targetUserId").asText("");
+        if (targetUserId.isBlank()) {
+            targetUserId = payload.path("userId").asText("");
+        }
 
         if (targetUserId.isBlank()) {
             throw new com.bidhub.common.exception.ValidationException(
@@ -836,13 +926,28 @@ public final class RequestHandler {
             info.put("status", auction.getStatus().name());
             info.put("minimumIncrement", auction.getMinimumIncrement());
 
-            // Tra cuu ten san pham tu ItemDao
+            // Tra cuu ten san pham, anh san pham, ten nguoi ban tu ItemDao va UserDao
             String itemName = "San pham khong xac dinh";
+            String imageUrl = null;
+            String sellerName = "Khong xac dinh";
             java.util.Optional<Item> itemOpt = itemDao.findById(auction.getItemId());
             if (itemOpt.isPresent()) {
-                itemName = itemOpt.get().getName();
+                Item item = itemOpt.get();
+                itemName = item.getName();
+                imageUrl = item.getImageUrl();
+                java.util.Optional<com.bidhub.server.model.User> sellerOpt = userDao.findById(item.getSellerId());
+                if (sellerOpt.isPresent()) {
+                    sellerName = sellerOpt.get().getUsername();
+                }
             }
             info.put("itemName", itemName);
+            info.put("imageUrl", imageUrl);
+            info.put("sellerName", sellerName);
+            if (itemOpt.isPresent()) {
+                info.put("itemType", itemOpt.get().getItemType().name());
+            } else {
+                info.put("itemType", "");
+            }
 
             result.add(info);
         }
@@ -873,7 +978,19 @@ public final class RequestHandler {
                                 "Phien dau gia khong ton tai: " + auctionId)));
 
         // Lay lich su bid
-        List<BidTransaction> bidHistory = bidDao.findByAuctionId(auctionId);
+        List<BidTransaction> bids = bidDao.findByAuctionId(auctionId);
+        List<Map<String, Object>> bidHistory = new java.util.ArrayList<>();
+        for (BidTransaction b : bids) {
+            Map<String, Object> map = new HashMap<>();
+            map.put("id", b.getId());
+            map.put("bidAmount", b.getBidAmount());
+            map.put("bidTime", b.getBidTime().toString());
+            map.put("bidderId", b.getBidderId());
+            
+            java.util.Optional<com.bidhub.server.model.User> uOpt = userDao.findById(b.getBidderId());
+            map.put("bidderName", uOpt.map(com.bidhub.server.model.User::getUsername).orElse(b.getBidderId()));
+            bidHistory.add(map);
+        }
 
         // Enrich auction data voi ten san pham
         Map<String, Object> auctionInfo = new HashMap<>();
@@ -902,9 +1019,11 @@ public final class RequestHandler {
             Item item = itemOpt.get();
             auctionInfo.put("itemName", item.getName());
             auctionInfo.put("description", item.getDescription());
+            auctionInfo.put("imageUrl", item.getImageUrl());
         } else {
             auctionInfo.put("itemName", "San pham khong xac dinh");
             auctionInfo.put("description", "");
+            auctionInfo.put("imageUrl", null);
         }
 
         return MessageMapper.toJson(MessageResponse.ok("GET_AUCTION_DETAIL",
@@ -1049,5 +1168,224 @@ public final class RequestHandler {
             return null;
         }
         return node.get(field).asText();
+    }
+
+    private String handleGetHomeStats() {
+        List<Auction> allAuctions = auctionDao.findAll();
+        long activeCount = allAuctions.stream()
+                .filter(a -> a.getStatus() == AuctionStatus.RUNNING)
+                .count();
+        
+        double totalVolume = allAuctions.stream()
+                .mapToDouble(Auction::getCurrentHighestBid)
+                .sum();
+
+        // Unique bidders
+        long participants = bidDao.findAll().stream()
+                .map(BidTransaction::getBidderId)
+                .distinct()
+                .count();
+
+        Map<String, Object> stats = new HashMap<>();
+        stats.put("activeAuctions", activeCount);
+        stats.put("totalParticipants", participants);
+        stats.put("totalVolume", totalVolume);
+
+        return MessageMapper.toJson(MessageResponse.ok("GET_HOME_STATS", stats));
+    }
+
+    /**
+     * Gửi thông báo toàn server — chỉ ADMIN.
+     * Lưu thông báo vào AuditLog để có thể truy vấn lại.
+     *
+     * @param session session của admin
+     * @param payload {title, message, type}
+     * @return JSON response
+     */
+    private String handleSendNotification(Session session, JsonNode payload) {
+        String adminId = SecurityContext.requireRole(session, UserRole.ADMIN);
+        String title = getTextSafe(payload, "title");
+        String message = getTextSafe(payload, "message");
+        String type = getTextSafe(payload, "type");
+
+        if (title == null || title.isBlank()) {
+            throw new com.bidhub.common.exception.ValidationException("Tiêu đề thông báo không được để trống.");
+        }
+        if (message == null || message.isBlank()) {
+            throw new com.bidhub.common.exception.ValidationException("Nội dung thông báo không được để trống.");
+        }
+
+        String notifJson = "{\"title\":\"" + title.replace("\"", "\\\"") +
+                "\",\"message\":\"" + message.replace("\"", "\\\"") +
+                "\",\"type\":\"" + (type != null ? type : "SYSTEM") + "\"}";
+
+        // Lưu thông báo dưới dạng audit log với action BROADCAST_NOTIFICATION
+        auditLogService.log(adminId, "BROADCAST_NOTIFICATION", notifJson);
+
+        return MessageMapper.toJson(MessageResponse.ok("SEND_NOTIFICATION",
+                Map.of("message", "Đã gửi thông báo đến toàn bộ người dùng.",
+                        "title", title)));
+    }
+
+    /**
+     * Lấy danh sách thông báo hệ thống.
+     *
+     * @param session session của người dùng
+     * @param payload payload rỗng
+     * @return JSON response với danh sách thông báo
+     */
+    private String handleGetNotifications(Session session, JsonNode payload) {
+        SecurityContext.requireAuthenticated(session);
+        // Lấy các broadcast notification từ audit log
+        List<Map<String, Object>> notifications = new java.util.ArrayList<>();
+        try {
+            // Truy vấn audit log entries có action = BROADCAST_NOTIFICATION
+            List<Map<String, Object>> auditLogs = reportService.exportAuditLog(100);
+            for (Map<String, Object> log : auditLogs) {
+                String action = String.valueOf(log.getOrDefault("action", ""));
+                if ("BROADCAST_NOTIFICATION".equals(action)) {
+                    String detail = String.valueOf(log.getOrDefault("details", "{}"));
+                    try {
+                        com.fasterxml.jackson.databind.ObjectMapper om = new com.fasterxml.jackson.databind.ObjectMapper();
+                        JsonNode detailNode = om.readTree(detail);
+                        Map<String, Object> notif = new HashMap<>();
+                        notif.put("id", log.getOrDefault("id", ""));
+                        notif.put("title", detailNode.path("title").asText("Thông báo"));
+                        notif.put("message", detailNode.path("message").asText(""));
+                        notif.put("type", detailNode.path("type").asText("SYSTEM"));
+                        notif.put("createdAt", log.getOrDefault("createdAt", ""));
+                        notif.put("isRead", false);
+                        notifications.add(notif);
+                    } catch (Exception ignored) {}
+                }
+            }
+        } catch (Exception e) {
+            logger.warn("Không thể lấy danh sách thông báo: {}", e.getMessage());
+        }
+        return MessageMapper.toJson(MessageResponse.ok("GET_NOTIFICATIONS", notifications));
+    }
+
+    /**
+     * Lấy danh sách phiên đấu giá của seller hiện tại.
+     *
+     * @param session session của seller
+     * @param payload payload rỗng
+     * @return JSON response với danh sách phiên
+     */
+    private String handleGetMyAuctions(Session session, JsonNode payload) {
+        String sellerId = SecurityContext.requireRole(session, UserRole.SELLER);
+        List<Auction> allAuctions = auctionDao.findAll();
+
+        java.util.List<Map<String, Object>> result = new java.util.ArrayList<>();
+        for (Auction auc : allAuctions) {
+            // Chỉ lấy auction của seller này
+            java.util.Optional<Item> itemOpt = itemDao.findById(auc.getItemId());
+            if (itemOpt.isEmpty()) continue;
+            Item item = itemOpt.get();
+            if (!item.getSellerId().equals(sellerId)) continue;
+
+            Map<String, Object> info = new HashMap<>();
+            info.put("id", auc.getId());
+            info.put("itemId", auc.getItemId());
+            info.put("itemName", item.getName());
+            info.put("imageUrl", item.getImageUrl());
+            info.put("startingPrice", auc.getStartingPrice());
+            info.put("currentHighestBid", auc.getCurrentHighestBid());
+            info.put("status", auc.getStatus().name());
+            info.put("startTime", auc.getStartTime() != null ? auc.getStartTime().toString() : "");
+            info.put("endTime", auc.getEndTime() != null ? auc.getEndTime().toString() : "");
+            result.add(info);
+        }
+        return MessageMapper.toJson(MessageResponse.ok("GET_MY_AUCTIONS", result));
+    }
+
+    /**
+     * Cập nhật thông tin sản phẩm — chỉ seller sở hữu mới được sửa.
+     *
+     * @param session session của seller
+     * @param payload {itemId, name, description, startingPrice}
+     * @return JSON response
+     */
+    private String handleUpdateItem(Session session, JsonNode payload) {
+        String userId = SecurityContext.requireAuthenticated(session);
+        String itemId = getTextSafe(payload, "itemId");
+        if (itemId == null || itemId.isBlank()) {
+            return MessageMapper.toJson(MessageResponse.error("UPDATE_ITEM", "itemId không được để trống."));
+        }
+
+        java.util.Optional<Item> itemOpt = itemDao.findById(itemId);
+        if (itemOpt.isEmpty()) {
+            return MessageMapper.toJson(MessageResponse.error("UPDATE_ITEM", "Sản phẩm không tồn tại."));
+        }
+        Item item = itemOpt.get();
+        if (!item.getSellerId().equals(userId)) {
+            return MessageMapper.toJson(MessageResponse.error("UPDATE_ITEM", "Bạn không có quyền sửa sản phẩm này."));
+        }
+
+        // Cập nhật tên
+        String newName = getTextSafe(payload, "name");
+        if (newName != null && !newName.isBlank()) item.setName(newName);
+
+        // Cập nhật mô tả
+        String newDesc = getTextSafe(payload, "description");
+        if (newDesc != null) item.setDescription(newDesc);
+
+        // Cập nhật giá
+        double newPrice = -1;
+        if (payload.has("startingPrice") && payload.get("startingPrice").isNumber()) {
+            newPrice = payload.get("startingPrice").asDouble();
+        }
+
+        // Dùng updateItem() (UPDATE SQL) thay vì save() (INSERT SQL) để tránh lỗi duplicate key
+        itemDao.updateItem(itemId,
+                newName != null && !newName.isBlank() ? newName : null,
+                newDesc,
+                newPrice);
+
+        auditLogService.log(userId, "ITEM_UPDATED",
+                "{\"itemId\":\"" + itemId + "\",\"newName\":\"" + item.getName() + "\"}");
+
+        return MessageMapper.toJson(MessageResponse.ok("UPDATE_ITEM",
+                Map.of("message", "Đã cập nhật sản phẩm.", "itemId", itemId)));
+    }
+
+    /**
+     * Hủy phiên đấu giá — chỉ seller sở hữu và chỉ khi PENDING mới được hủy.
+     *
+     * @param session session của seller
+     * @param payload {auctionId}
+     * @return JSON response
+     */
+    private String handleCancelAuction(Session session, JsonNode payload) {
+        String userId = SecurityContext.requireAuthenticated(session);
+        String auctionId = getTextSafe(payload, "auctionId");
+        if (auctionId == null || auctionId.isBlank()) {
+            return MessageMapper.toJson(MessageResponse.error("CANCEL_AUCTION", "auctionId không được để trống."));
+        }
+
+        java.util.Optional<Auction> aucOpt = auctionDao.findById(auctionId);
+        if (aucOpt.isEmpty()) {
+            return MessageMapper.toJson(MessageResponse.error("CANCEL_AUCTION", "Phiên đấu giá không tồn tại."));
+        }
+        Auction auc = aucOpt.get();
+
+        // Kiểm tra quyền sở hữu
+        java.util.Optional<Item> itemOpt = itemDao.findById(auc.getItemId());
+        if (itemOpt.isEmpty() || !itemOpt.get().getSellerId().equals(userId)) {
+            return MessageMapper.toJson(MessageResponse.error("CANCEL_AUCTION", "Bạn không có quyền hủy phiên này."));
+        }
+
+        // Chỉ cho phép hủy khi chưa bắt đầu
+        if (!"PENDING".equals(auc.getStatus().name())) {
+            return MessageMapper.toJson(MessageResponse.error("CANCEL_AUCTION",
+                    "Chỉ có thể hủy phiên đang ở trạng thái Chờ bắt đầu."));
+        }
+
+        auctionDao.deleteById(auctionId);
+        auditLogService.log(userId, "AUCTION_CANCELLED",
+                "{\"auctionId\":\"" + auctionId + "\"}");
+
+        return MessageMapper.toJson(MessageResponse.ok("CANCEL_AUCTION",
+                Map.of("message", "Đã hủy phiên đấu giá.", "auctionId", auctionId)));
     }
 }
