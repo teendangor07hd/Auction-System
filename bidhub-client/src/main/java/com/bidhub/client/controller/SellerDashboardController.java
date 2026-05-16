@@ -43,6 +43,7 @@ public class SellerDashboardController {
     @FXML private TextField editName;
     @FXML private TextArea editDescription;
     @FXML private TextField editPrice;
+    @FXML private TextField editImageUrl;
     @FXML private Button btnEditSave;
 
     private final ObjectMapper mapper = new ObjectMapper();
@@ -227,7 +228,7 @@ public class SellerDashboardController {
         actions.setAlignment(Pos.CENTER);
         Button btnEdit = new Button("✏ Sửa");
         btnEdit.setStyle("-fx-background-color: #2B3139; -fx-text-fill: #E2E8F0; -fx-background-radius: 8; -fx-cursor: hand; -fx-padding: 7 16; -fx-border-color: #475569; -fx-border-radius: 8; -fx-font-size: 12px;");
-        btnEdit.setOnAction(e -> showEditItemDialog(id, name, desc, price));
+        btnEdit.setOnAction(e -> showEditItemDialog(id, name, desc, price, imageUrl));
 
         Button btnDelete = new Button("🗑 Xóa");
         btnDelete.setStyle("-fx-background-color: rgba(239,68,68,0.1); -fx-text-fill: #EF4444; -fx-background-radius: 8; -fx-cursor: hand; -fx-padding: 7 16; -fx-border-color: rgba(239,68,68,0.3); -fx-border-radius: 8; -fx-font-size: 12px;");
@@ -324,12 +325,13 @@ public class SellerDashboardController {
     // =====================================================================
     // Edit Dialog
     // =====================================================================
-    private void showEditItemDialog(String itemId, String name, String desc, double price) {
+    private void showEditItemDialog(String itemId, String name, String desc, double price, String imageUrl) {
         editingItemId = itemId;
         editTitle.setText("✏ Chỉnh sửa sản phẩm");
         editName.setText(name);
         editDescription.setText(desc);
         editPrice.setText(price > 0 ? String.valueOf((long) price) : "");
+        if (editImageUrl != null) editImageUrl.setText(imageUrl != null ? imageUrl : "");
         showEditOverlay();
     }
 
@@ -340,6 +342,7 @@ public class SellerDashboardController {
         String newName  = editName.getText().trim();
         String newDesc  = editDescription.getText().trim();
         String priceStr = editPrice.getText().trim();
+        String newImageUrl = editImageUrl != null ? editImageUrl.getText().trim() : "";
 
         if (newName.isEmpty()) {
             UiUtils.showError("Lỗi", "Tên sản phẩm không được để trống.");
@@ -360,6 +363,7 @@ public class SellerDashboardController {
         payload.put("name", newName);
         payload.put("description", newDesc);
         payload.put("startingPrice", newPrice);
+        payload.put("imageUrl", newImageUrl);
 
         btnEditSave.setDisable(true);
         MessageRequest req = new MessageRequest("UPDATE_ITEM", ClientSession.getInstance().getToken(), payload);

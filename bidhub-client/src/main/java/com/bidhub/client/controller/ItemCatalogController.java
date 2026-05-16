@@ -256,8 +256,45 @@ public class ItemCatalogController {
     }
 
     /** Dialog chi tiết sản phẩm khi click vào card */
-    private void showItemDetail(String id, String name, String desc, String seller,
-                                String type, String aStatus, String imageUrl, double price) {
+    private void showItemDetail(String id, String fallbackName, String fallbackDesc, String fallbackSeller,
+                                String fallbackType, String fallbackAStatus, String fallbackImageUrl, double fallbackPrice) {
+        MessageRequest req = new MessageRequest("GET_ITEM_DETAIL", null, mapper.createObjectNode().put("itemId", id));
+        NetworkTask<MessageResponse> task = new NetworkTask<>(() -> ServerGateway.getInstance().sendRequest(req));
+
+        task.setOnSucceeded(e -> {
+            MessageResponse resp = task.getValue();
+            Platform.runLater(() -> {
+                String name = fallbackName;
+                String desc = fallbackDesc;
+                String type = fallbackType;
+                String imageUrl = fallbackImageUrl;
+                double price = fallbackPrice;
+                String seller = fallbackSeller;
+                String aStatus = fallbackAStatus;
+
+                if (resp != null && resp.isOk()) {
+                    JsonNode item = mapper.valueToTree(resp.getPayload());
+                    name = item.path("name").asText(fallbackName);
+                    desc = item.path("description").asText(fallbackDesc);
+                    type = item.path("itemType").asText(fallbackType);
+                    imageUrl = item.path("imageUrl").asText(fallbackImageUrl);
+                    price = item.path("startingPrice").asDouble(fallbackPrice);
+                    if (item.has("sellerName")) seller = item.path("sellerName").asText(fallbackSeller);
+                    if (item.has("auctionStatus")) aStatus = item.path("auctionStatus").asText(fallbackAStatus);
+                }
+                displayItemDetailDialog(name, desc, seller, type, aStatus, imageUrl, price);
+            });
+        });
+
+        task.setOnFailed(e -> Platform.runLater(() -> {
+            displayItemDetailDialog(fallbackName, fallbackDesc, fallbackSeller, fallbackType, fallbackAStatus, fallbackImageUrl, fallbackPrice);
+        }));
+
+        new Thread(task, "get-item-detail").start();
+    }
+
+    private void displayItemDetailDialog(String name, String desc, String seller,
+                                         String type, String aStatus, String imageUrl, double price) {
         Stage dialog = new Stage();
         dialog.initModality(Modality.APPLICATION_MODAL);
         dialog.setTitle("Chi tiết sản phẩm");

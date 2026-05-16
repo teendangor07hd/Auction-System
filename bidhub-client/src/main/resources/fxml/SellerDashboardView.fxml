@@ -93,6 +93,10 @@
                 <Label text="Giá khởi điểm dự kiến (VNĐ)" style="-fx-text-fill: #94A3B8; -fx-font-size: 12px;"/>
                 <TextField fx:id="editPrice" styleClass="text-input-field"/>
             </VBox>
+            <VBox spacing="8">
+                <Label text="Đường dẫn ảnh (URL)" style="-fx-text-fill: #94A3B8; -fx-font-size: 12px;"/>
+                <TextField fx:id="editImageUrl" styleClass="text-input-field" promptText="https://..."/>
+            </VBox>
             <HBox spacing="12" alignment="CENTER_RIGHT">
                 <Button text="Hủy" onAction="#handleEditCancel"
                         style="-fx-background-color: #2B3139; -fx-text-fill: #B7BDC6; -fx-background-radius: 8; -fx-cursor: hand; -fx-padding: 10 24;"/>
