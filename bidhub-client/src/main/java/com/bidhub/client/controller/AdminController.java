@@ -66,10 +66,27 @@ public class AdminController implements com.bidhub.client.navigation.ContextAwar
     @FXML private TableColumn<AuditLogInfo, String> colAuditUser;
     @FXML private Label statusLabel;
 
+    @FXML private ComboBox<String> cbUserRoleFilter;
+    @FXML private ComboBox<String> cbUserStatusFilter;
+    @FXML private TextField tfUserSearch;
+
+    @FXML private ComboBox<String> cbAuctionStatusFilter;
+    @FXML private TextField tfAuctionSearch;
+
+    @FXML private TextField tfBidSearch;
+
+    @FXML private ComboBox<String> cbAuditActionFilter;
+    @FXML private TextField tfAuditSearch;
+
     private final ObservableList<UserInfo> userData = FXCollections.observableArrayList();
     private final ObservableList<AuctionReportInfo> auctionData = FXCollections.observableArrayList();
     private final ObservableList<BidHistoryInfo> bidData = FXCollections.observableArrayList();
     private final ObservableList<AuditLogInfo> auditData = FXCollections.observableArrayList();
+
+    private javafx.collections.transformation.FilteredList<UserInfo> filteredUserData;
+    private javafx.collections.transformation.FilteredList<AuctionReportInfo> filteredAuctionData;
+    private javafx.collections.transformation.FilteredList<BidHistoryInfo> filteredBidData;
+    private javafx.collections.transformation.FilteredList<AuditLogInfo> filteredAuditData;
 
     private static final ObjectMapper mapper = new ObjectMapper();
     private boolean auctionReportLoaded = false;
@@ -82,6 +99,7 @@ public class AdminController implements com.bidhub.client.navigation.ContextAwar
     @FXML
     public void initialize() {
         setupTableColumns();
+        setupFilterControls();
         String currentRole = String.valueOf(ClientSession.getInstance().getCurrentRole());
         if (!ROLE_ADMIN.equals(currentRole)) {
             ViewRouter.getInstance().navigateTo(Views.AUCTION_LIST);
@@ -91,30 +109,88 @@ public class AdminController implements com.bidhub.client.navigation.ContextAwar
         setupTableSelectionListener();
     }
 
+    private void setupFilterControls() {
+        if (cbUserRoleFilter != null) {
+            cbUserRoleFilter.setItems(FXCollections.observableArrayList("Tất cả Vai trò", "ADMIN", "SELLER", "BIDDER"));
+            cbUserRoleFilter.getSelectionModel().selectFirst();
+        }
+        if (cbUserStatusFilter != null) {
+            cbUserStatusFilter.setItems(FXCollections.observableArrayList("Tất cả Trạng thái", "Bình thường", "Đã khóa"));
+            cbUserStatusFilter.getSelectionModel().selectFirst();
+        }
+        if (cbAuctionStatusFilter != null) {
+            cbAuctionStatusFilter.setItems(FXCollections.observableArrayList("Tất cả Trạng thái", "RUNNING", "PENDING", "FINISHED", "CLOSED"));
+            cbAuctionStatusFilter.getSelectionModel().selectFirst();
+        }
+        if (cbAuditActionFilter != null) {
+            cbAuditActionFilter.setItems(FXCollections.observableArrayList("Tất cả Hành động", "LOGIN", "PLACE_BID", "AUCTION_CREATED", "ITEM_CREATED", "USER_LOGIN", "USER_LOGOUT", "LOCK_USER", "UNLOCK_USER"));
+            cbAuditActionFilter.getSelectionModel().selectFirst();
+        }
+    }
+
     private void setupTableColumns() {
         colUsername.setCellValueFactory(new PropertyValueFactory<>("username"));
         colEmail.setCellValueFactory(new PropertyValueFactory<>("email"));
         colRole.setCellValueFactory(new PropertyValueFactory<>("role"));
         colStatus.setCellValueFactory(new PropertyValueFactory<>("status"));
-        userTable.setItems(userData);
+        filteredUserData = new javafx.collections.transformation.FilteredList<>(userData, p -> true);
+        userTable.setItems(filteredUserData);
 
         colAuctionItemName.setCellValueFactory(new PropertyValueFactory<>("itemName"));
         colAuctionStatus.setCellValueFactory(new PropertyValueFactory<>("status"));
         colAuctionStartPrice.setCellValueFactory(new PropertyValueFactory<>("startingPrice"));
+        colAuctionStartPrice.setCellFactory(column -> new TableCell<AuctionReportInfo, Double>() {
+            @Override
+            protected void updateItem(Double item, boolean empty) {
+                super.updateItem(item, empty);
+                if (empty || item == null) {
+                    setText(null);
+                } else {
+                    setText(String.format("%,.0f VND", item));
+                }
+            }
+        });
+
         colAuctionHighestBid.setCellValueFactory(new PropertyValueFactory<>("currentHighestBid"));
+        colAuctionHighestBid.setCellFactory(column -> new TableCell<AuctionReportInfo, Double>() {
+            @Override
+            protected void updateItem(Double item, boolean empty) {
+                super.updateItem(item, empty);
+                if (empty || item == null) {
+                    setText(null);
+                } else {
+                    setText(String.format("%,.0f VND", item));
+                }
+            }
+        });
+
         colAuctionWinnerName.setCellValueFactory(new PropertyValueFactory<>("winnerName"));
         colAuctionId.setCellValueFactory(new PropertyValueFactory<>("auctionId"));
         colAuctionItem.setCellValueFactory(new PropertyValueFactory<>("itemId"));
         colAuctionWinner.setCellValueFactory(new PropertyValueFactory<>("highestBidderId"));
-        auctionReportTable.setItems(auctionData);
+        filteredAuctionData = new javafx.collections.transformation.FilteredList<>(auctionData, p -> true);
+        auctionReportTable.setItems(filteredAuctionData);
 
         colBidderName.setCellValueFactory(new PropertyValueFactory<>("bidderName"));
         colBidAmount.setCellValueFactory(new PropertyValueFactory<>("bidAmount"));
+        colBidAmount.setCellFactory(column -> new TableCell<BidHistoryInfo, Double>() {
+            @Override
+            protected void updateItem(Double item, boolean empty) {
+                super.updateItem(item, empty);
+                if (empty || item == null) {
+                    setText(null);
+                } else {
+                    setText(String.format("%,.0f VND", item));
+                }
+            }
+        });
+
         colBidTime.setCellValueFactory(new PropertyValueFactory<>("bidTime"));
         colBidId.setCellValueFactory(new PropertyValueFactory<>("bidId"));
         colBidAuctionId.setCellValueFactory(new PropertyValueFactory<>("auctionId"));
         colBidderId.setCellValueFactory(new PropertyValueFactory<>("bidderId"));
-        bidHistoryTable.setItems(bidData);
+        filteredBidData = new javafx.collections.transformation.FilteredList<>(bidData, p -> true);
+        bidHistoryTable.setItems(filteredBidData);
 
         colAuditTime.setCellValueFactory(new PropertyValueFactory<>("createdAt"));
         colAuditUserName.setCellValueFactory(new PropertyValueFactory<>("userName"));
@@ -122,7 +198,8 @@ public class AdminController implements com.bidhub.client.navigation.ContextAwar
         colAuditDetails.setCellValueFactory(new PropertyValueFactory<>("details"));
         colAuditId.setCellValueFactory(new PropertyValueFactory<>("id"));
         colAuditUser.setCellValueFactory(new PropertyValueFactory<>("userId"));
-        auditLogTable.setItems(auditData);
+        filteredAuditData = new javafx.collections.transformation.FilteredList<>(auditData, p -> true);
+        auditLogTable.setItems(filteredAuditData);
     }
 
     private void setupTableSelectionListener() {
@@ -316,6 +393,89 @@ public class AdminController implements com.bidhub.client.navigation.ContextAwar
                 statusLabel.setText("Đã tải " + auditData.size() + " log hệ thống.");
             });
         });
+    }
+
+    @FXML
+    public void filterUsers() {
+        if (filteredUserData == null) return;
+        String roleFilter = cbUserRoleFilter != null ? cbUserRoleFilter.getValue() : "Tất cả Vai trò";
+        String statusFilter = cbUserStatusFilter != null ? cbUserStatusFilter.getValue() : "Tất cả Trạng thái";
+        String searchText = tfUserSearch != null ? tfUserSearch.getText().toLowerCase().trim() : "";
+
+        filteredUserData.setPredicate(user -> {
+            if (user == null) return false;
+            if (!"Tất cả Vai trò".equals(roleFilter) && roleFilter != null && !roleFilter.equalsIgnoreCase(user.getRole())) {
+                return false;
+            }
+            if (!"Tất cả Trạng thái".equals(statusFilter) && statusFilter != null && !statusFilter.equalsIgnoreCase(user.getStatus())) {
+                return false;
+            }
+            if (!searchText.isEmpty()) {
+                String uName = user.getUsername() != null ? user.getUsername().toLowerCase() : "";
+                String uEmail = user.getEmail() != null ? user.getEmail().toLowerCase() : "";
+                return uName.contains(searchText) || uEmail.contains(searchText);
+            }
+            return true;
+        });
+        statusLabel.setText("Đã lọc " + filteredUserData.size() + " / " + userData.size() + " người dùng.");
+    }
+
+    @FXML
+    public void filterAuctions() {
+        if (filteredAuctionData == null) return;
+        String statusFilter = cbAuctionStatusFilter != null ? cbAuctionStatusFilter.getValue() : "Tất cả Trạng thái";
+        String searchText = tfAuctionSearch != null ? tfAuctionSearch.getText().toLowerCase().trim() : "";
+
+        filteredAuctionData.setPredicate(auction -> {
+            if (auction == null) return false;
+            if (!"Tất cả Trạng thái".equals(statusFilter) && statusFilter != null && !statusFilter.equalsIgnoreCase(auction.getStatus())) {
+                return false;
+            }
+            if (!searchText.isEmpty()) {
+                String iName = auction.getItemName() != null ? auction.getItemName().toLowerCase() : "";
+                String wName = auction.getWinnerName() != null ? auction.getWinnerName().toLowerCase() : "";
+                return iName.contains(searchText) || wName.contains(searchText);
+            }
+            return true;
+        });
+        statusLabel.setText("Đã lọc " + filteredAuctionData.size() + " / " + auctionData.size() + " dòng báo cáo Auction.");
+    }
+
+    @FXML
+    public void filterBids() {
+        if (filteredBidData == null) return;
+        String searchText = tfBidSearch != null ? tfBidSearch.getText().toLowerCase().trim() : "";
+
+        filteredBidData.setPredicate(bid -> {
+            if (bid == null) return false;
+            if (!searchText.isEmpty()) {
+                String bName = bid.getBidderName() != null ? bid.getBidderName().toLowerCase() : "";
+                return bName.contains(searchText);
+            }
+            return true;
+        });
+        statusLabel.setText("Đã lọc " + filteredBidData.size() + " / " + bidData.size() + " lượt bid.");
+    }
+
+    @FXML
+    public void filterAuditLogs() {
+        if (filteredAuditData == null) return;
+        String actionFilter = cbAuditActionFilter != null ? cbAuditActionFilter.getValue() : "Tất cả Hành động";
+        String searchText = tfAuditSearch != null ? tfAuditSearch.getText().toLowerCase().trim() : "";
+
+        filteredAuditData.setPredicate(log -> {
+            if (log == null) return false;
+            if (!"Tất cả Hành động".equals(actionFilter) && actionFilter != null && !actionFilter.equalsIgnoreCase(log.getAction())) {
+                return false;
+            }
+            if (!searchText.isEmpty()) {
+                String uName = log.getUserName() != null ? log.getUserName().toLowerCase() : "";
+                String details = log.getDetails() != null ? log.getDetails().toLowerCase() : "";
+                return uName.contains(searchText) || details.contains(searchText);
+            }
+            return true;
+        });
+        statusLabel.setText("Đã lọc " + filteredAuditData.size() + " / " + auditData.size() + " log hệ thống.");
     }
 
     @FXML
