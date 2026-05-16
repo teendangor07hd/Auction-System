@@ -174,17 +174,17 @@ public class ItemDao {
         Item newItem = switch (type) {
             case ELECTRONICS -> new Electronics(
                     id, createdAt, updatedAt, name, description, startingPrice, sellerId,
-                    (String) extras.get("brand"),
-                    ((Number) extras.get("warrantyMonths")).intValue());
+                    extras.get("brand") != null ? (String) extras.get("brand") : "Unknown Brand",
+                    extras.get("warrantyMonths") instanceof Number n ? n.intValue() : 0);
             case ART -> new Art(
                     id, createdAt, updatedAt, name, description, startingPrice, sellerId,
-                    (String) extras.get("artist"),
-                    ((Number) extras.get("yearCreated")).intValue());
+                    extras.get("artist") != null ? (String) extras.get("artist") : "Unknown Artist",
+                    extras.get("yearCreated") instanceof Number n ? n.intValue() : 0);
             case VEHICLE -> new Vehicle(
                     id, createdAt, updatedAt, name, description, startingPrice, sellerId,
-                    (String) extras.get("manufacturer"),
-                    ((Number) extras.get("year")).intValue(),
-                    ((Number) extras.get("mileageKm")).intValue());
+                    extras.get("manufacturer") != null ? (String) extras.get("manufacturer") : "Unknown Manufacturer",
+                    extras.get("year") instanceof Number n ? n.intValue() : 0,
+                    extras.get("mileageKm") instanceof Number n ? n.intValue() : 0);
         };
         if (extras.containsKey("imageUrl") && extras.get("imageUrl") != null) {
             newItem.setImageUrl((String) extras.get("imageUrl"));

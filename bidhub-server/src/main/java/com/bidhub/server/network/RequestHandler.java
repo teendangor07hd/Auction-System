@@ -698,6 +698,9 @@ public final class RequestHandler {
     private String handleLockUser(Session session, JsonNode payload) {
         String adminId = SecurityContext.requireRole(session, UserRole.ADMIN);
         String targetUserId = payload.path("targetUserId").asText("");
+        if (targetUserId.isBlank()) {
+            targetUserId = payload.path("userId").asText("");
+        }
 
         if (targetUserId.isBlank()) {
             throw new com.bidhub.common.exception.ValidationException(
@@ -722,6 +725,9 @@ public final class RequestHandler {
     private String handleUnlockUser(Session session, JsonNode payload) {
         String adminId = SecurityContext.requireRole(session, UserRole.ADMIN);
         String targetUserId = payload.path("targetUserId").asText("");
+        if (targetUserId.isBlank()) {
+            targetUserId = payload.path("userId").asText("");
+        }
 
         if (targetUserId.isBlank()) {
             throw new com.bidhub.common.exception.ValidationException(

@@ -104,7 +104,7 @@ public class AuctionDetailController implements ContextAware {
         colBidderName.setCellValueFactory(cellData ->
                 new javafx.beans.property.SimpleStringProperty(cellData.getValue().path("bidderName").asText("Unknown")));
         colBidAmount.setCellValueFactory(cellData ->
-                new javafx.beans.property.SimpleStringProperty(String.format("%,.0f", cellData.getValue().path("bidAmount").asDouble(0))));
+                new javafx.beans.property.SimpleStringProperty(String.format("%,.0f VND", cellData.getValue().path("bidAmount").asDouble(0))));
         bidTable.setItems(bidData);
 
         // 📌 [Tieu chi: UX — TextField chi nhan so]
@@ -186,8 +186,8 @@ public class AuctionDetailController implements ContextAware {
             }
         }
 
-        lblStartingPrice.setText(String.format("%,.0f đ", auction.path("startingPrice").asDouble(0)));
-        lblCurrentPrice.setText(String.format("%,.0f đ", auction.path("currentHighestBid").asDouble(0)));
+        lblStartingPrice.setText(String.format("%,.0f VND", auction.path("startingPrice").asDouble(0)));
+        lblCurrentPrice.setText(String.format("%,.0f VND", auction.path("currentHighestBid").asDouble(0)));
         lblHighestBidder.setText(auction.path("highestBidderName").asText(auction.path("highestBidderId").asText("Chưa có")));
 
         // 📌 [Tieu chi: Price Chart — load history data tu server de ve bieu do]
@@ -225,11 +225,10 @@ public class AuctionDetailController implements ContextAware {
 
         String status = auction.path("status").asText("");
         String statusVN = switch (status) {
-            case "PENDING" -> "Chờ bắt đầu";
-            case "RUNNING" -> "Đang diễn ra";
-            case "FINISHED" -> "Đã kết thúc";
-            case "CLOSED" -> "Đã kết thúc";
-            default -> status;
+            case "PENDING" -> { lblStatus.setStyle("-fx-text-fill: #F59E0B; -fx-font-weight: bold;"); yield "Chờ bắt đầu"; }
+            case "RUNNING" -> { lblStatus.setStyle("-fx-text-fill: #10B981; -fx-font-weight: bold;"); yield "Đang diễn ra"; }
+            case "FINISHED", "CLOSED" -> { lblStatus.setStyle("-fx-text-fill: #64748B; -fx-font-weight: bold;"); yield "Đã kết thúc"; }
+            default -> { lblStatus.setStyle("-fx-text-fill: #334155; -fx-font-weight: bold;"); yield status; }
         };
         lblStatus.setText(statusVN);
 
@@ -252,7 +251,7 @@ public class AuctionDetailController implements ContextAware {
         }
 
         // Nếu đã kết thúc thì disable form luôn
-        if ("FINISHED".equals(status)) {
+        if ("FINISHED".equals(status) || "CLOSED".equals(status)) {
             disableBiddingUI();
         }
 
@@ -303,8 +302,12 @@ public class AuctionDetailController implements ContextAware {
                         if ("BID_UPDATE".equals(eventType)) {
                             double newPrice = eventNode.path("bidAmount").asDouble(0);
                             String bidder = eventNode.path("bidderName").asText(eventNode.path("bidderId").asText("Unknown"));
-                            lblCurrentPrice.setText(String.format("%,.0f đ", newPrice));
+                            lblCurrentPrice.setText(String.format("%,.0f VND", newPrice));
                             lblHighestBidder.setText(bidder);
+
+                            // Hiệu ứng nháy sáng (Flash) khi có bid mới
+                            lblCurrentPrice.setStyle("-fx-background-color: #FEF08A; -fx-text-fill: #B45309; -fx-padding: 2 8; -fx-background-radius: 4;");
+                            new Timeline(new KeyFrame(Duration.millis(600), k -> lblCurrentPrice.setStyle(""))).play();
 
                             // 📌 [Tieu chi: Price Chart — realtime addDataPoint khi nhan BID_UPDATE]
                             bidChartService.addDataPoint(LocalDateTime.now(), newPrice, bidder);
@@ -402,14 +405,28 @@ public class AuctionDetailController implements ContextAware {
         if (errorCode == null) {
             return "Lỗi không xác định. Vui lòng thử lại.";
         }
-        return switch (errorCode) {
-            case "BID_TOO_LOW" -> "Giá đặt quá thấp. Vui lòng đặt giá cao hơn giá hiện tại + bước tăng tối thiểu.";
-            case "AUCTION_NOT_RUNNING" -> "Phiên đấu giá đã kết thúc. Không thể đặt giá.";
-            case "AUCTION_NOT_FOUND" -> "Phiên đấu giá không tồn tại.";
-            case "CANNOT_BID_OWN_AUCTION" -> "Không thể đặt giá phiên đấu giá của chính bạn.";
-            case "UNAUTHORIZED" -> "Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại.";
-            default -> "Lỗi: " + errorCode + ". Vui lòng thử lại.";
-        };
+        if (errorCode.contains("Gia dat phai cao hon") || errorCode.contains("Buoc gia toi thieu") || errorCode.contains("BID_TOO_LOW")) {
+            return "Giá đặt quá thấp. Vui lòng đặt giá cao hơn giá hiện tại + bước tăng tối thiểu.";
+        }
+        if (errorCode.contains("Ban dang la nguoi dan dau")) {
+            return "Bạn đang là người dẫn đầu phiên đấu giá này.";
+        }
+        if (errorCode.contains("Seller khong the tu dau gia") || errorCode.contains("CANNOT_BID_OWN_AUCTION")) {
+            return "Không thể đặt giá phiên đấu giá của chính bạn.";
+        }
+        if (errorCode.contains("chưa bắt đầu")) {
+            return "Phiên đấu giá chưa bắt đầu. Vui lòng chờ đến giờ.";
+        }
+        if (errorCode.contains("đã kết thúc") || errorCode.contains("AUCTION_NOT_RUNNING")) {
+            return "Phiên đấu giá đã kết thúc. Không thể đặt giá.";
+        }
+        if (errorCode.contains("AUCTION_NOT_FOUND")) {
+            return "Phiên đấu giá không tồn tại.";
+        }
+        if (errorCode.contains("UNAUTHORIZED")) {
+            return "Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại.";
+        }
+        return errorCode;
     }
 
     private void startCountdown() {
@@ -431,6 +448,7 @@ public class AuctionDetailController implements ContextAware {
             int minutes = d.toMinutesPart();
             int seconds = d.toSecondsPart();
             lblCountdown.setText(String.format("Bắt đầu sau: %02d:%02d:%02d", hours, minutes, seconds));
+            lblCountdown.setStyle("-fx-text-fill: #F59E0B; -fx-font-weight: bold;");
             btnPlaceBid.setDisable(true); // Không cho phép đặt giá
             return;
         }
@@ -448,6 +466,11 @@ public class AuctionDetailController implements ContextAware {
         int minutes = d.toMinutesPart();
         int seconds = d.toSecondsPart();
         lblCountdown.setText(String.format("Còn lại: %02d:%02d:%02d", hours, minutes, seconds));
+        if (d.toSeconds() < 60) {
+            lblCountdown.setStyle("-fx-text-fill: #EF4444; -fx-font-weight: bold;");
+        } else {
+            lblCountdown.setStyle("-fx-text-fill: #334155; -fx-font-weight: bold;");
+        }
     }
 
     /**
@@ -455,11 +478,17 @@ public class AuctionDetailController implements ContextAware {
      */
     private void disableBiddingUI() {
         lblStatus.setText("ĐÃ KẾT THÚC");
+        lblStatus.setStyle("-fx-text-fill: #64748B; -fx-font-weight: bold;");
         lblCountdown.setText("ĐÃ KẾT THÚC");
+        lblCountdown.setStyle("-fx-text-fill: #64748B; -fx-font-weight: bold;");
         btnPlaceBid.setDisable(true);
         tfBidAmount.setDisable(true);
         if (loadingSpinner != null) {
             loadingSpinner.setVisible(false);
+        }
+        if (!lblHighestBidder.getText().contains("🏆")) {
+            lblHighestBidder.setText("🏆 " + lblHighestBidder.getText());
+            lblHighestBidder.setStyle("-fx-text-fill: #D97706; -fx-font-weight: bold; -fx-font-size: 16px;");
         }
         stopCountdown();
         stopEventListener();
