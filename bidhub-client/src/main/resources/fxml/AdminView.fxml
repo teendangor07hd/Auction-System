@@ -26,6 +26,10 @@
                                 styleClass="btn-success" onAction="#handleUnlockUser" />
                         <Button text="Làm mới" onAction="#handleRefresh"
                                 styleClass="btn-secondary" />
+                        <Region HBox.hgrow="ALWAYS" />
+                        <ComboBox fx:id="cbUserRoleFilter" promptText="Lọc Vai trò" prefWidth="130" onAction="#filterUsers"/>
+                        <ComboBox fx:id="cbUserStatusFilter" promptText="Lọc Trạng thái" prefWidth="140" onAction="#filterUsers"/>
+                        <TextField fx:id="tfUserSearch" promptText="🔍 Tìm Username/Email..." prefWidth="200" onKeyReleased="#filterUsers"/>
                     </HBox>
                     <TableView fx:id="userTable" VBox.vgrow="ALWAYS" styleClass="table-view">
                         <columns>
@@ -46,6 +50,9 @@
                 <VBox spacing="10" style="-fx-padding: 10;">
                     <HBox spacing="10" alignment="CENTER_LEFT">
                         <Button text="Làm mới" onAction="#loadAuctionReport" styleClass="btn-secondary" />
+                        <Region HBox.hgrow="ALWAYS" />
+                        <ComboBox fx:id="cbAuctionStatusFilter" promptText="Lọc Trạng thái" prefWidth="150" onAction="#filterAuctions"/>
+                        <TextField fx:id="tfAuctionSearch" promptText="🔍 Tìm Tên sản phẩm/Người thắng..." prefWidth="250" onKeyReleased="#filterAuctions"/>
                     </HBox>
                     <TableView fx:id="auctionReportTable" VBox.vgrow="ALWAYS" styleClass="table-view">
                         <columns>
@@ -70,6 +77,8 @@
                 <VBox spacing="10" style="-fx-padding: 10;">
                     <HBox spacing="10" alignment="CENTER_LEFT">
                         <Button text="Làm mới" onAction="#loadBidHistory" styleClass="btn-secondary" />
+                        <Region HBox.hgrow="ALWAYS" />
+                        <TextField fx:id="tfBidSearch" promptText="🔍 Tìm theo Người đặt giá..." prefWidth="250" onKeyReleased="#filterBids"/>
                     </HBox>
                     <TableView fx:id="bidHistoryTable" VBox.vgrow="ALWAYS" styleClass="table-view">
                         <columns>
@@ -92,6 +101,9 @@
                 <VBox spacing="10" style="-fx-padding: 10;">
                     <HBox spacing="10" alignment="CENTER_LEFT">
                         <Button text="Làm mới" onAction="#loadAuditLog" styleClass="btn-secondary" />
+                        <Region HBox.hgrow="ALWAYS" />
+                        <ComboBox fx:id="cbAuditActionFilter" promptText="Lọc Hành động" prefWidth="160" onAction="#filterAuditLogs"/>
+                        <TextField fx:id="tfAuditSearch" promptText="🔍 Tìm Người dùng hoặc Chi tiết..." prefWidth="250" onKeyReleased="#filterAuditLogs"/>
                     </HBox>
                     <TableView fx:id="auditLogTable" VBox.vgrow="ALWAYS" styleClass="table-view">
                         <columns>
