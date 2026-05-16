@@ -11,35 +11,62 @@
         <VBox alignment="CENTER" spacing="20" style="-fx-background-color: linear-gradient(to right, #1E1B4B, #4338CA); -fx-background-radius: 16px; -fx-padding: 50;">
             <Label text="⚡ Nền tảng đấu giá #1 Việt Nam" style="-fx-text-fill: #A5B4FC; -fx-font-weight: bold; -fx-background-color: rgba(255,255,255,0.1); -fx-padding: 5 15; -fx-background-radius: 20;"/>
             <Label text="Đấu Giá Thông Minh" style="-fx-text-fill: white; -fx-font-size: 48px; -fx-font-weight: 900;"/>
-            <Label text="Tham gia đấu giá realtime với hệ thống thông minh, Anti-Sniping công bằng và Trust Score minh bạch." 
+            <Label text="Tham gia đấu giá realtime với hệ thống Anti-Sniping công bằng, cập nhật giá tức thì và thông báo tức thì qua socket." 
                    wrapText="true" style="-fx-text-fill: #E0E7FF; -fx-font-size: 16px; -fx-max-width: 600;" alignment="CENTER" textAlignment="CENTER"/>
             
             <HBox spacing="20" alignment="CENTER" style="-fx-padding: 20 0 0 0;">
-                <Button fx:id="btnExplore" text="Khám phá ngay &gt;" styleClass="button, btn-primary" style="-fx-font-size: 16px; -fx-padding: 12 25; -fx-background-color: #4F46E5;"/>
+                <Button fx:id="btnExplore" text="Khám phá ngay >" styleClass="button, btn-primary" style="-fx-font-size: 16px; -fx-padding: 12 25; -fx-background-color: #4F46E5; -fx-background-radius: 8; -fx-font-weight: 900;"/>
                 <Button fx:id="btnLogin" text="Đăng nhập / Đăng ký" styleClass="button" style="-fx-font-size: 16px; -fx-padding: 12 25; -fx-background-color: transparent; -fx-border-color: rgba(255,255,255,0.3); -fx-border-radius: 8px; -fx-text-fill: white;"/>
             </HBox>
         </VBox>
 
-        <!-- Features Grid -->
-        <HBox spacing="30" alignment="CENTER" style="-fx-max-width: 1000;">
-            <VBox spacing="10" HBox.hgrow="ALWAYS" style="-fx-background-color: #1E2329; -fx-padding: 30; -fx-background-radius: 12px; -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.3), 10, 0, 0, 4);">
-                <Label text="⚡" style="-fx-font-size: 24px; -fx-background-color: #3B82F6; -fx-padding: 10 15; -fx-background-radius: 8px; -fx-text-fill: white;"/>
-                <Label text="Realtime Bidding" style="-fx-text-fill: white; -fx-font-size: 20px; -fx-font-weight: bold;"/>
-                <Label text="Cập nhật giá tức thì, không độ trễ, theo dõi diễn biến từng giây." style="-fx-text-fill: #B7BDC6;" wrapText="true"/>
+        <!-- Features Grid (đưa lên trước Stats để cân đối) -->
+        <HBox spacing="25" alignment="CENTER" style="-fx-max-width: 1000;">
+            <VBox spacing="12" HBox.hgrow="ALWAYS" style="-fx-background-color: #1E2329; -fx-padding: 28; -fx-background-radius: 14px; -fx-effect: dropshadow(three-pass-box, rgba(79,70,229,0.18), 12, 0, 0, 6); -fx-border-color: rgba(79,70,229,0.2); -fx-border-radius: 14px;">
+                <Label text="⚡" style="-fx-font-size: 28px; -fx-background-color: #4F46E5; -fx-padding: 10 16; -fx-background-radius: 10px; -fx-text-fill: white;"/>
+                <Label text="Đặt Giá Realtime" style="-fx-text-fill: white; -fx-font-size: 18px; -fx-font-weight: 900;"/>
+                <Label text="Giá được cập nhật tức thì qua socket, không độ trễ. Theo dõi diễn biến đấu giá từng giây một cách trực tiếp." style="-fx-text-fill: #B7BDC6; -fx-font-size: 13px;" wrapText="true"/>
             </VBox>
             
-            <VBox spacing="10" HBox.hgrow="ALWAYS" style="-fx-background-color: #1E2329; -fx-padding: 30; -fx-background-radius: 12px; -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.3), 10, 0, 0, 4);">
-                <Label text="🛡️" style="-fx-font-size: 24px; -fx-background-color: #10B981; -fx-padding: 10 15; -fx-background-radius: 8px; -fx-text-fill: white;"/>
-                <Label text="Anti-Sniping" style="-fx-text-fill: white; -fx-font-size: 20px; -fx-font-weight: bold;"/>
-                <Label text="Gia hạn tự động khi có giá mới ở giây cuối, mang lại công bằng." style="-fx-text-fill: #B7BDC6;" wrapText="true"/>
+            <VBox spacing="12" HBox.hgrow="ALWAYS" style="-fx-background-color: #1E2329; -fx-padding: 28; -fx-background-radius: 14px; -fx-effect: dropshadow(three-pass-box, rgba(16,185,129,0.18), 12, 0, 0, 6); -fx-border-color: rgba(16,185,129,0.2); -fx-border-radius: 14px;">
+                <Label text="🛡" style="-fx-font-size: 28px; -fx-background-color: #10B981; -fx-padding: 10 16; -fx-background-radius: 10px; -fx-text-fill: white;"/>
+                <Label text="Chống Sniping" style="-fx-text-fill: white; -fx-font-size: 18px; -fx-font-weight: 900;"/>
+                <Label text="Phiên đấu giá tự động gia hạn thêm 30 giây nếu có giá mới ở phút cuối, đảm bảo công bằng cho tất cả." style="-fx-text-fill: #B7BDC6; -fx-font-size: 13px;" wrapText="true"/>
             </VBox>
             
-            <VBox spacing="10" HBox.hgrow="ALWAYS" style="-fx-background-color: #1E2329; -fx-padding: 30; -fx-background-radius: 12px; -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.3), 10, 0, 0, 4);">
-                <Label text="⭐" style="-fx-font-size: 24px; -fx-background-color: #F59E0B; -fx-padding: 10 15; -fx-background-radius: 8px; -fx-text-fill: white;"/>
-                <Label text="Trust Score" style="-fx-text-fill: white; -fx-font-size: 20px; -fx-font-weight: bold;"/>
-                <Label text="Hệ thống đánh giá uy tín người dùng, đảm bảo môi trường an toàn." style="-fx-text-fill: #B7BDC6;" wrapText="true"/>
+            <VBox spacing="12" HBox.hgrow="ALWAYS" style="-fx-background-color: #1E2329; -fx-padding: 28; -fx-background-radius: 14px; -fx-effect: dropshadow(three-pass-box, rgba(245,158,11,0.18), 12, 0, 0, 6); -fx-border-color: rgba(245,158,11,0.2); -fx-border-radius: 14px;">
+                <Label text="🔔" style="-fx-font-size: 28px; -fx-background-color: #F59E0B; -fx-padding: 10 16; -fx-background-radius: 10px; -fx-text-fill: white;"/>
+                <Label text="Thông Báo Hệ Thống" style="-fx-text-fill: white; -fx-font-size: 18px; -fx-font-weight: 900;"/>
+                <Label text="Admin có thể gửi thông báo đến toàn bộ người dùng. Xem thông báo mới nhất trong hộp thư của bạn." style="-fx-text-fill: #B7BDC6; -fx-font-size: 13px;" wrapText="true"/>
             </VBox>
         </HBox>
+
+        <!-- Stats Section -->
+        <HBox spacing="20" alignment="CENTER" style="-fx-max-width: 1000;">
+            <VBox spacing="5" alignment="CENTER" HBox.hgrow="ALWAYS" style="-fx-background-color: #1E2329; -fx-padding: 20; -fx-background-radius: 12; -fx-border-color: rgba(16,185,129,0.2); -fx-border-radius: 12;">
+                <Label fx:id="lblActiveAuctions" text="0" style="-fx-text-fill: #10B981; -fx-font-size: 28px; -fx-font-weight: 900;"/>
+                <Label text="Đang đấu giá" style="-fx-text-fill: #B7BDC6; -fx-font-size: 12px;"/>
+            </VBox>
+            <VBox spacing="5" alignment="CENTER" HBox.hgrow="ALWAYS" style="-fx-background-color: #1E2329; -fx-padding: 20; -fx-background-radius: 12; -fx-border-color: rgba(59,130,246,0.2); -fx-border-radius: 12;">
+                <Label fx:id="lblParticipants" text="0" style="-fx-text-fill: #3B82F6; -fx-font-size: 28px; -fx-font-weight: 900;"/>
+                <Label text="Người tham gia" style="-fx-text-fill: #B7BDC6; -fx-font-size: 12px;"/>
+            </VBox>
+            <VBox spacing="5" alignment="CENTER" HBox.hgrow="ALWAYS" style="-fx-background-color: #1E2329; -fx-padding: 20; -fx-background-radius: 12; -fx-border-color: rgba(245,158,11,0.2); -fx-border-radius: 12;">
+                <Label fx:id="lblTotalVolume" text="0đ" style="-fx-text-fill: #F59E0B; -fx-font-size: 28px; -fx-font-weight: 900;"/>
+                <Label text="Tổng giao dịch" style="-fx-text-fill: #B7BDC6; -fx-font-size: 12px;"/>
+            </VBox>
+        </HBox>
+
+        <!-- Hot Auctions Section -->
+        <VBox spacing="20" style="-fx-max-width: 1100;">
+            <HBox alignment="CENTER_LEFT" spacing="10">
+                <Label text="🔥 Phiên Đấu Giá Nổi Bật" style="-fx-text-fill: #F59E0B; -fx-font-size: 22px; -fx-font-weight: 900; -fx-effect: dropshadow(one-pass-box, rgba(245,158,11,0.4), 8, 0, 0, 3);"/>
+                <Region HBox.hgrow="ALWAYS"/>
+                <Hyperlink fx:id="linkSeeAll" text="Xem tất cả →" style="-fx-text-fill: #4F46E5; -fx-font-size: 14px; -fx-underline: false; -fx-font-weight: bold;"/>
+            </HBox>
+            
+            <FlowPane fx:id="hotAuctionsContainer" hgap="25" vgap="25" alignment="TOP_CENTER"/>
+        </VBox>
 
     </VBox>
 </ScrollPane>

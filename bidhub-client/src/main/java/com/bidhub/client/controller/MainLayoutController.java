@@ -25,6 +25,7 @@ public class MainLayoutController {
     @FXML private Button btnCreateAuction;
     @FXML private Button btnCreateItem;
     @FXML private Button btnAuctionList;
+    @FXML private Button btnNotifications;
     @FXML private Button btnAccount;
     @FXML private Button btnLogout;
     @FXML private Button adminBtn;
@@ -39,6 +40,9 @@ public class MainLayoutController {
         btnCreateAuction.setOnAction(e -> ViewRouter.getInstance().navigateTo(Views.CREATE_AUCTION));
         btnCreateItem.setOnAction(e -> ViewRouter.getInstance().navigateTo(Views.CREATE_ITEM));
         btnAuctionList.setOnAction(e -> ViewRouter.getInstance().navigateTo(Views.AUCTION_LIST));
+        if (btnNotifications != null) {
+            btnNotifications.setOnAction(e -> ViewRouter.getInstance().navigateTo(Views.NOTIFICATION_VIEW));
+        }
 
         String currentRole = String.valueOf(ClientSession.getInstance().getCurrentRole());
         boolean isAdmin = ROLE_ADMIN.equals(currentRole);
@@ -57,6 +61,11 @@ public class MainLayoutController {
     @FXML
     public void handleAdminPanel() {
         ViewRouter.getInstance().navigateTo(Views.ADMIN_VIEW);
+    }
+
+    @FXML
+    public void handleNotifications() {
+        ViewRouter.getInstance().navigateTo(Views.NOTIFICATION_VIEW);
     }
 
     private void handleLogout() {

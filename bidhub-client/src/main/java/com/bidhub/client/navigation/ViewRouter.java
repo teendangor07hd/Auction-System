@@ -72,7 +72,7 @@ public final class ViewRouter {
             throw new IllegalStateException("ViewRouter chưa được initialize(stage) — gọi trong BidHubApp");
         }
         try {
-            boolean isAuthView = viewName.equals(Views.LOGIN) || viewName.equals(Views.REGISTER);
+            boolean isAuthView = viewName.equals(Views.LOGIN) || viewName.equals(Views.REGISTER) || viewName.equals(Views.HOME);
 
             String fxmlPath = "/fxml/" + viewName + ".fxml";
             FXMLLoader loader = new FXMLLoader(

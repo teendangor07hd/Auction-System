@@ -11,37 +11,65 @@ import com.bidhub.common.network.MessageResponse;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import javafx.beans.binding.Bindings;
-import javafx.collections.FXCollections;
 import javafx.fxml.FXML;
 import javafx.scene.control.Button;
-import javafx.scene.control.ChoiceBox;
 import javafx.scene.control.Label;
 import javafx.scene.control.PasswordField;
 import javafx.scene.control.TextField;
 
 /**
- * Controller cho man hinh dang ky.
+ * Controller cho màn hình đăng ký.
  *
- * <p>// 📌 [Tieu chi: MVC — Controller dieu phoi form validation + network]
+ * <p>// 📌 [Tieu chi: MVC — Controller điều phối form validation + network]
  * Validation realtime: password confirmation bind, email check.
- * Submit → NetworkTask → REGISTER → thanh cong → navigate ve LoginView.
+ * Submit → NetworkTask → REGISTER → thành công → navigate về LoginView.
  */
 public class RegisterController {
 
     @FXML private TextField usernameField;
     @FXML private PasswordField passwordField;
+    @FXML private TextField passwordTextField;
+    @FXML private Button togglePasswordBtn;
     @FXML private PasswordField confirmPasswordField;
+    @FXML private TextField confirmPasswordTextField;
+    @FXML private Button toggleConfirmBtn;
     @FXML private Label passwordMatchLabel;
     @FXML private TextField emailField;
-    @FXML private ChoiceBox<String> roleChoiceBox;
     @FXML private Label errorLabel;
     @FXML private Button registerButton;
+    @FXML private Button btnRoleBidder;
+    @FXML private Button btnRoleSeller;
+
+    private String selectedRole = "BIDDER"; // Mặc định là BIDDER
+    private boolean isPasswordVisible = false;
+    private boolean isConfirmVisible = false;
+
+    // Style cho nút được chọn (active)
+    private static final String STYLE_ACTIVE =
+            "-fx-background-color: #4F46E5; -fx-text-fill: white; -fx-font-weight: bold; " +
+            "-fx-font-size: 13px; -fx-padding: 14; -fx-background-radius: 10; -fx-cursor: hand; " +
+            "-fx-border-color: #4F46E5; -fx-border-radius: 10; -fx-border-width: 2;";
+
+    // Style cho nút chưa được chọn (inactive)
+    private static final String STYLE_INACTIVE =
+            "-fx-background-color: transparent; -fx-text-fill: #B7BDC6; -fx-font-weight: bold; " +
+            "-fx-font-size: 13px; -fx-padding: 14; -fx-background-radius: 10; -fx-cursor: hand; " +
+            "-fx-border-color: #475569; -fx-border-radius: 10; -fx-border-width: 2;";
 
     @FXML
     public void initialize() {
-        roleChoiceBox.setItems(
-                FXCollections.observableArrayList("BIDDER", "SELLER"));
-        roleChoiceBox.setValue("BIDDER");
+        // Mặc định chọn BIDDER
+        updateRoleStyles();
+
+        // Ẩn text fields cho password
+        if (passwordTextField != null) {
+            passwordTextField.setManaged(false);
+            passwordTextField.setVisible(false);
+        }
+        if (confirmPasswordTextField != null) {
+            confirmPasswordTextField.setManaged(false);
+            confirmPasswordTextField.setVisible(false);
+        }
 
         // 📌 [Tieu chi: MVC — bind realtime password confirmation]
         passwordMatchLabel.visibleProperty().bind(
@@ -55,7 +83,8 @@ public class RegisterController {
                         confirmPasswordField.textProperty()
                 )
         );
-        passwordMatchLabel.setText("Mat khau xac nhan khong khop!");
+        passwordMatchLabel.managedProperty().bind(passwordMatchLabel.visibleProperty());
+        passwordMatchLabel.setText("Mật khẩu xác nhận không khớp!");
 
         registerButton.disableProperty().bind(
                 Bindings.createBooleanBinding(
@@ -66,37 +95,111 @@ public class RegisterController {
                                 || !passwordField.getText().equals(confirmPasswordField.getText()),
                         usernameField.textProperty(),
                         passwordField.textProperty(),
+                        confirmPasswordField.textProperty(),
                         emailField.textProperty()
                 )
         );
 
         errorLabel.setVisible(false);
-        errorLabel.getStyleClass().add("error-message");
+        errorLabel.setManaged(false);
+    }
+
+    /** Chọn vai trò BIDDER */
+    @FXML
+    public void handleSelectBidder() {
+        selectedRole = "BIDDER";
+        updateRoleStyles();
+    }
+
+    /** Chọn vai trò SELLER */
+    @FXML
+    public void handleSelectSeller() {
+        selectedRole = "SELLER";
+        updateRoleStyles();
+    }
+
+    /** Cập nhật giao diện nút role dựa trên selectedRole */
+    private void updateRoleStyles() {
+        if (btnRoleBidder != null && btnRoleSeller != null) {
+            if ("BIDDER".equals(selectedRole)) {
+                btnRoleBidder.setStyle(STYLE_ACTIVE);
+                btnRoleSeller.setStyle(STYLE_INACTIVE);
+            } else {
+                btnRoleSeller.setStyle(STYLE_ACTIVE);
+                btnRoleBidder.setStyle(STYLE_INACTIVE);
+            }
+        }
+    }
+
+    /** Hiển thị/ẩn mật khẩu */
+    @FXML
+    public void handleTogglePassword() {
+        isPasswordVisible = !isPasswordVisible;
+        if (isPasswordVisible) {
+            passwordTextField.setText(passwordField.getText());
+            passwordTextField.setVisible(true);
+            passwordTextField.setManaged(true);
+            passwordField.setVisible(false);
+            passwordField.setManaged(false);
+            togglePasswordBtn.setText("🙈");
+            passwordTextField.requestFocus();
+        } else {
+            passwordField.setText(passwordTextField.getText());
+            passwordField.setVisible(true);
+            passwordField.setManaged(true);
+            passwordTextField.setVisible(false);
+            passwordTextField.setManaged(false);
+            togglePasswordBtn.setText("👁");
+            passwordField.requestFocus();
+        }
+    }
+
+    /** Hiển thị/ẩn mật khẩu xác nhận */
+    @FXML
+    public void handleToggleConfirm() {
+        isConfirmVisible = !isConfirmVisible;
+        if (isConfirmVisible) {
+            confirmPasswordTextField.setText(confirmPasswordField.getText());
+            confirmPasswordTextField.setVisible(true);
+            confirmPasswordTextField.setManaged(true);
+            confirmPasswordField.setVisible(false);
+            confirmPasswordField.setManaged(false);
+            toggleConfirmBtn.setText("🙈");
+            confirmPasswordTextField.requestFocus();
+        } else {
+            confirmPasswordField.setText(confirmPasswordTextField.getText());
+            confirmPasswordField.setVisible(true);
+            confirmPasswordField.setManaged(true);
+            confirmPasswordTextField.setVisible(false);
+            confirmPasswordTextField.setManaged(false);
+            toggleConfirmBtn.setText("👁");
+            confirmPasswordField.requestFocus();
+        }
     }
 
     /**
-     * Xu ly click nut "Dang ky" — gui request REGISTER qua NetworkTask.
+     * Xử lý click nút "Đăng ký" — gửi request REGISTER qua NetworkTask.
      */
     @FXML
     public void handleRegister() {
         String username = usernameField.getText().trim();
-        String password = passwordField.getText();
-        String confirmPassword = confirmPasswordField.getText();
+        // Lấy password từ field đang hiển thị
+        String password = isPasswordVisible ? passwordTextField.getText() : passwordField.getText();
+        String confirmPassword = isConfirmVisible ? confirmPasswordTextField.getText() : confirmPasswordField.getText();
         String email = emailField.getText().trim();
-        String role = roleChoiceBox.getValue();
+        String role = selectedRole;
 
         // Client-side validation
         if (!password.equals(confirmPassword)) {
-            errorLabel.setText("Mat khau xac nhan khong khop!");
-            errorLabel.setVisible(true);
+            showError("Mật khẩu xác nhận không khớp!");
             return;
         }
 
-        errorLabel.setVisible(false);
+        hideError();
         registerButton.disableProperty().unbind();
         registerButton.setDisable(true);
 
-        // 📌 [Tieu chi: MVC — tao REGISTER request payload]
+        // 📌 [Tieu chi: MVC — tạo REGISTER request payload]
         ObjectNode payload = JsonNodeFactory.instance.objectNode();
         payload.put("username", username);
         payload.put("password", password);
@@ -114,26 +217,40 @@ public class RegisterController {
             if (response.isOk()) {
                 ViewRouter.getInstance().navigateTo(Views.LOGIN);
             } else {
-                errorLabel.setText(response.getMessage());
-                errorLabel.setVisible(true);
+                showError(response.getMessage());
                 registerButton.setDisable(false);
             }
         });
 
         task.setOnFailed(e -> {
-            errorLabel.setText("Khong ket noi duoc may chu. Thu lai sau.");
-            errorLabel.setVisible(true);
+            showError("Không kết nối được máy chủ. Thử lại sau.");
             registerButton.setDisable(false);
         });
 
         new Thread(task).start();
     }
 
+    private void showError(String msg) {
+        errorLabel.setText(msg);
+        errorLabel.setVisible(true);
+        errorLabel.setManaged(true);
+    }
+
+    private void hideError() {
+        errorLabel.setVisible(false);
+        errorLabel.setManaged(false);
+    }
+
     /**
-     * Chuyen ve man hinh dang nhap.
+     * Chuyển về màn hình đăng nhập.
      */
     @FXML
     public void handleBackToLogin() {
         ViewRouter.getInstance().navigateTo(Views.LOGIN);
+    }
+
+    @FXML
+    public void handleBackToHome() {
+        ViewRouter.getInstance().navigateTo(Views.HOME);
     }
 }

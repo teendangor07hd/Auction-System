@@ -49,7 +49,8 @@ public final class RequestHandler {
             "LOGOUT", "CREATE_ITEM", "DELETE_ITEM",
             "LIST_MY_ITEMS", "CREATE_AUCTION", "PLACE_BID", "GET_AUCTION_DETAIL",
             "GET_USER_LIST", "LOCK_USER", "UNLOCK_USER",
-            "GET_BID_HISTORY_REPORT", "GET_AUDIT_LOG", "RUN_INTEGRITY_CHECK"
+            "GET_BID_HISTORY_REPORT", "GET_AUDIT_LOG", "RUN_INTEGRITY_CHECK",
+            "SEND_NOTIFICATION", "GET_NOTIFICATIONS"
     );
 
     // ← THÊM: field DAO (null ở T4 — sẽ được gán thực sự ở T5)
@@ -172,6 +173,9 @@ public final class RequestHandler {
                 case "GET_BID_HISTORY_REPORT" -> handleGetBidHistoryReport(session, payload);
                 case "GET_AUDIT_LOG"          -> handleGetAuditLog(session, payload);
                 case "RUN_INTEGRITY_CHECK"    -> handleRunIntegrityCheck(session, payload);
+                case "GET_HOME_STATS"         -> handleGetHomeStats();
+                case "SEND_NOTIFICATION"      -> handleSendNotification(session, payload);
+                case "GET_NOTIFICATIONS"      -> handleGetNotifications(session, payload);
                 default              -> MessageMapper.toJson(
                         MessageResponse.error(type, "Lệnh không xác định: " + type));
             };
@@ -1076,5 +1080,100 @@ public final class RequestHandler {
             return null;
         }
         return node.get(field).asText();
+    }
+
+    private String handleGetHomeStats() {
+        List<Auction> allAuctions = auctionDao.findAll();
+        long activeCount = allAuctions.stream()
+                .filter(a -> a.getStatus() == AuctionStatus.RUNNING)
+                .count();
+        
+        double totalVolume = allAuctions.stream()
+                .mapToDouble(Auction::getCurrentHighestBid)
+                .sum();
+
+        // Unique bidders
+        long participants = bidDao.findAll().stream()
+                .map(BidTransaction::getBidderId)
+                .distinct()
+                .count();
+
+        Map<String, Object> stats = new HashMap<>();
+        stats.put("activeAuctions", activeCount);
+        stats.put("totalParticipants", participants);
+        stats.put("totalVolume", totalVolume);
+
+        return MessageMapper.toJson(MessageResponse.ok("GET_HOME_STATS", stats));
+    }
+
+    /**
+     * Gửi thông báo toàn server — chỉ ADMIN.
+     * Lưu thông báo vào AuditLog để có thể truy vấn lại.
+     *
+     * @param session session của admin
+     * @param payload {title, message, type}
+     * @return JSON response
+     */
+    private String handleSendNotification(Session session, JsonNode payload) {
+        String adminId = SecurityContext.requireRole(session, UserRole.ADMIN);
+        String title = getTextSafe(payload, "title");
+        String message = getTextSafe(payload, "message");
+        String type = getTextSafe(payload, "type");
+
+        if (title == null || title.isBlank()) {
+            throw new com.bidhub.common.exception.ValidationException("Tiêu đề thông báo không được để trống.");
+        }
+        if (message == null || message.isBlank()) {
+            throw new com.bidhub.common.exception.ValidationException("Nội dung thông báo không được để trống.");
+        }
+
+        String notifJson = "{\"title\":\"" + title.replace("\"", "\\\"") +
+                "\",\"message\":\"" + message.replace("\"", "\\\"") +
+                "\",\"type\":\"" + (type != null ? type : "SYSTEM") + "\"}";
+
+        // Lưu thông báo dưới dạng audit log với action BROADCAST_NOTIFICATION
+        auditLogService.log(adminId, "BROADCAST_NOTIFICATION", notifJson);
+
+        return MessageMapper.toJson(MessageResponse.ok("SEND_NOTIFICATION",
+                Map.of("message", "Đã gửi thông báo đến toàn bộ người dùng.",
+                        "title", title)));
+    }
+
+    /**
+     * Lấy danh sách thông báo hệ thống.
+     *
+     * @param session session của người dùng
+     * @param payload payload rỗng
+     * @return JSON response với danh sách thông báo
+     */
+    private String handleGetNotifications(Session session, JsonNode payload) {
+        SecurityContext.requireAuthenticated(session);
+        // Lấy các broadcast notification từ audit log
+        List<Map<String, Object>> notifications = new java.util.ArrayList<>();
+        try {
+            // Truy vấn audit log entries có action = BROADCAST_NOTIFICATION
+            List<Map<String, Object>> auditLogs = reportService.exportAuditLog(100);
+            for (Map<String, Object> log : auditLogs) {
+                String action = String.valueOf(log.getOrDefault("action", ""));
+                if ("BROADCAST_NOTIFICATION".equals(action)) {
+                    String detail = String.valueOf(log.getOrDefault("details", "{}"));
+                    try {
+                        com.fasterxml.jackson.databind.ObjectMapper om = new com.fasterxml.jackson.databind.ObjectMapper();
+                        JsonNode detailNode = om.readTree(detail);
+                        Map<String, Object> notif = new HashMap<>();
+                        notif.put("id", log.getOrDefault("id", ""));
+                        notif.put("title", detailNode.path("title").asText("Thông báo"));
+                        notif.put("message", detailNode.path("message").asText(""));
+                        notif.put("type", detailNode.path("type").asText("SYSTEM"));
+                        notif.put("createdAt", log.getOrDefault("createdAt", ""));
+                        notif.put("isRead", false);
+                        notifications.add(notif);
+                    } catch (Exception ignored) {}
+                }
+            }
+        } catch (Exception e) {
+            logger.warn("Không thể lấy danh sách thông báo: {}", e.getMessage());
+        }
+        return MessageMapper.toJson(MessageResponse.ok("GET_NOTIFICATIONS", notifications));
     }
 }

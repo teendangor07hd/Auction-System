@@ -118,6 +118,24 @@ public class BidDao {
         }
     }
 
+    public List<BidTransaction> findAll() {
+        String sql = "SELECT * FROM bid_transactions";
+        Connection conn = null;
+        try {
+            conn = acquireConnection();
+            try (PreparedStatement ps = conn.prepareStatement(sql);
+                 ResultSet rs = ps.executeQuery()) {
+                List<BidTransaction> result = new ArrayList<>();
+                while (rs.next()) result.add(mapRow(rs));
+                return result;
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException("BidDao.findAll thất bại: " + e.getMessage(), e);
+        } finally {
+            releaseConnection(conn);
+        }
+    }
+
     private BidTransaction mapRow(ResultSet rs) throws SQLException {
         return new BidTransaction(
                 rs.getString("id"),

@@ -15,12 +15,20 @@ import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.fxml.FXML;
 import javafx.scene.control.*;
+import javafx.scene.image.Image;
+import javafx.scene.image.ImageView;
 import javafx.scene.input.MouseButton;
 import javafx.scene.layout.FlowPane;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.VBox;
+import javafx.scene.shape.Rectangle;
+import javafx.animation.Timeline;
+import javafx.animation.KeyFrame;
+import javafx.util.Duration;
+import javafx.geometry.Pos;
+import javafx.geometry.Insets;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -82,7 +90,7 @@ public class AuctionListController {
     private void populateCards() {
         if (cardContainer == null) return;
         
-        for (javafx.animation.Timeline t : activeTimelines) {
+        for (Timeline t : activeTimelines) {
             t.stop();
         }
         activeTimelines.clear();
@@ -126,28 +134,31 @@ public class AuctionListController {
             card.setOnMouseClicked(e -> navigateToDetail(auctionId));
 
             // Image
-            javafx.scene.image.ImageView imageView = new javafx.scene.image.ImageView();
+            ImageView imageView = new ImageView();
             imageView.setFitWidth(280);
             imageView.setFitHeight(180);
             imageView.setPreserveRatio(false);
             
             // Clip for rounded top corners
-            javafx.scene.shape.Rectangle clip = new javafx.scene.shape.Rectangle(280, 180);
+            Rectangle clip = new Rectangle(280, 180);
             clip.setArcWidth(24);
             clip.setArcHeight(24);
             imageView.setClip(clip);
 
             if (imageUrl != null && !imageUrl.isEmpty()) {
                 try {
-                    imageView.setImage(new javafx.scene.image.Image(imageUrl));
+                    // Background loading = true
+                    imageView.setImage(new Image(imageUrl, true));
                 } catch (Exception e) {
-                    // Fallback or ignore
+                    imageView.setImage(new Image("https://via.placeholder.com/280x180?text=Image+Error", true));
                 }
+            } else {
+                imageView.setImage(new Image("https://via.placeholder.com/280x180?text=No+Image", true));
             }
 
             VBox content = new VBox();
             content.setSpacing(12);
-            content.setPadding(new javafx.geometry.Insets(15));
+            content.setPadding(new Insets(15));
 
             Label lblTitle = new Label(itemName);
             lblTitle.setStyle("-fx-font-weight: bold; -fx-font-size: 15px; -fx-wrap-text: true; -fx-text-fill: #1E1B4B;");
@@ -163,7 +174,7 @@ public class AuctionListController {
             }
 
             HBox priceBox = new HBox(10);
-            priceBox.setAlignment(javafx.geometry.Pos.CENTER_LEFT);
+            priceBox.setAlignment(Pos.CENTER_LEFT);
             Label lblPriceIcon = new Label("$");
             lblPriceIcon.setStyle("-fx-background-color: #f1f3f5; -fx-padding: 5 10 5 10; -fx-background-radius: 50; -fx-text-fill: #868e96; -fx-font-weight: bold;");
             VBox priceInfo = new VBox(2);
@@ -175,7 +186,7 @@ public class AuctionListController {
             priceBox.getChildren().addAll(lblPriceIcon, priceInfo);
 
             HBox timeBox = new HBox(10);
-            timeBox.setAlignment(javafx.geometry.Pos.CENTER_LEFT);
+            timeBox.setAlignment(Pos.CENTER_LEFT);
             Label lblTimeIcon = new Label("🕒");
             lblTimeIcon.setStyle("-fx-background-color: #f1f3f5; -fx-padding: 5 8 5 8; -fx-background-radius: 50; -fx-text-fill: #868e96;");
             VBox timeInfo = new VBox(2);
@@ -187,7 +198,7 @@ public class AuctionListController {
             timeBox.getChildren().addAll(lblTimeIcon, timeInfo);
 
             HBox sellerBox = new HBox(10);
-            sellerBox.setAlignment(javafx.geometry.Pos.CENTER_LEFT);
+            sellerBox.setAlignment(Pos.CENTER_LEFT);
             Label lblSellerIcon = new Label("👤");
             lblSellerIcon.setStyle("-fx-background-color: #f1f3f5; -fx-padding: 5 8 5 8; -fx-background-radius: 50; -fx-text-fill: #868e96;");
             VBox sellerInfo = new VBox(2);
@@ -200,7 +211,7 @@ public class AuctionListController {
             
             // Countdown
             HBox countdownBox = new HBox(10);
-            countdownBox.setAlignment(javafx.geometry.Pos.CENTER_LEFT);
+            countdownBox.setAlignment(Pos.CENTER_LEFT);
             Label lblCountdownIcon = new Label("⏳");
             lblCountdownIcon.setStyle("-fx-background-color: #fff3cd; -fx-padding: 5 8 5 8; -fx-background-radius: 50; -fx-text-fill: #856404;");
             Label lblCountdown = new Label("");
@@ -218,8 +229,8 @@ public class AuctionListController {
                 final java.time.LocalDateTime fStart = startDT;
                 final java.time.LocalDateTime fEnd = endDT;
                 
-                javafx.animation.Timeline timeline = new javafx.animation.Timeline(
-                    new javafx.animation.KeyFrame(javafx.util.Duration.seconds(1), e -> {
+                Timeline timeline = new Timeline(
+                    new KeyFrame(Duration.seconds(1), e -> {
                         java.time.LocalDateTime now = java.time.LocalDateTime.now();
                         if (status.equals("PENDING") && now.isBefore(fStart)) {
                             java.time.Duration d = java.time.Duration.between(now, fStart);

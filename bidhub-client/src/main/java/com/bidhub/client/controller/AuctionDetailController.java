@@ -21,6 +21,8 @@ import javafx.collections.ObservableList;
 import javafx.fxml.FXML;
 import javafx.scene.chart.LineChart;
 import javafx.scene.control.*;
+import javafx.scene.image.Image;
+import javafx.scene.image.ImageView;
 import javafx.util.Duration;
 
 import java.io.BufferedReader;
@@ -35,10 +37,11 @@ import java.util.Map;
 public class AuctionDetailController implements ContextAware {
 
     // --- FXML Components ---
-    @FXML private Label lblTitle;
+    @FXML
+    private Label lblTitle;
     @FXML private Label lblItemName;
     @FXML private Label lblDescription;
-    @FXML private javafx.scene.image.ImageView imgProduct;
+    @FXML private ImageView imgProduct;
     @FXML private Label lblStartingPrice;
     @FXML private Label lblCurrentPrice;
     @FXML private Label lblHighestBidder;
@@ -51,6 +54,11 @@ public class AuctionDetailController implements ContextAware {
     // 📌 [Tieu chi: UX — Loading state]
     @FXML private ProgressIndicator loadingSpinner;
     @FXML private ScrollPane chartScrollPane;
+
+    // Nút zoom đồ thị
+    @FXML private Button btnZoomIn;
+    @FXML private Button btnZoomOut;
+    @FXML private Button btnZoomReset;
 
     // 📌 [Tieu chi: Price Chart — FXML inject LineChart]
     @FXML
@@ -107,38 +115,19 @@ public class AuctionDetailController implements ContextAware {
         if (bidChart != null) {
             bidChart.getData().clear();
             bidChart.getData().add(bidChartService.getSeries());
-            bidChart.setAnimated(false); // Tat animation de realtime update nhanh hon
-            
-            // Xử lý sự kiện cuộn chuột để phóng to thu nhỏ (Zoom)
-            if (chartScrollPane != null) {
-                chartScrollPane.addEventFilter(javafx.scene.input.ScrollEvent.SCROLL, event -> {
-                    if (event.isControlDown() || true) { // Always zoom on scroll
-                        event.consume();
-                        double zoomFactor = 1.1;
-                        if (event.getDeltaY() < 0) {
-                            zoomFactor = 1 / zoomFactor;
-                        }
-                        
-                        double currentWidth = bidChart.getPrefWidth();
-                        if (currentWidth == javafx.scene.layout.Region.USE_COMPUTED_SIZE) {
-                            currentWidth = chartScrollPane.getWidth();
-                        }
-                        if (currentWidth == 0) currentWidth = 600;
-                        
-                        double newWidth = currentWidth * zoomFactor;
-                        
-                        // Giới hạn zoom
-                        double minWidth = chartScrollPane.getWidth();
-                        if (minWidth == 0) minWidth = 600;
-                        
-                        if (newWidth < minWidth) newWidth = minWidth;
-                        if (newWidth > 15000) newWidth = 15000;
-                        
-                        bidChart.setPrefWidth(newWidth);
-                        bidChart.setMinWidth(newWidth);
-                    }
-                });
-            }
+            bidChart.setAnimated(false); // Tắt animation để realtime update nhanh hơn
+            bidChart.setCreateSymbols(true);
+        }
+        
+        // Nút zoom đồ thị
+        if (btnZoomIn != null) {
+            btnZoomIn.setOnAction(e -> zoomChart(1.35));
+        }
+        if (btnZoomOut != null) {
+            btnZoomOut.setOnAction(e -> zoomChart(1.0 / 1.35));
+        }
+        if (btnZoomReset != null) {
+            btnZoomReset.setOnAction(e -> resetChartZoom());
         }
     }
 
@@ -183,7 +172,7 @@ public class AuctionDetailController implements ContextAware {
         String imageUrl = auction.path("imageUrl").asText("");
         if (!imageUrl.isEmpty()) {
             try {
-                javafx.scene.image.Image img = new javafx.scene.image.Image(imageUrl, true);
+                Image img = new Image(imageUrl, true);
                 if (imgProduct != null) {
                     imgProduct.setImage(img);
                 }
@@ -193,7 +182,7 @@ public class AuctionDetailController implements ContextAware {
         } else {
             // Hình ảnh mặc định nếu không có
             if (imgProduct != null) {
-                imgProduct.setImage(new javafx.scene.image.Image("https://via.placeholder.com/200x150?text=No+Image", true));
+                imgProduct.setImage(new Image("https://via.placeholder.com/200x150?text=No+Image", true));
             }
         }
 
@@ -480,6 +469,52 @@ public class AuctionDetailController implements ContextAware {
         if (countdownTimeline != null) {
             countdownTimeline.stop();
             countdownTimeline = null;
+        }
+    }
+
+    /** Phóng to đồ thị theo factor cho trước. */
+    @FXML
+    public void handleZoomIn() {
+        zoomChart(1.35);
+    }
+
+    /** Thu nhỏ đồ thị. */
+    @FXML
+    public void handleZoomOut() {
+        zoomChart(1.0 / 1.35);
+    }
+
+    /** Đặt lại kích thước đồ thị về mặc định. */
+    @FXML
+    public void handleZoomReset() {
+        resetChartZoom();
+    }
+
+    /**
+     * Điều chỉnh chiều cao đồ thị theo factor — zoom theo chiều dọc
+     * để không đẩy sang bảng xếp hạng.
+     */
+    private void zoomChart(double factor) {
+        if (bidChart == null) return;
+        double currentH = bidChart.getPrefHeight();
+        if (currentH <= 0 || currentH == javafx.scene.layout.Region.USE_COMPUTED_SIZE) {
+            currentH = 290.0;
+        }
+        double newH = currentH * factor;
+        // Giới hạn zoom: tối thiểu 200px, tối đa 1200px
+        newH = Math.max(200, Math.min(1200, newH));
+        bidChart.setPrefHeight(newH);
+        if (chartScrollPane != null) {
+            chartScrollPane.setPrefHeight(newH + 30);
+        }
+    }
+
+    private void resetChartZoom() {
+        if (bidChart != null) {
+            bidChart.setPrefHeight(290.0);
+        }
+        if (chartScrollPane != null) {
+            chartScrollPane.setPrefHeight(320);
         }
     }
 

@@ -22,8 +22,10 @@
     <VBox styleClass="content-pane" spacing="15" style="-fx-margin: 0 20 20 20;">
 
         <HBox spacing="20" alignment="CENTER_LEFT">
-            <ImageView fx:id="imgProduct" fitWidth="200" fitHeight="150" preserveRatio="true" 
-                       style="-fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.1), 5, 0, 0, 2);"/>
+            <StackPane style="-fx-background-color: #2B3139; -fx-background-radius: 12;" prefWidth="200" prefHeight="150">
+                <ImageView fx:id="imgProduct" fitWidth="200" fitHeight="150" preserveRatio="true" 
+                           style="-fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.1), 5, 0, 0, 2);"/>
+            </StackPane>
             <VBox spacing="15">
                 <Label fx:id="lblDescription" text="—" wrapText="true"/>
                 <HBox spacing="30">
@@ -54,24 +56,39 @@
 
         <Separator/>
 
+        <!-- Chart + Leaderboard: chart bên trái, leaderboard bên phải với kích thước cố định -->
         <HBox spacing="15" VBox.vgrow="ALWAYS">
-            <ScrollPane fx:id="chartScrollPane" fitToHeight="true" pannable="true" 
-                        vbarPolicy="NEVER" hbarPolicy="NEVER" HBox.hgrow="ALWAYS"
-                        style="-fx-background-color: transparent; -fx-background: transparent;">
-                <LineChart fx:id="bidChart" title="Lịch sử giá đấu giá" legendVisible="true"
-                           createSymbols="true" prefHeight="350.0" prefWidth="600.0" minWidth="600.0">
-                    <xAxis>
-                        <CategoryAxis label="Thời gian" />
-                    </xAxis>
-                    <yAxis>
-                        <NumberAxis label="Giá (VNĐ)" />
-                    </yAxis>
-                </LineChart>
-            </ScrollPane>
+            <!-- Chart wrapper: fitToWidth, zoom chỉ thay đổi prefHeight không tràn sang leaderboard -->
+            <VBox HBox.hgrow="ALWAYS" spacing="5">
+                <HBox alignment="CENTER_RIGHT" spacing="10">
+                    <Label text="Phóng to/thu nhỏ đồ thị:" style="-fx-text-fill: #94A3B8; -fx-font-size: 11px;"/>
+                    <Button fx:id="btnZoomIn" text="  ➕  " onAction="#handleZoomIn"
+                            style="-fx-background-color: #2B3139; -fx-text-fill: #E2E8F0; -fx-background-radius: 6; -fx-cursor: hand; -fx-font-size: 13px; -fx-padding: 4 10; -fx-border-color: #475569; -fx-border-radius: 6;"/>
+                    <Button fx:id="btnZoomOut" text="  ➖  " onAction="#handleZoomOut"
+                            style="-fx-background-color: #2B3139; -fx-text-fill: #E2E8F0; -fx-background-radius: 6; -fx-cursor: hand; -fx-font-size: 13px; -fx-padding: 4 10; -fx-border-color: #475569; -fx-border-radius: 6;"/>
+                    <Button fx:id="btnZoomReset" text="  ↺ Đặt lại  " onAction="#handleZoomReset"
+                            style="-fx-background-color: #2B3139; -fx-text-fill: #E2E8F0; -fx-background-radius: 6; -fx-cursor: hand; -fx-font-size: 11px; -fx-padding: 4 10; -fx-border-color: #475569; -fx-border-radius: 6;"/>
+                </HBox>
+                <ScrollPane fx:id="chartScrollPane" fitToWidth="true" pannable="true"
+                            vbarPolicy="AS_NEEDED" hbarPolicy="AS_NEEDED"
+                            style="-fx-background-color: transparent; -fx-background: transparent;"
+                            prefHeight="320">
+                    <LineChart fx:id="bidChart" title="Lịch sử giá đấu giá" legendVisible="true"
+                               createSymbols="true" prefHeight="290.0" prefWidth="500.0" minWidth="400.0">
+                        <xAxis>
+                            <CategoryAxis label="Thời gian" fx:id="xAxis"/>
+                        </xAxis>
+                        <yAxis>
+                            <NumberAxis label="Giá (VNĐ)" fx:id="yAxis" autoRanging="true"/>
+                        </yAxis>
+                    </LineChart>
+                </ScrollPane>
+            </VBox>
 
-            <VBox spacing="10" prefWidth="250">
-                <Label text="🏆 Bảng xếp hạng" style="-fx-font-size: 16px; -fx-font-weight: bold; -fx-text-fill: #1E1B4B;"/>
-                <TableView fx:id="bidTable" VBox.vgrow="ALWAYS">
+            <!-- Leaderboard bên phải, kích thước cố định không bị chart đẩy -->
+            <VBox spacing="10" minWidth="230" maxWidth="260" prefWidth="240">
+                <Label text="🏆 Bảng xếp hạng" style="-fx-font-size: 15px; -fx-font-weight: 900; -fx-text-fill: #F59E0B;"/>
+                <TableView fx:id="bidTable" VBox.vgrow="ALWAYS" style="-fx-background-color: #1E2329; -fx-border-color: #2B3139;">
                     <columns>
                         <TableColumn fx:id="colBidderName" text="Người đặt" prefWidth="120" />
                         <TableColumn fx:id="colBidAmount" text="Giá (VNĐ)" prefWidth="110" />
