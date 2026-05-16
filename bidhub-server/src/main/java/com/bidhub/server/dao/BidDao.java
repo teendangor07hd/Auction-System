@@ -119,7 +119,7 @@ public class BidDao {
     }
 
     public List<BidTransaction> findAll() {
-        String sql = "SELECT * FROM bid_transactions";
+        String sql = "SELECT * FROM bid_transactions ORDER BY bid_time DESC";
         Connection conn = null;
         try {
             conn = acquireConnection();
