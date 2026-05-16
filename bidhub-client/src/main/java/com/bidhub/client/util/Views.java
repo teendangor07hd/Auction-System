@@ -38,6 +38,12 @@ public final class Views {
     /** Trang thông báo — xem thông báo hệ thống */
     public static final String NOTIFICATION_VIEW = "NotificationView";
 
+    /** Kho sản phẩm — xem tất cả sản phẩm đang/chưa đấu giá */
+    public static final String ITEM_CATALOG = "ItemCatalogView";
+
+    /** Trang quản lý của người bán — xem/sửa/xóa sản phẩm và phiên của mình */
+    public static final String SELLER_DASHBOARD = "SellerDashboardView";
+
     /** Ngăn khởi tạo class này */
     private Views() {}
 }

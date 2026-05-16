@@ -39,34 +39,45 @@ public class AuctionDetailController implements ContextAware {
     // --- FXML Components ---
     @FXML
     private Label lblTitle;
-    @FXML private Label lblItemName;
-    @FXML private Label lblDescription;
-    @FXML private ImageView imgProduct;
-    @FXML private Label lblStartingPrice;
-    @FXML private Label lblCurrentPrice;
-    @FXML private Label lblHighestBidder;
-    @FXML private Label lblCountdown;
-    @FXML private Label lblStatus;
-    @FXML private TextField tfBidAmount;
-    @FXML private Button btnPlaceBid;
-    @FXML private Button btnBack;
+    @FXML
+    private Label lblItemName;
+    @FXML
+    private Label lblDescription;
+    @FXML
+    private ImageView imgProduct;
+    @FXML
+    private Label lblStartingPrice;
+    @FXML
+    private Label lblCurrentPrice;
+    @FXML
+    private Label lblHighestBidder;
+    @FXML
+    private Label lblCountdown;
+    @FXML
+    private Label lblStatus;
+    @FXML
+    private TextField tfBidAmount;
+    @FXML
+    private Button btnPlaceBid;
+    @FXML
+    private Button btnBack;
 
     // 📌 [Tieu chi: UX — Loading state]
-    @FXML private ProgressIndicator loadingSpinner;
-    @FXML private ScrollPane chartScrollPane;
-
-    // Nút zoom đồ thị
-    @FXML private Button btnZoomIn;
-    @FXML private Button btnZoomOut;
-    @FXML private Button btnZoomReset;
+    @FXML
+    private ProgressIndicator loadingSpinner;
+    @FXML
+    private ScrollPane chartScrollPane;
 
     // 📌 [Tieu chi: Price Chart — FXML inject LineChart]
     @FXML
     private LineChart<String, Number> bidChart;
 
-    @FXML private TableView<JsonNode> bidTable;
-    @FXML private TableColumn<JsonNode, String> colBidderName;
-    @FXML private TableColumn<JsonNode, String> colBidAmount;
+    @FXML
+    private TableView<JsonNode> bidTable;
+    @FXML
+    private TableColumn<JsonNode, String> colBidderName;
+    @FXML
+    private TableColumn<JsonNode, String> colBidAmount;
 
     // --- Logic Fields ---
     private final ObservableList<JsonNode> bidData = FXCollections.observableArrayList();
@@ -101,10 +112,10 @@ public class AuctionDetailController implements ContextAware {
         });
 
         // Setup bảng xếp hạng
-        colBidderName.setCellValueFactory(cellData ->
-                new javafx.beans.property.SimpleStringProperty(cellData.getValue().path("bidderName").asText("Unknown")));
-        colBidAmount.setCellValueFactory(cellData ->
-                new javafx.beans.property.SimpleStringProperty(String.format("%,.0f", cellData.getValue().path("bidAmount").asDouble(0))));
+        colBidderName.setCellValueFactory(cellData -> new javafx.beans.property.SimpleStringProperty(
+                cellData.getValue().path("bidderName").asText("Unknown")));
+        colBidAmount.setCellValueFactory(cellData -> new javafx.beans.property.SimpleStringProperty(
+                String.format("%,.0f", cellData.getValue().path("bidAmount").asDouble(0))));
         bidTable.setItems(bidData);
 
         // 📌 [Tieu chi: UX — TextField chi nhan so]
@@ -115,20 +126,12 @@ public class AuctionDetailController implements ContextAware {
         if (bidChart != null) {
             bidChart.getData().clear();
             bidChart.getData().add(bidChartService.getSeries());
-            bidChart.setAnimated(false); // Tắt animation để realtime update nhanh hơn
+            bidChart.setAnimated(false);
             bidChart.setCreateSymbols(true);
         }
-        
-        // Nút zoom đồ thị
-        if (btnZoomIn != null) {
-            btnZoomIn.setOnAction(e -> zoomChart(1.35));
-        }
-        if (btnZoomOut != null) {
-            btnZoomOut.setOnAction(e -> zoomChart(1.0 / 1.35));
-        }
-        if (btnZoomReset != null) {
-            btnZoomReset.setOnAction(e -> resetChartZoom());
-        }
+
+        // Tooltip cho bảng xếp hạng
+        setupLeaderboardTooltips();
     }
 
     /**
@@ -153,8 +156,8 @@ public class AuctionDetailController implements ContextAware {
             }
         });
 
-        task.setOnFailed(e ->
-                Platform.runLater(() -> UiUtils.showError("Lỗi kết nối", "Không thể kết nối đến máy chủ.")));
+        task.setOnFailed(
+                e -> Platform.runLater(() -> UiUtils.showError("Lỗi kết nối", "Không thể kết nối đến máy chủ.")));
 
         new Thread(task).start();
     }
@@ -168,7 +171,7 @@ public class AuctionDetailController implements ContextAware {
         lblTitle.setText("Chi tiết phiên đấu giá");
         lblItemName.setText(auction.path("itemName").asText(auction.path("itemId").asText("Sản phẩm không tên")));
         lblDescription.setText(auction.path("description").asText("Không có mô tả."));
-        
+
         String imageUrl = auction.path("imageUrl").asText("");
         if (!imageUrl.isEmpty()) {
             try {
@@ -188,7 +191,8 @@ public class AuctionDetailController implements ContextAware {
 
         lblStartingPrice.setText(String.format("%,.0f đ", auction.path("startingPrice").asDouble(0)));
         lblCurrentPrice.setText(String.format("%,.0f đ", auction.path("currentHighestBid").asDouble(0)));
-        lblHighestBidder.setText(auction.path("highestBidderName").asText(auction.path("highestBidderId").asText("Chưa có")));
+        lblHighestBidder
+                .setText(auction.path("highestBidderName").asText(auction.path("highestBidderId").asText("Chưa có")));
 
         // 📌 [Tieu chi: Price Chart — load history data tu server de ve bieu do]
         JsonNode bidHistoryNode = payload.path("bidHistory");
@@ -202,7 +206,8 @@ public class AuctionDetailController implements ContextAware {
                 double sPrice = auction.path("startingPrice").asDouble(0);
                 bidChartService.addDataPoint(startDT, sPrice, "Giá khởi điểm");
             }
-        } catch (Exception ignored) {}
+        } catch (Exception ignored) {
+        }
 
         if (bidHistoryNode != null && bidHistoryNode.isArray()) {
             java.util.List<JsonNode> bids = new java.util.ArrayList<>();
@@ -215,7 +220,8 @@ public class AuctionDetailController implements ContextAware {
                     try {
                         LocalDateTime time = LocalDateTime.parse(timeStr);
                         bidChartService.addDataPoint(time, amount, bidderName);
-                    } catch (Exception ignored) {}
+                    } catch (Exception ignored) {
+                    }
                 }
             }
             // Sort bids by amount descending for the leaderboard
@@ -238,9 +244,10 @@ public class AuctionDetailController implements ContextAware {
         if (!startTimeStr.isEmpty()) {
             try {
                 startTime = LocalDateTime.parse(startTimeStr);
-            } catch (Exception ex) {}
+            } catch (Exception ex) {
+            }
         }
-        
+
         String endTimeStr = auction.path("endTime").asText("");
         if (!endTimeStr.isEmpty()) {
             try {
@@ -267,14 +274,15 @@ public class AuctionDetailController implements ContextAware {
      * Sử dụng một Socket ĐỘC LẬP để không tranh chấp InputStream với ServerGateway.
      */
     private void subscribeRealtimeEvents() {
-        if (isSubscribed) return;
+        if (isSubscribed)
+            return;
 
         try {
             // 1. Tao ket noi Socket doc lap cho realtime events
             String host = ServerGateway.getInstance().getServerHost();
             int port = ServerGateway.getInstance().getServerPort();
             eventSocket = new java.net.Socket(host, port);
-            
+
             java.io.PrintWriter writer = new java.io.PrintWriter(eventSocket.getOutputStream(), true);
             BufferedReader reader = new BufferedReader(new InputStreamReader(eventSocket.getInputStream()));
 
@@ -302,16 +310,18 @@ public class AuctionDetailController implements ContextAware {
                     Platform.runLater(() -> {
                         if ("BID_UPDATE".equals(eventType)) {
                             double newPrice = eventNode.path("bidAmount").asDouble(0);
-                            String bidder = eventNode.path("bidderName").asText(eventNode.path("bidderId").asText("Unknown"));
+                            String bidder = eventNode.path("bidderName")
+                                    .asText(eventNode.path("bidderId").asText("Unknown"));
                             lblCurrentPrice.setText(String.format("%,.0f đ", newPrice));
                             lblHighestBidder.setText(bidder);
 
                             // 📌 [Tieu chi: Price Chart — realtime addDataPoint khi nhan BID_UPDATE]
                             bidChartService.addDataPoint(LocalDateTime.now(), newPrice, bidder);
-                            
+
                             // Them vao bang xep hang va sap xep
                             bidData.add(eventNode);
-                            FXCollections.sort(bidData, (b1, b2) -> Double.compare(b2.path("bidAmount").asDouble(0), b1.path("bidAmount").asDouble(0)));
+                            FXCollections.sort(bidData, (b1, b2) -> Double.compare(b2.path("bidAmount").asDouble(0),
+                                    b1.path("bidAmount").asDouble(0)));
 
                         } else if ("AUCTION_CLOSED".equals(eventType)) {
                             // 📌 [Tieu chi: UX — countdown dung khi auction dong]
@@ -414,7 +424,8 @@ public class AuctionDetailController implements ContextAware {
 
     private void startCountdown() {
         stopCountdown();
-        if (endTime == null) return;
+        if (endTime == null)
+            return;
 
         countdownTimeline = new Timeline(new KeyFrame(Duration.seconds(1), e -> updateCountdown()));
         countdownTimeline.setCycleCount(Timeline.INDEFINITE);
@@ -423,7 +434,7 @@ public class AuctionDetailController implements ContextAware {
 
     private void updateCountdown() {
         LocalDateTime now = LocalDateTime.now();
-        
+
         // Nếu chưa tới giờ bắt đầu
         if (startTime != null && now.isBefore(startTime)) {
             java.time.Duration d = java.time.Duration.between(now, startTime);
@@ -440,7 +451,7 @@ public class AuctionDetailController implements ContextAware {
             disableBiddingUI();
             return;
         }
-        
+
         // Đang diễn ra
         btnPlaceBid.setDisable(false);
         java.time.Duration d = java.time.Duration.between(now, endTime);
@@ -472,49 +483,48 @@ public class AuctionDetailController implements ContextAware {
         }
     }
 
-    /** Phóng to đồ thị theo factor cho trước. */
-    @FXML
-    public void handleZoomIn() {
-        zoomChart(1.35);
-    }
-
-    /** Thu nhỏ đồ thị. */
-    @FXML
-    public void handleZoomOut() {
-        zoomChart(1.0 / 1.35);
-    }
-
-    /** Đặt lại kích thước đồ thị về mặc định. */
-    @FXML
-    public void handleZoomReset() {
-        resetChartZoom();
-    }
+    // =====================================================================
+    // Leaderboard Tooltip
+    // =====================================================================
 
     /**
-     * Điều chỉnh chiều cao đồ thị theo factor — zoom theo chiều dọc
-     * để không đẩy sang bảng xếp hạng.
+     * Gắn Tooltip cho cột bảng xếp hạng.
+     * Khi nội dung bị cắt bớt sẽ hiện tooltip đầy đủ khi hover.
      */
-    private void zoomChart(double factor) {
-        if (bidChart == null) return;
-        double currentH = bidChart.getPrefHeight();
-        if (currentH <= 0 || currentH == javafx.scene.layout.Region.USE_COMPUTED_SIZE) {
-            currentH = 290.0;
+    private void setupLeaderboardTooltips() {
+        if (colBidderName != null) {
+            colBidderName.setCellFactory(col -> new TableCell<>() {
+                @Override
+                protected void updateItem(String item, boolean empty) {
+                    super.updateItem(item, empty);
+                    if (empty || item == null) {
+                        setText(null);
+                        setTooltip(null);
+                    } else {
+                        setText(item);
+                        Tooltip tp = new Tooltip(item);
+                        tp.setStyle("-fx-font-size: 13px; -fx-padding: 6 10;");
+                        setTooltip(tp);
+                    }
+                }
+            });
         }
-        double newH = currentH * factor;
-        // Giới hạn zoom: tối thiểu 200px, tối đa 1200px
-        newH = Math.max(200, Math.min(1200, newH));
-        bidChart.setPrefHeight(newH);
-        if (chartScrollPane != null) {
-            chartScrollPane.setPrefHeight(newH + 30);
-        }
-    }
-
-    private void resetChartZoom() {
-        if (bidChart != null) {
-            bidChart.setPrefHeight(290.0);
-        }
-        if (chartScrollPane != null) {
-            chartScrollPane.setPrefHeight(320);
+        if (colBidAmount != null) {
+            colBidAmount.setCellFactory(col -> new TableCell<>() {
+                @Override
+                protected void updateItem(String item, boolean empty) {
+                    super.updateItem(item, empty);
+                    if (empty || item == null) {
+                        setText(null);
+                        setTooltip(null);
+                    } else {
+                        setText(item);
+                        Tooltip tp = new Tooltip(item + " đồng");
+                        tp.setStyle("-fx-font-size: 13px; -fx-padding: 6 10;");
+                        setTooltip(tp);
+                    }
+                }
+            });
         }
     }
 

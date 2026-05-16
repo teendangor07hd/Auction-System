@@ -268,4 +268,25 @@ public class AuctionDao {
     }
     return result;
   }
+
+    /**
+     * Xóa phiên đấu giá theo ID — dùng để hủy phiên PENDING.
+     *
+     * @param auctionId UUID của phiên cần hủy
+     */
+    public void deleteById(String auctionId) {
+        Connection conn = null;
+        try {
+            conn = acquireConnection();
+            try (PreparedStatement ps = conn.prepareStatement(
+                    "DELETE FROM auctions WHERE id = ?")) {
+                ps.setString(1, auctionId);
+                ps.executeUpdate();
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException("AuctionDao.deleteById thất bại: " + e.getMessage(), e);
+        } finally {
+            releaseConnection(conn);
+        }
+    }
 }

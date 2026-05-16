@@ -35,8 +35,8 @@
             <Label text="Mô tả chi tiết:" GridPane.rowIndex="1" GridPane.valignment="TOP" />
             <TextArea fx:id="descriptionArea" prefRowCount="3" promptText="Tình trạng, ngoại hình, phụ kiện đi kèm..." styleClass="text-input-field" wrapText="true" GridPane.columnIndex="1" GridPane.rowIndex="1" />
 
-            <!-- Label text="Giá khởi điểm:" GridPane.rowIndex="2" />
-            <TextField fx:id="startingPriceField" promptText="Nhập số tiền (VND)" styleClass="text-input-field" GridPane.columnIndex="1" GridPane.rowIndex="2" / -->
+            <Label text="Giá khởi điểm d.kiến:" GridPane.rowIndex="2" />
+            <TextField fx:id="startingPriceField" promptText="0 = chưa định giá (VND)" styleClass="text-input-field" GridPane.columnIndex="1" GridPane.rowIndex="2" />
 
             <Label text="Loại sản phẩm:" GridPane.rowIndex="3" />
             <ComboBox fx:id="itemTypeComboBox" maxWidth="Infinity" promptText="-- Chọn danh mục --" styleClass="text-input-field" GridPane.columnIndex="1" GridPane.rowIndex="3" />
@@ -48,6 +48,7 @@
             </HBox>
         </children>
         <rowConstraints>
+            <RowConstraints />
             <RowConstraints />
             <RowConstraints />
             <RowConstraints />

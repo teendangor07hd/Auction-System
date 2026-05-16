@@ -122,6 +122,43 @@ public class ItemDao {
         }
     }
 
+    /**
+     * Cập nhật tên, mô tả, giá khởi điểm của sản phẩm.
+     * Không thay đổi item_type, seller_id, extra_data (chỉ sửa các trường metadata cơ bản).
+     *
+     * @param itemId         ID sản phẩm cần cập nhật
+     * @param newName        tên mới (null = giữ nguyên)
+     * @param newDescription mô tả mới (null = giữ nguyên)
+     * @param newPrice       giá mới (&lt;0 = giữ nguyên)
+     */
+    public void updateItem(String itemId, String newName, String newDescription, double newPrice) {
+        String sql = """
+            UPDATE items
+            SET name = COALESCE(?, name),
+                description = COALESCE(?, description),
+                starting_price = CASE WHEN ? >= 0 THEN ? ELSE starting_price END,
+                updated_at = ?
+            WHERE id = ?
+            """;
+        Connection conn = null;
+        try {
+            conn = acquireConnection();
+            try (PreparedStatement ps = conn.prepareStatement(sql)) {
+                ps.setString(1, newName);
+                ps.setString(2, newDescription);
+                ps.setDouble(3, newPrice);
+                ps.setDouble(4, newPrice);
+                ps.setString(5, java.time.LocalDateTime.now().toString());
+                ps.setString(6, itemId);
+                ps.executeUpdate();
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException("ItemDao.updateItem thất bại: " + e.getMessage(), e);
+        } finally {
+            releaseConnection(conn);
+        }
+    }
+
     private Optional<Item> querySingle(String sql, String param) {
         Connection conn = null;
         try {

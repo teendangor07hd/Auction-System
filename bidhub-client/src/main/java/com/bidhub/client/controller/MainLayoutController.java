@@ -20,12 +20,15 @@ public class MainLayoutController {
 
     private static final String CMD_LOGOUT = "LOGOUT";
     private static final String ROLE_ADMIN = "ADMIN";
+    private static final String ROLE_SELLER = "SELLER";
 
     @FXML private BorderPane mainPane;
     @FXML private Button btnCreateAuction;
     @FXML private Button btnCreateItem;
     @FXML private Button btnAuctionList;
     @FXML private Button btnNotifications;
+    @FXML private Button btnItemCatalog;
+    @FXML private Button btnSellerDashboard;
     @FXML private Button btnAccount;
     @FXML private Button btnLogout;
     @FXML private Button adminBtn;
@@ -40,16 +43,28 @@ public class MainLayoutController {
         btnCreateAuction.setOnAction(e -> ViewRouter.getInstance().navigateTo(Views.CREATE_AUCTION));
         btnCreateItem.setOnAction(e -> ViewRouter.getInstance().navigateTo(Views.CREATE_ITEM));
         btnAuctionList.setOnAction(e -> ViewRouter.getInstance().navigateTo(Views.AUCTION_LIST));
+
         if (btnNotifications != null) {
             btnNotifications.setOnAction(e -> ViewRouter.getInstance().navigateTo(Views.NOTIFICATION_VIEW));
+        }
+        if (btnItemCatalog != null) {
+            btnItemCatalog.setOnAction(e -> ViewRouter.getInstance().navigateTo(Views.ITEM_CATALOG));
         }
 
         String currentRole = String.valueOf(ClientSession.getInstance().getCurrentRole());
         boolean isAdmin = ROLE_ADMIN.equals(currentRole);
+        boolean isSeller = ROLE_SELLER.equals(currentRole);
 
         if (adminBtn != null) {
             adminBtn.setVisible(isAdmin);
             adminBtn.setManaged(isAdmin);
+        }
+
+        // Hiện nút "Sản phẩm của tôi" chỉ cho SELLER (và ADMIN)
+        if (btnSellerDashboard != null) {
+            boolean showSeller = isSeller || isAdmin;
+            btnSellerDashboard.setVisible(showSeller);
+            btnSellerDashboard.setManaged(showSeller);
         }
     }
 
@@ -66,6 +81,16 @@ public class MainLayoutController {
     @FXML
     public void handleNotifications() {
         ViewRouter.getInstance().navigateTo(Views.NOTIFICATION_VIEW);
+    }
+
+    @FXML
+    public void handleItemCatalog() {
+        ViewRouter.getInstance().navigateTo(Views.ITEM_CATALOG);
+    }
+
+    @FXML
+    public void handleSellerDashboard() {
+        ViewRouter.getInstance().navigateTo(Views.SELLER_DASHBOARD);
     }
 
     private void handleLogout() {
@@ -109,7 +134,12 @@ public class MainLayoutController {
         lblUsernameValue.setStyle("-fx-font-weight: bold;");
 
         Label lblRoleTitle = new Label("Vai trò:");
-        String roleDisplay = (role != null) ? role : "Không xác định";
+        String roleDisplay = (role != null) ? switch (role) {
+            case "BIDDER" -> "Người Đấu Giá";
+            case "SELLER" -> "Người Bán";
+            case "ADMIN" -> "Quản Trị Viên";
+            default -> role;
+        } : "Không xác định";
         Label lblRoleValue = new Label(roleDisplay);
         lblRoleValue.setStyle("-fx-font-weight: bold;");
 

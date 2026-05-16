@@ -25,7 +25,7 @@ public class CreateItemController {
 
     @FXML private TextField nameField;
     @FXML private TextArea descriptionArea;
-    // @FXML private TextField startingPriceField; // Hidden by user request
+    @FXML private TextField startingPriceField; // Giá khởi điểm dự kiến
     @FXML private ComboBox<String> itemTypeComboBox;
     @FXML private Label lblMessage;
     
@@ -83,7 +83,8 @@ public class CreateItemController {
         lblMessage.getStyleClass().add("error-message");
 
         // 📌 [Tieu chi: UX — TextField chi nhan so]
-        // UiUtils.applyNumericFilter(startingPriceField);
+        // Chỉ apply numeric filter cho các trường số
+        if (startingPriceField != null) UiUtils.applyNumericFilter(startingPriceField);
         UiUtils.applyNumericFilter(warrantyMonthsField);
         UiUtils.applyNumericFilter(yearCreatedField);
         UiUtils.applyNumericFilter(yearField);
@@ -126,7 +127,7 @@ public class CreateItemController {
 
         // 📌 [Tieu chi: UX — Form validation client-side]
         if (!UiUtils.validateNotEmpty(nameField, "Tên sản phẩm")) return;
-        // if (!UiUtils.validatePositiveNumber(startingPriceField, "Giá khởi điểm")) return;
+        // Giá dự kiến là tuỳ chọn, mặc định 0 = chưa định giá
 
         String itemType = itemTypeComboBox.getValue();
         if (itemType == null) {
@@ -136,7 +137,10 @@ public class CreateItemController {
 
         String name = nameField.getText().trim();
         String description = descriptionArea.getText().trim();
-        double startingPrice = 1.0; // Default dummy value
+        double startingPrice = 0.0; // Mặc định 0 = chưa định giá
+        if (startingPriceField != null && !startingPriceField.getText().trim().isEmpty()) {
+            try { startingPrice = Double.parseDouble(startingPriceField.getText().trim()); } catch (NumberFormatException ignored) {}
+        }
         ObjectNode extras = JsonNodeFactory.instance.objectNode();
 
         // Kiểm tra và gán dữ liệu (assign data) tùy theo itemType
