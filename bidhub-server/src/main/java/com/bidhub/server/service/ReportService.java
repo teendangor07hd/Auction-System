@@ -24,12 +24,16 @@ public class ReportService {
   private final AuctionDao auctionDao;
   private final BidDao bidDao;
   private final AuditLogDao auditLogDao;
+  private final com.bidhub.server.dao.UserDao userDao;
+  private final com.bidhub.server.dao.ItemDao itemDao;
 
   /** Constructor production. */
   public ReportService() {
     this.auctionDao = new AuctionDao();
     this.bidDao = new BidDao();
     this.auditLogDao = new AuditLogDao();
+    this.userDao = new com.bidhub.server.dao.UserDao();
+    this.itemDao = new com.bidhub.server.dao.ItemDao();
   }
 
   /**
@@ -44,10 +48,12 @@ public class ReportService {
     this.auctionDao = auctionDao;
     this.bidDao = bidDao;
     this.auditLogDao = auditLogDao;
+    this.userDao = new com.bidhub.server.dao.UserDao();
+    this.itemDao = new com.bidhub.server.dao.ItemDao();
   }
 
   /**
-   * Xuat bao cao tat ca auction — moi auction la 1 Map flat.
+   * Xuat bao cao tat ca auction — moi auction là 1 Map flat.
    *
    * <p>// 📌 [Tieu chi: MVC — ReportService lay du lieu tu DAO layer]
    *
@@ -60,15 +66,25 @@ public class ReportService {
       Map<String, Object> row = new HashMap<>();
       row.put("auctionId", auction.getId());
       row.put("itemId", auction.getItemId());
+      
+      String itemId = auction.getItemId();
+      String itemName = itemDao.findById(itemId).map(item -> item.getName()).orElse("Item " + itemId);
+      row.put("itemName", itemName);
+
       row.put("status", auction.getStatus().name());
       row.put("startingPrice", auction.getStartingPrice());
       row.put("currentHighestBid", auction.getCurrentHighestBid());
-      row.put("highestBidderId",
-          auction.getHighestBidderId() != null ? auction.getHighestBidderId() : "N/A");
-      row.put("startTime",
-          auction.getStartTime() != null ? auction.getStartTime().toString() : "N/A");
-      row.put("endTime",
-          auction.getEndTime() != null ? auction.getEndTime().toString() : "N/A");
+      
+      String winnerId = auction.getHighestBidderId();
+      String winnerName = "N/A";
+      if (winnerId != null && !winnerId.isEmpty()) {
+          winnerName = userDao.findById(winnerId).map(u -> u.getUsername()).orElse("User " + winnerId);
+      }
+      row.put("highestBidderId", winnerId != null ? winnerId : "N/A");
+      row.put("winnerName", winnerName);
+
+      row.put("startTime", formatDateTime(auction.getStartTime()));
+      row.put("endTime", formatDateTime(auction.getEndTime()));
       result.add(row);
     }
     return result;
@@ -82,14 +98,27 @@ public class ReportService {
    */
   public List<Map<String, Object>> exportBidHistory(String auctionId) {
     List<Map<String, Object>> result = new ArrayList<>();
-    List<BidTransaction> bids = bidDao.findByAuctionId(auctionId);
+    List<BidTransaction> bids;
+    if ("ALL".equalsIgnoreCase(auctionId)) {
+        bids = bidDao.findAll();
+    } else {
+        bids = bidDao.findByAuctionId(auctionId);
+    }
     for (BidTransaction bid : bids) {
       Map<String, Object> row = new HashMap<>();
       row.put("bidId", bid.getId());
+      row.put("auctionId", bid.getAuctionId());
       row.put("bidderId", bid.getBidderId());
+      
+      String bidderId = bid.getBidderId();
+      String bidderName = "N/A";
+      if (bidderId != null && !bidderId.isEmpty()) {
+          bidderName = userDao.findById(bidderId).map(u -> u.getUsername()).orElse("User " + bidderId);
+      }
+      row.put("bidderName", bidderName);
+
       row.put("bidAmount", bid.getBidAmount());
-      row.put("bidTime",
-          bid.getBidTime() != null ? bid.getBidTime().toString() : "N/A");
+      row.put("bidTime", formatDateTime(bid.getBidTime()));
       result.add(row);
     }
     return result;
@@ -109,12 +138,28 @@ public class ReportService {
       row.put("id", log.getId());
       row.put("userId",
           log.getUserId() != null ? log.getUserId() : "SYSTEM");
+      
+      String userId = log.getUserId();
+      String userName = "SYSTEM";
+      if (userId != null && !userId.isEmpty() && !userId.equalsIgnoreCase("SYSTEM")) {
+          userName = userDao.findById(userId).map(u -> u.getUsername()).orElse("User " + userId);
+      }
+      row.put("userName", userName);
+
       row.put("action", log.getAction());
       row.put("details", log.getDetails());
-      row.put("createdAt",
-          log.getCreatedAt() != null ? log.getCreatedAt().toString() : "N/A");
+      row.put("createdAt", formatDateTime(log.getCreatedAt()));
       result.add(row);
     }
     return result;
+  }
+
+  private String formatDateTime(java.time.LocalDateTime dt) {
+      if (dt == null) return "N/A";
+      try {
+          return dt.format(java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm:ss"));
+      } catch (Exception e) {
+          return dt.toString();
+      }
   }
 }

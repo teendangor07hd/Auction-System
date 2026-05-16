@@ -9,13 +9,18 @@
             fx:id="mainPane">
 
     <left>
-        <VBox spacing="5" style="-fx-background-color: #1A1F2E; -fx-padding: 18 12; -fx-min-width: 215; -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.5), 10, 0, 0, 2);">
-            <HBox alignment="CENTER_LEFT" spacing="10" style="-fx-padding: 0 0 14 4;">
-                <Label text="⚡" style="-fx-text-fill: #4F46E5; -fx-font-size: 20px;"/>
-                <Label text="BidHub" style="-fx-text-fill: white; -fx-font-size: 17px; -fx-font-weight: 900;"/>
+        <VBox spacing="8" style="-fx-background-color: #1A1F2E; -fx-padding: 20 15; -fx-min-width: 220; -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.5), 10, 0, 0, 2);">
+            <HBox alignment="CENTER_LEFT" spacing="10" style="-fx-padding: 0 0 15 0;">
+                <Label text="⚡" style="-fx-text-fill: #4F46E5; -fx-font-size: 22px;"/>
+                <Label text="BidHub" style="-fx-text-fill: white; -fx-font-size: 18px; -fx-font-weight: 900;"/>
             </HBox>
 
-            <Label text="KHÁM PHÁ" style="-fx-text-fill: #475569; -fx-font-size: 10px; -fx-font-weight: bold; -fx-padding: 6 0 3 5;"/>
+            <VBox style="-fx-background-color: #2E364F; -fx-padding: 8 12; -fx-background-radius: 6; -fx-margin: 0 0 10 0;">
+                <Label fx:id="lblSidebarUser" text="👤 Khách" style="-fx-text-fill: white; -fx-font-weight: bold; -fx-font-size: 12px;"/>
+                <Label fx:id="lblSidebarRole" text="Vai trò: Bidder" style="-fx-text-fill: #94A3B8; -fx-font-size: 11px;"/>
+            </VBox>
+
+            <Label text="KHÁM PHÁ" style="-fx-text-fill: #475569; -fx-font-size: 10px; -fx-font-weight: bold; -fx-padding: 8 0 4 5;"/>
 
             <Button fx:id="btnAuctionList" text="🏛  Phiên Đấu Giá"
                     maxWidth="Infinity" styleClass="button, btn-primary" />
@@ -28,12 +33,13 @@
                     maxWidth="Infinity" onAction="#handleNotifications"
                     styleClass="button, btn-primary" />
 
-            <Label text="NGƯỜI BÁN" style="-fx-text-fill: #475569; -fx-font-size: 10px; -fx-font-weight: bold; -fx-padding: 8 0 3 5;"/>
+            <Label text="NGƯỜI BÁN" style="-fx-text-fill: #475569; -fx-font-size: 10px; -fx-font-weight: bold; -fx-padding: 8 0 4 5;"/>
 
             <Button fx:id="btnCreateItem"    text="➕  Thêm Sản Phẩm"
                     maxWidth="Infinity" styleClass="button, btn-primary" />
             <Button fx:id="btnCreateAuction" text="📊  Tạo Phiên Mới"
                     maxWidth="Infinity" styleClass="button, btn-primary" />
+
             <Button fx:id="btnSellerDashboard" text="🗂  Sản Phẩm Của Tôi"
                     maxWidth="Infinity" onAction="#handleSellerDashboard"
                     styleClass="button, btn-primary" visible="false" managed="false" />

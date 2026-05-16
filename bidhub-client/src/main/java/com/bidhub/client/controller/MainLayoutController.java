@@ -32,6 +32,8 @@ public class MainLayoutController {
     @FXML private Button btnAccount;
     @FXML private Button btnLogout;
     @FXML private Button adminBtn;
+    @FXML private Label lblSidebarUser;
+    @FXML private Label lblSidebarRole;
 
     @FXML
     public void initialize() {
@@ -51,9 +53,17 @@ public class MainLayoutController {
             btnItemCatalog.setOnAction(e -> ViewRouter.getInstance().navigateTo(Views.ITEM_CATALOG));
         }
 
+        String currentUsername = ClientSession.getInstance().getCurrentUsername();
         String currentRole = String.valueOf(ClientSession.getInstance().getCurrentRole());
         boolean isAdmin = ROLE_ADMIN.equals(currentRole);
         boolean isSeller = ROLE_SELLER.equals(currentRole);
+
+        if (lblSidebarUser != null) {
+            lblSidebarUser.setText("👤 " + (currentUsername != null && !currentUsername.isBlank() ? currentUsername : "Khách"));
+        }
+        if (lblSidebarRole != null) {
+            lblSidebarRole.setText("Vai trò: " + (currentRole != null && !currentRole.isBlank() ? currentRole : "Bidder"));
+        }
 
         if (adminBtn != null) {
             adminBtn.setVisible(isAdmin);

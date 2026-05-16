@@ -80,10 +80,20 @@
 
 .table-row-cell:odd {
     -fx-background-color: #F8FAFC;
+    -fx-text-fill: #334155;
 }
 
 .table-row-cell:hover {
     -fx-background-color: #EEF2FF;
+    -fx-text-fill: #334155;
+}
+
+.table-row-cell:selected, .table-row-cell:selected:hover, .table-row-cell:selected:odd {
+    -fx-background-color: #4F46E5;
+}
+
+.table-row-cell:selected .table-cell {
+    -fx-text-fill: white;
 }
 
 /* 6. FORM & LOGIN ELEMENTS (Thành phần biểu mẫu) */

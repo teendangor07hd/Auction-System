@@ -203,7 +203,13 @@ public class AuctionDao {
         // getString trả về null khi cột NULL trong DB — null-safe cho phiên chưa có bid
         String highestBidderId = rs.getString("highest_bidder_id");
 
-        AuctionStatus status = AuctionStatus.valueOf(rs.getString("status"));
+        String statusStr = rs.getString("status");
+        AuctionStatus status;
+        try {
+            status = AuctionStatus.valueOf(statusStr);
+        } catch (Exception e) {
+            status = AuctionStatus.FINISHED;
+        }
         double minimumIncrement = rs.getDouble("minimum_increment");
 
         return new Auction(id, createdAt, updatedAt, itemId, startTime, endTime,
