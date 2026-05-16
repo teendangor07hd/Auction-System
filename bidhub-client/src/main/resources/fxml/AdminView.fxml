@@ -26,6 +26,8 @@
                                 styleClass="btn-success" onAction="#handleUnlockUser" />
                         <Button text="Làm mới" onAction="#handleRefresh"
                                 styleClass="btn-secondary" />
+                        <Button text="Kiểm tra Toàn vẹn" onAction="#handleRunIntegrityCheck"
+                                styleClass="btn-warning" style="-fx-background-color: #F59E0B; -fx-text-fill: white;" />
                         <Region HBox.hgrow="ALWAYS" />
                         <ComboBox fx:id="cbUserRoleFilter" promptText="Lọc Vai trò" prefWidth="130" onAction="#filterUsers"/>
                         <ComboBox fx:id="cbUserStatusFilter" promptText="Lọc Trạng thái" prefWidth="140" onAction="#filterUsers"/>
@@ -50,6 +52,8 @@
                 <VBox spacing="10" style="-fx-padding: 10;">
                     <HBox spacing="10" alignment="CENTER_LEFT">
                         <Button text="Làm mới" onAction="#loadAuctionReport" styleClass="btn-secondary" />
+                        <Button fx:id="stopAuctionBtn" text="Dừng phiên" onAction="#stopAuction" styleClass="btn-danger" disable="true" />
+                        <Button fx:id="deleteAuctionBtn" text="Xóa phiên" onAction="#deleteAuction" styleClass="btn-danger" disable="true" />
                         <Region HBox.hgrow="ALWAYS" />
                         <ComboBox fx:id="cbAuctionStatusFilter" promptText="Lọc Trạng thái" prefWidth="150" onAction="#filterAuctions"/>
                         <TextField fx:id="tfAuctionSearch" promptText="🔍 Tìm Tên sản phẩm/Người thắng..." prefWidth="250" onKeyReleased="#filterAuctions"/>
@@ -82,6 +86,7 @@
                     </HBox>
                     <TableView fx:id="bidHistoryTable" VBox.vgrow="ALWAYS" styleClass="table-view">
                         <columns>
+                            <TableColumn fx:id="colBidItemName" text="Tên sản phẩm" prefWidth="250" />
                             <TableColumn fx:id="colBidderName" text="Người đặt giá" prefWidth="200" />
                             <TableColumn fx:id="colBidAmount" text="Số tiền Bid" prefWidth="150" />
                             <TableColumn fx:id="colBidTime" text="Thời gian Bid" prefWidth="200" />

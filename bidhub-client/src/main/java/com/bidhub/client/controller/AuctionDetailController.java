@@ -282,6 +282,7 @@ public class AuctionDetailController implements ContextAware {
             // 2. Gửi lệnh SUBSCRIBE lên server qua socket moi
             MessageRequest subReq = new MessageRequest();
             subReq.setType("SUBSCRIBE_AUCTION");
+            subReq.setToken(ClientSession.getInstance().getToken());
             subReq.setPayload(mapper.createObjectNode().put("auctionId", auctionId));
             writer.println(MessageMapper.toJson(subReq));
 

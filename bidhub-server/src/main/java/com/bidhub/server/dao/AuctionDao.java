@@ -252,7 +252,7 @@ public class AuctionDao {
    */
   public List<Map<String, Object>> findAllWithBidInfo() {
     List<Map<String, Object>> result = new ArrayList<>();
-    String sql = "SELECT id, current_highest_bid, highest_bidder_id FROM auctions";
+    String sql = "SELECT a.id, a.current_highest_bid, a.highest_bidder_id, i.name as item_name FROM auctions a LEFT JOIN items i ON a.item_id = i.id";
     Connection conn = null;
     try {
       conn = acquireConnection();
@@ -263,6 +263,7 @@ public class AuctionDao {
           row.put("id", rs.getString("id"));
           row.put("currentHighestBid", rs.getDouble("current_highest_bid"));
           row.put("highestBidderId", rs.getString("highest_bidder_id"));
+          row.put("itemName", rs.getString("item_name") != null ? rs.getString("item_name") : "Không rõ tên");
           result.add(row);
         }
       }

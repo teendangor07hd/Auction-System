@@ -40,6 +40,8 @@ public class AdminController implements com.bidhub.client.navigation.ContextAwar
     @FXML private Button unlockBtn;
 
     @FXML private TableView<AuctionReportInfo> auctionReportTable;
+    @FXML private Button stopAuctionBtn;
+    @FXML private Button deleteAuctionBtn;
     @FXML private TableColumn<AuctionReportInfo, String> colAuctionItemName;
     @FXML private TableColumn<AuctionReportInfo, String> colAuctionStatus;
     @FXML private TableColumn<AuctionReportInfo, Double> colAuctionStartPrice;
@@ -50,6 +52,7 @@ public class AdminController implements com.bidhub.client.navigation.ContextAwar
     @FXML private TableColumn<AuctionReportInfo, String> colAuctionWinner;
 
     @FXML private TableView<BidHistoryInfo> bidHistoryTable;
+    @FXML private TableColumn<BidHistoryInfo, String> colBidItemName;
     @FXML private TableColumn<BidHistoryInfo, String> colBidderName;
     @FXML private TableColumn<BidHistoryInfo, Double> colBidAmount;
     @FXML private TableColumn<BidHistoryInfo, String> colBidTime;
@@ -123,7 +126,7 @@ public class AdminController implements com.bidhub.client.navigation.ContextAwar
             cbAuctionStatusFilter.getSelectionModel().selectFirst();
         }
         if (cbAuditActionFilter != null) {
-            cbAuditActionFilter.setItems(FXCollections.observableArrayList("Tất cả Hành động", "LOGIN", "PLACE_BID", "AUCTION_CREATED", "ITEM_CREATED", "USER_LOGIN", "USER_LOGOUT", "LOCK_USER", "UNLOCK_USER"));
+            cbAuditActionFilter.setItems(FXCollections.observableArrayList("Tất cả Hành động", "PLACE_BID", "AUCTION_CREATED", "ITEM_CREATED", "USER_LOGIN", "USER_LOGOUT", "LOCK_USER", "UNLOCK_USER"));
             cbAuditActionFilter.getSelectionModel().selectFirst();
         }
     }
@@ -133,6 +136,25 @@ public class AdminController implements com.bidhub.client.navigation.ContextAwar
         colEmail.setCellValueFactory(new PropertyValueFactory<>("email"));
         colRole.setCellValueFactory(new PropertyValueFactory<>("role"));
         colStatus.setCellValueFactory(new PropertyValueFactory<>("status"));
+        colStatus.setCellFactory(column -> new TableCell<UserInfo, String>() {
+            @Override
+            protected void updateItem(String item, boolean empty) {
+                super.updateItem(item, empty);
+                if (empty || item == null) {
+                    setText(null);
+                    setStyle("");
+                } else {
+                    setText(item);
+                    if ("Hoạt động".equalsIgnoreCase(item) || "ACTIVE".equalsIgnoreCase(item)) {
+                        setStyle("-fx-text-fill: #2e7d32; -fx-font-weight: bold;");
+                    } else if ("Đã khóa".equalsIgnoreCase(item) || "LOCKED".equalsIgnoreCase(item)) {
+                        setStyle("-fx-text-fill: #c62828; -fx-font-weight: bold;");
+                    } else {
+                        setStyle("-fx-text-fill: #ef6c00; -fx-font-weight: bold;");
+                    }
+                }
+            }
+        });
         filteredUserData = new javafx.collections.transformation.FilteredList<>(userData, p -> true);
         javafx.collections.transformation.SortedList<UserInfo> sortedUserData = new javafx.collections.transformation.SortedList<>(filteredUserData);
         sortedUserData.comparatorProperty().bind(userTable.comparatorProperty());
@@ -140,6 +162,27 @@ public class AdminController implements com.bidhub.client.navigation.ContextAwar
 
         colAuctionItemName.setCellValueFactory(new PropertyValueFactory<>("itemName"));
         colAuctionStatus.setCellValueFactory(new PropertyValueFactory<>("status"));
+        colAuctionStatus.setCellFactory(column -> new TableCell<AuctionReportInfo, String>() {
+            @Override
+            protected void updateItem(String item, boolean empty) {
+                super.updateItem(item, empty);
+                if (empty || item == null) {
+                    setText(null);
+                    setStyle("");
+                } else {
+                    setText(item);
+                    if ("RUNNING".equalsIgnoreCase(item) || "OPEN".equalsIgnoreCase(item)) {
+                        setStyle("-fx-text-fill: #2e7d32; -fx-font-weight: bold;");
+                    } else if ("FINISHED".equalsIgnoreCase(item)) {
+                        setStyle("-fx-text-fill: #1565c0; -fx-font-weight: bold;");
+                    } else if ("CANCELED".equalsIgnoreCase(item) || "CLOSED".equalsIgnoreCase(item)) {
+                        setStyle("-fx-text-fill: #c62828; -fx-font-weight: bold;");
+                    } else {
+                        setStyle("-fx-text-fill: #ef6c00; -fx-font-weight: bold;");
+                    }
+                }
+            }
+        });
         colAuctionStartPrice.setCellValueFactory(new PropertyValueFactory<>("startingPrice"));
         colAuctionStartPrice.setCellFactory(column -> new TableCell<AuctionReportInfo, Double>() {
             @Override
@@ -175,6 +218,7 @@ public class AdminController implements com.bidhub.client.navigation.ContextAwar
         sortedAuctionData.comparatorProperty().bind(auctionReportTable.comparatorProperty());
         auctionReportTable.setItems(sortedAuctionData);
 
+        colBidItemName.setCellValueFactory(new PropertyValueFactory<>("itemName"));
         colBidderName.setCellValueFactory(new PropertyValueFactory<>("bidderName"));
         colBidAmount.setCellValueFactory(new PropertyValueFactory<>("bidAmount"));
         colBidAmount.setCellFactory(column -> new TableCell<BidHistoryInfo, Double>() {
@@ -190,6 +234,15 @@ public class AdminController implements com.bidhub.client.navigation.ContextAwar
         });
 
         colBidTime.setCellValueFactory(new PropertyValueFactory<>("bidTime"));
+        colBidTime.setComparator((t1, t2) -> {
+            try {
+                java.time.format.DateTimeFormatter fmt = java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm:ss");
+                return java.time.LocalDateTime.parse(t1, fmt).compareTo(java.time.LocalDateTime.parse(t2, fmt));
+            } catch (Exception e) {
+                return t1.compareTo(t2);
+            }
+        });
+
         colBidId.setCellValueFactory(new PropertyValueFactory<>("bidId"));
         colBidAuctionId.setCellValueFactory(new PropertyValueFactory<>("auctionId"));
         colBidderId.setCellValueFactory(new PropertyValueFactory<>("bidderId"));
@@ -199,6 +252,15 @@ public class AdminController implements com.bidhub.client.navigation.ContextAwar
         bidHistoryTable.setItems(sortedBidData);
 
         colAuditTime.setCellValueFactory(new PropertyValueFactory<>("createdAt"));
+        colAuditTime.setComparator((t1, t2) -> {
+            try {
+                java.time.format.DateTimeFormatter fmt = java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm:ss");
+                return java.time.LocalDateTime.parse(t1, fmt).compareTo(java.time.LocalDateTime.parse(t2, fmt));
+            } catch (Exception e) {
+                return t1.compareTo(t2);
+            }
+        });
+
         colAuditUserName.setCellValueFactory(new PropertyValueFactory<>("userName"));
         colAuditAction.setCellValueFactory(new PropertyValueFactory<>("action"));
         colAuditDetails.setCellValueFactory(new PropertyValueFactory<>("details"));
@@ -221,6 +283,47 @@ public class AdminController implements com.bidhub.client.navigation.ContextAwar
             boolean isLocked = "Đã khóa".equals(newValue.getStatus());
             lockBtn.setDisable(isAdmin || isLocked);
             unlockBtn.setDisable(!isLocked);
+        });
+
+        auctionReportTable.getSelectionModel().selectedItemProperty().addListener((observable, oldValue, newValue) -> {
+            if (newValue == null) {
+                if (stopAuctionBtn != null) stopAuctionBtn.setDisable(true);
+                if (deleteAuctionBtn != null) deleteAuctionBtn.setDisable(true);
+                return;
+            }
+            boolean isRunning = "RUNNING".equalsIgnoreCase(newValue.getStatus()) || "OPEN".equalsIgnoreCase(newValue.getStatus());
+            if (stopAuctionBtn != null) stopAuctionBtn.setDisable(!isRunning);
+            if (deleteAuctionBtn != null) deleteAuctionBtn.setDisable(false);
+        });
+    }
+
+    @FXML
+    public void stopAuction() {
+        AuctionReportInfo selected = auctionReportTable.getSelectionModel().getSelectedItem();
+        if (selected == null) return;
+        ObjectNode payload = mapper.createObjectNode();
+        payload.put("auctionId", selected.getAuctionId());
+        statusLabel.setText("Đang dừng phiên đấu giá " + selected.getAuctionId() + "...");
+        executeRequest("ADMIN_STOP_AUCTION", payload, data -> {
+            Platform.runLater(() -> {
+                statusLabel.setText("Đã dừng phiên đấu giá thành công.");
+                loadAuctionReport();
+            });
+        });
+    }
+
+    @FXML
+    public void deleteAuction() {
+        AuctionReportInfo selected = auctionReportTable.getSelectionModel().getSelectedItem();
+        if (selected == null) return;
+        ObjectNode payload = mapper.createObjectNode();
+        payload.put("auctionId", selected.getAuctionId());
+        statusLabel.setText("Đang xóa phiên đấu giá " + selected.getAuctionId() + "...");
+        executeRequest("ADMIN_DELETE_AUCTION", payload, data -> {
+            Platform.runLater(() -> {
+                statusLabel.setText("Đã xóa phiên đấu giá thành công.");
+                loadAuctionReport();
+            });
         });
     }
 
@@ -283,6 +386,8 @@ public class AdminController implements com.bidhub.client.navigation.ContextAwar
                 }
                 if (userData.isEmpty()) {
                     userTable.setPlaceholder(new Label("Không có dữ liệu người dùng"));
+                } else {
+                    userTable.setPlaceholder(new Label("Không tìm thấy kết quả phù hợp"));
                 }
                 statusLabel.setText("Đã tải " + userData.size() + " người dùng.");
             });
@@ -306,7 +411,6 @@ public class AdminController implements com.bidhub.client.navigation.ContextAwar
     private void sendLockRequest(String userId, boolean isLock) {
         ObjectNode payload = mapper.createObjectNode();
         payload.put("targetUserId", userId);
-        payload.put("userId", userId);
         executeRequest(isLock ? CMD_LOCK_USER : CMD_UNLOCK_USER, payload, res -> {
             Platform.runLater(() -> {
                 statusLabel.setText(isLock ? "Đã khóa tài khoản." : "Đã mở khóa tài khoản.");
@@ -317,7 +421,7 @@ public class AdminController implements com.bidhub.client.navigation.ContextAwar
 
     @FXML
     public void handleAuctionReportTab() {
-        if (!auctionReportLoaded) loadAuctionReport();
+        loadAuctionReport();
     }
 
     @FXML
@@ -344,6 +448,8 @@ public class AdminController implements com.bidhub.client.navigation.ContextAwar
                 }
                 if (auctionData.isEmpty()) {
                     auctionReportTable.setPlaceholder(new Label("Không có dữ liệu báo cáo Auction"));
+                } else {
+                    auctionReportTable.setPlaceholder(new Label("Không tìm thấy kết quả phù hợp"));
                 }
                 auctionReportLoaded = true;
                 statusLabel.setText("Đã tải " + auctionData.size() + " dòng báo cáo Auction.");
@@ -353,7 +459,7 @@ public class AdminController implements com.bidhub.client.navigation.ContextAwar
 
     @FXML
     public void handleBidHistoryTab() {
-        if (!bidHistoryLoaded) loadBidHistory();
+        loadBidHistory();
     }
 
     @FXML
@@ -371,6 +477,7 @@ public class AdminController implements com.bidhub.client.navigation.ContextAwar
                         BidHistoryInfo info = new BidHistoryInfo();
                         info.setBidId(node.path("bidId").asText(""));
                         info.setAuctionId(node.path("auctionId").asText(""));
+                        info.setItemName(node.path("itemName").asText("N/A"));
                         info.setBidderId(node.path("bidderId").asText(""));
                         info.setBidderName(node.path("bidderName").asText("N/A"));
                         info.setBidAmount(node.path("bidAmount").asDouble(0));
@@ -380,6 +487,8 @@ public class AdminController implements com.bidhub.client.navigation.ContextAwar
                 }
                 if (bidData.isEmpty()) {
                     bidHistoryTable.setPlaceholder(new Label("Không có dữ liệu lịch sử Bid"));
+                } else {
+                    bidHistoryTable.setPlaceholder(new Label("Không tìm thấy kết quả phù hợp"));
                 }
                 bidHistoryLoaded = true;
                 statusLabel.setText("Đã tải " + bidData.size() + " lượt bid.");
@@ -389,7 +498,7 @@ public class AdminController implements com.bidhub.client.navigation.ContextAwar
 
     @FXML
     public void handleAuditLogTab() {
-        if (!auditLogLoaded) loadAuditLog();
+        loadAuditLog();
     }
 
     @FXML
@@ -416,9 +525,73 @@ public class AdminController implements com.bidhub.client.navigation.ContextAwar
                 }
                 if (auditData.isEmpty()) {
                     auditLogTable.setPlaceholder(new Label("Không có dữ liệu nhật ký hệ thống"));
+                } else {
+                    auditLogTable.setPlaceholder(new Label("Không tìm thấy kết quả phù hợp"));
                 }
                 auditLogLoaded = true;
                 statusLabel.setText("Đã tải " + auditData.size() + " log hệ thống.");
+            });
+        });
+    }
+
+    @FXML
+    public void handleRunIntegrityCheck() {
+        statusLabel.setText("Đang kiểm tra toàn vẹn dữ liệu...");
+        executeRequest(CMD_RUN_INTEGRITY_CHECK, null, data -> {
+            Platform.runLater(() -> {
+                statusLabel.setText("Kiểm tra toàn vẹn hoàn tất.");
+                if (data != null) {
+                    int totalErrors = data.path("totalErrors").asInt(0);
+                    StringBuilder sb = new StringBuilder();
+                    sb.append("=== BÁO CÁO KIỂM TRA TOÀN VẸN DỮ LIỆU ===\n");
+                    sb.append("Chức năng này giúp Quản trị viên (Admin) rà soát toàn bộ hệ thống để phát hiện các bất đồng bộ dữ liệu do lỗi logic cũ hoặc dữ liệu mẫu (seed data) cố tình để lại nhằm mục đích kiểm thử.\n\n");
+                    sb.append("Tổng số vấn đề phát hiện: ").append(totalErrors).append("\n\n");
+
+                    if (data.has("bidConsistencyErrors") && data.path("bidConsistencyErrors").isArray()) {
+                        sb.append("[1] Bất đồng bộ dữ liệu Bid & Auction (").append(data.path("bidConsistencyErrors").size()).append("):\n");
+                        if (data.path("bidConsistencyErrors").isEmpty()) {
+                            sb.append("  ✓ Không phát hiện bất thường.\n");
+                        } else {
+                            for (JsonNode err : data.path("bidConsistencyErrors")) {
+                                sb.append("  ⚠ ").append(err.asText()).append("\n");
+                            }
+                        }
+                        sb.append("\n");
+                    }
+                    if (data.has("auctionWinnerErrors") && data.path("auctionWinnerErrors").isArray()) {
+                        sb.append("[2] Trạng thái người chiến thắng Auction (").append(data.path("auctionWinnerErrors").size()).append("):\n");
+                        if (data.path("auctionWinnerErrors").isEmpty()) {
+                            sb.append("  ✓ Không phát hiện bất thường.\n");
+                        } else {
+                            for (JsonNode err : data.path("auctionWinnerErrors")) {
+                                sb.append("  ⚠ ").append(err.asText()).append("\n");
+                            }
+                        }
+                        sb.append("\n");
+                    }
+                    if (data.has("orphanedItemErrors") && data.path("orphanedItemErrors").isArray()) {
+                        sb.append("[3] Dữ liệu sản phẩm mồ côi (không có Seller hợp lệ) (").append(data.path("orphanedItemErrors").size()).append("):\n");
+                        if (data.path("orphanedItemErrors").isEmpty()) {
+                            sb.append("  ✓ Không phát hiện bất thường.\n");
+                        } else {
+                            for (JsonNode err : data.path("orphanedItemErrors")) {
+                                sb.append("  ⚠ ").append(err.asText()).append("\n");
+                            }
+                        }
+                        sb.append("\n");
+                    }
+
+                    String report = sb.toString();
+                    Alert alert = new Alert(totalErrors > 0 ? Alert.AlertType.WARNING : Alert.AlertType.INFORMATION);
+                    alert.setTitle("Báo cáo Toàn vẹn Dữ liệu");
+                    alert.setHeaderText(totalErrors > 0 ? "Phát hiện " + totalErrors + " vấn đề bất thường!" : "Hệ thống hoạt động ổn định (0 lỗi)");
+                    TextArea area = new TextArea(report);
+                    area.setEditable(false);
+                    area.setWrapText(true);
+                    area.setPrefSize(650, 400);
+                    alert.getDialogPane().setContent(area);
+                    alert.showAndWait();
+                }
             });
         });
     }
@@ -535,10 +708,11 @@ public class AdminController implements com.bidhub.client.navigation.ContextAwar
     }
 
     public static class BidHistoryInfo {
-        private String bidId, auctionId, bidderId, bidderName, bidTime;
+        private String bidId, auctionId, itemName, bidderId, bidderName, bidTime;
         private double bidAmount;
         public String getBidId() { return bidId; } public void setBidId(String bidId) { this.bidId = bidId; }
         public String getAuctionId() { return auctionId; } public void setAuctionId(String auctionId) { this.auctionId = auctionId; }
+        public String getItemName() { return itemName; } public void setItemName(String itemName) { this.itemName = itemName; }
         public String getBidderId() { return bidderId; } public void setBidderId(String bidderId) { this.bidderId = bidderId; }
         public String getBidderName() { return bidderName; } public void setBidderName(String bidderName) { this.bidderName = bidderName; }
         public String getBidTime() { return bidTime; } public void setBidTime(String bidTime) { this.bidTime = bidTime; }
