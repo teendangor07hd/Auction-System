@@ -1,5 +1,6 @@
 # BidHub — Hệ thống đấu giá trực tuyến
 
+![CI](https://github.com/teendangor07hd/Auction-System/blob/main/.github/workflows/ci.yml/badge.svg)
 ---
 
 ## Thành viên nhóm
