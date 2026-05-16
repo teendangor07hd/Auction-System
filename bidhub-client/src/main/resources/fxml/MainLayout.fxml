@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+
+<BorderPane xmlns:fx="http://javafx.com/fxml/1"
+            fx:controller="com.bidhub.client.controller.MainLayoutController"
+            stylesheets="@/css/styles.css"
+            styleClass="root"
+            fx:id="mainPane">
+
+    <left>
+        <VBox spacing="10" style="-fx-background-color: #1E1B4B; -fx-padding: 20; -fx-min-width: 220;">
+            <Label text="BidHub" style="-fx-text-fill: white; -fx-font-size: 18px; -fx-font-weight: bold;"/>
+
+            <Button fx:id="btnCreateItem"    text="➕ Thêm sản phẩm"
+                    maxWidth="Infinity" styleClass="button, btn-primary" />
+            <Button fx:id="btnCreateAuction" text="📊 Tạo phiên mới"
+                    maxWidth="Infinity" styleClass="button, btn-primary" />
+            
+            <Button fx:id="btnAuctionList" text="📋 Xem đấu giá"
+                    maxWidth="Infinity" styleClass="button, btn-primary" />
+
+            <Button fx:id="adminBtn"         text="🛡️ Admin Panel"
+                    maxWidth="Infinity" styleClass="button, btn-warning"
+                    visible="false" managed="false" onAction="#handleAdminPanel" />
+
+            <Region VBox.vgrow="ALWAYS" />
+
+            <Button fx:id="btnAccount"       text="👤 Tài khoản"
+                    maxWidth="Infinity" styleClass="button, btn-primary" />
+            <Button fx:id="btnLogout"        text="🚪 Đăng xuất"
+                    maxWidth="Infinity" style="button, btn-danger-outline" />
+        </VBox>
+    </left>
+    <center>
+    </center>
+</BorderPane>

@@ -5,6 +5,7 @@
 <?import javafx.scene.chart.NumberAxis?>
 <?import javafx.scene.chart.CategoryAxis?>
 <?import javafx.scene.chart.LineChart?>
+<?import javafx.scene.image.ImageView?>
 <VBox xmlns:fx="http://javafx.com/fxml/1"
       fx:controller="com.bidhub.client.controller.AuctionDetailController"
       stylesheets="@/css/styles.css"
@@ -20,43 +21,64 @@
 
     <VBox styleClass="content-pane" spacing="15" style="-fx-margin: 0 20 20 20;">
 
-        <Label fx:id="lblDescription" text="—" wrapText="true"/>
-
-        <HBox spacing="30">
-            <VBox spacing="5">
-                <Label text="Trạng thái:" styleClass="form-label"/>
-                <Label fx:id="lblStatus" text="—" styleClass="status-label"/>
-            </VBox>
-            <VBox spacing="5">
-                <Label text="Giá khởi điểm:" styleClass="form-label"/>
-                <Label fx:id="lblStartingPrice" text="—"/>
-            </VBox>
-            <VBox spacing="5">
-                <Label text="Giá hiện tại:" styleClass="form-label"/>
-                <Label fx:id="lblCurrentPrice" text="—"
-                       style="-fx-font-weight: bold; -fx-font-size: 16px; -fx-text-fill: #4F46E5;"/>
-            </VBox>
-            <VBox spacing="5">
-                <Label text="Người dẫn đầu:" styleClass="form-label"/>
-                <Label fx:id="lblHighestBidder" text="—"/>
-            </VBox>
-            <VBox spacing="5">
-                <Label text="Còn lại:" styleClass="form-label"/>
-                <Label fx:id="lblCountdown" text="—"/>
+        <HBox spacing="20" alignment="CENTER_LEFT">
+            <ImageView fx:id="imgProduct" fitWidth="200" fitHeight="150" preserveRatio="true" 
+                       style="-fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.1), 5, 0, 0, 2);"/>
+            <VBox spacing="15">
+                <Label fx:id="lblDescription" text="—" wrapText="true"/>
+                <HBox spacing="30">
+                    <VBox spacing="5">
+                        <Label text="Trạng thái:" styleClass="form-label"/>
+                        <Label fx:id="lblStatus" text="—" styleClass="status-label"/>
+                    </VBox>
+                    <VBox spacing="5">
+                        <Label text="Giá khởi điểm:" styleClass="form-label"/>
+                        <Label fx:id="lblStartingPrice" text="—"/>
+                    </VBox>
+                    <VBox spacing="5">
+                        <Label text="Giá hiện tại:" styleClass="form-label"/>
+                        <Label fx:id="lblCurrentPrice" text="—"
+                               style="-fx-font-weight: bold; -fx-font-size: 16px; -fx-text-fill: #4F46E5;"/>
+                    </VBox>
+                    <VBox spacing="5">
+                        <Label text="Người dẫn đầu:" styleClass="form-label"/>
+                        <Label fx:id="lblHighestBidder" text="—"/>
+                    </VBox>
+                    <VBox spacing="5">
+                        <Label text="Còn lại:" styleClass="form-label"/>
+                        <Label fx:id="lblCountdown" text="—"/>
+                    </VBox>
+                </HBox>
             </VBox>
         </HBox>
 
         <Separator/>
 
-        <LineChart fx:id="bidChart" title="Lịch sử giá đấu giá" legendVisible="true"
-                   createSymbols="false" prefHeight="250.0">
-            <xAxis>
-                <CategoryAxis label="Thời gian" />
-            </xAxis>
-            <yAxis>
-                <NumberAxis label="Giá (VNĐ)" />
-            </yAxis>
-        </LineChart>
+        <HBox spacing="15" VBox.vgrow="ALWAYS">
+            <ScrollPane fx:id="chartScrollPane" fitToHeight="true" pannable="true" 
+                        vbarPolicy="NEVER" hbarPolicy="NEVER" HBox.hgrow="ALWAYS"
+                        style="-fx-background-color: transparent; -fx-background: transparent;">
+                <LineChart fx:id="bidChart" title="Lịch sử giá đấu giá" legendVisible="true"
+                           createSymbols="true" prefHeight="350.0" prefWidth="600.0" minWidth="600.0">
+                    <xAxis>
+                        <CategoryAxis label="Thời gian" />
+                    </xAxis>
+                    <yAxis>
+                        <NumberAxis label="Giá (VNĐ)" />
+                    </yAxis>
+                </LineChart>
+            </ScrollPane>
+
+            <VBox spacing="10" prefWidth="250">
+                <Label text="🏆 Bảng xếp hạng" style="-fx-font-size: 16px; -fx-font-weight: bold; -fx-text-fill: #1E1B4B;"/>
+                <TableView fx:id="bidTable" VBox.vgrow="ALWAYS">
+                    <columns>
+                        <TableColumn fx:id="colBidderName" text="Người đặt" prefWidth="120" />
+                        <TableColumn fx:id="colBidAmount" text="Giá (VNĐ)" prefWidth="110" />
+                    </columns>
+                </TableView>
+            </VBox>
+        </HBox>
 
         <HBox spacing="15" alignment="CENTER_LEFT">
             <Label text="Giá đặt (VNĐ):" styleClass="form-label"/>

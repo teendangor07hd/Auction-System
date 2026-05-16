@@ -2,57 +2,26 @@
 <?import javafx.scene.control.*?>
 <?import javafx.scene.layout.*?>
 
-<BorderPane xmlns:fx="http://javafx.com/fxml/1"
-            fx:controller="com.bidhub.client.controller.AuctionListController"
-            stylesheets="@/css/styles.css"
-            styleClass="root">
+<VBox xmlns:fx="http://javafx.com/fxml/1"
+      fx:controller="com.bidhub.client.controller.AuctionListController"
+      stylesheets="@/css/styles.css"
+      styleClass="root"
+      spacing="20" style="-fx-padding: 20;">
 
-    <left>
-        <VBox spacing="10" style="-fx-background-color: #1E1B4B; -fx-padding: 20; -fx-min-width: 220;">
-            <Label text="BidHub" style="-fx-text-fill: white; -fx-font-size: 18px; -fx-font-weight: bold;"/>
+    <HBox alignment="CENTER_LEFT" spacing="15">
+        <Label text="Danh sách phiên đấu giá" style="-fx-font-size: 20px; -fx-font-weight: bold;"/>
+        <Region HBox.hgrow="ALWAYS" />
 
-            <Button fx:id="btnCreateItem"    text="➕ Thêm sản phẩm"
-                    maxWidth="Infinity" styleClass="button, btn-primary" />
-            <Button fx:id="btnCreateAuction" text="📊 Tạo phiên mới"
-                    maxWidth="Infinity" styleClass="button, btn-primary" />
+        <ProgressIndicator fx:id="loadingSpinner" visible="false" prefWidth="25" prefHeight="25" />
+        <Button fx:id="btnRefresh" text="🔄 Làm mới" styleClass="button" />
+    </HBox>
 
-            <Button fx:id="adminBtn"         text="🛡️ Admin Panel"
-                    maxWidth="Infinity" styleClass="button, btn-warning"
-                    visible="false" managed="false" onAction="#handleAdminPanel" />
+    <StackPane VBox.vgrow="ALWAYS">
+        <ScrollPane fx:id="scrollPane" fitToWidth="true" style="-fx-background-color: transparent; -fx-background: transparent;">
+            <FlowPane fx:id="cardContainer" hgap="20" vgap="20" alignment="TOP_CENTER" style="-fx-padding: 10;" />
+        </ScrollPane>
 
-            <Region VBox.vgrow="ALWAYS" />
-
-            <Button fx:id="btnAccount"       text="👤 Tài khoản"
-                    maxWidth="Infinity" styleClass="button, btn-primary" />
-            <Button fx:id="btnLogout"        text="🚪 Đăng xuất"
-                    maxWidth="Infinity" style="button, btn-danger-outline" />
-        </VBox>
-    </left>
-
-    <center>
-        <VBox spacing="20" style="-fx-padding: 20;">
-            <HBox alignment="CENTER_LEFT" spacing="15">
-                <Label text="Danh sách phiên đấu giá" style="-fx-font-size: 20px; -fx-font-weight: bold;"/>
-                <Region HBox.hgrow="ALWAYS" />
-
-                <ProgressIndicator fx:id="loadingSpinner" visible="false" prefWidth="25" prefHeight="25" />
-                <Button fx:id="btnRefresh" text="🔄 Làm mới" styleClass="button" />
-            </HBox>
-
-            <StackPane VBox.vgrow="ALWAYS">
-                <TableView fx:id="auctionTable">
-                    <columns>
-                        <TableColumn fx:id="colItemName"  text="Sản phẩm"       prefWidth="250"/>
-                        <TableColumn fx:id="colPrice"     text="Giá hiện tại"   prefWidth="150"/>
-                        <TableColumn fx:id="colEndTime"   text="Kết thúc"       prefWidth="150"/>
-                        <TableColumn fx:id="colStatus"    text="Trạng thái"     prefWidth="120"/>
-                    </columns>
-                </TableView>
-
-                <Label fx:id="lblEmptyMessage" text="Không có phiên đấu giá nào"
-                       visible="false" style="-fx-font-size: 16px; -fx-text-fill: #666;" />
-            </StackPane>
-        </VBox>
-    </center>
-
-</BorderPane>
+        <Label fx:id="lblEmptyMessage" text="Không có phiên đấu giá nào"
+               visible="false" style="-fx-font-size: 16px; -fx-text-fill: #666;" />
+    </StackPane>
+</VBox>

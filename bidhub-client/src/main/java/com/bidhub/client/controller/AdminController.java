@@ -110,8 +110,9 @@ public class AdminController implements com.bidhub.client.navigation.ContextAwar
 
             // Business logic: Không cho phép Admin khóa tài khoản của một Admin khác.
             boolean isAdmin = ROLE_ADMIN.equals(newValue.getRole());
-            lockBtn.setDisable(isAdmin);
-            unlockBtn.setDisable(false); // Luôn cho phép mở khóa (nếu tài khoản đang bị khóa)
+            boolean isLocked = "Đã khóa".equals(newValue.getStatus());
+            lockBtn.setDisable(isAdmin || isLocked);
+            unlockBtn.setDisable(!isLocked); // Chỉ cho phép mở khóa nếu tài khoản đang bị khóa
         });
     }
 
@@ -152,7 +153,7 @@ public class AdminController implements com.bidhub.client.navigation.ContextAwar
     private void parseAndPopulateUserData(String jsonResponse) {
         try {
             JsonNode root = mapper.readTree(jsonResponse);
-            JsonNode dataArray = root.get("data");
+            JsonNode dataArray = root.get("payload");
 
             if (dataArray != null && dataArray.isArray()) {
                 // Đảm bảo thao tác cập nhật UI luôn nằm trong Platform.runLater
@@ -228,7 +229,7 @@ public class AdminController implements com.bidhub.client.navigation.ContextAwar
         // Tạo ObjectNode an toàn (Type-safe) thay vì cộng chuỗi String thủ công
         // Giúp tránh các lỗi cú pháp JSON (như thiếu dấu ngoặc kép)
         com.fasterxml.jackson.databind.node.ObjectNode payloadNode = mapper.createObjectNode();
-        payloadNode.put("userId", userId);
+        payloadNode.put("targetUserId", userId);
         req.setPayload(payloadNode);
 
         NetworkTask<String> task = new NetworkTask<>(() -> {

@@ -39,6 +39,9 @@ public abstract class Item extends Entity implements Displayable {
     /** Loại sản phẩm — xác định subclass cụ thể. */
     private final ItemType itemType;
 
+    /** Đường dẫn hoặc URL ảnh của sản phẩm. */
+    private String imageUrl;
+
     /**
      * Constructor tạo Item mới.
      *
@@ -154,6 +157,15 @@ public abstract class Item extends Entity implements Displayable {
     /** Cập nhật mô tả sản phẩm. */
     public void setDescription(String description) {
         this.description = (description == null) ? "" : description;
+        markUpdated();
+    }
+
+    /** Trả về đường dẫn ảnh sản phẩm. */
+    public String getImageUrl() { return imageUrl; }
+
+    /** Cập nhật đường dẫn ảnh sản phẩm. */
+    public void setImageUrl(String imageUrl) {
+        this.imageUrl = imageUrl;
         markUpdated();
     }
 }

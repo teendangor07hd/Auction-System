@@ -37,20 +37,30 @@
 
         <HBox spacing="12" alignment="CENTER_LEFT">
             <Label text="Thời gian bắt đầu:" styleClass="form-label" prefWidth="120"/>
-            <DatePicker fx:id="dpStartTime"
+            <DatePicker fx:id="dpStartTime" prefWidth="150"
                         style="-fx-background-color: #F8FAFC; -fx-border-color: #CBD5E1; -fx-border-radius: 8px; -fx-background-radius: 8px;"/>
-            <Spinner fx:id="spStartHour" prefWidth="80" editable="true"
+            <Spinner fx:id="spStartHour" prefWidth="60" editable="true"
                      style="-fx-background-color: #F8FAFC; -fx-border-color: #CBD5E1; -fx-border-radius: 8px; -fx-background-radius: 8px;"/>
-            <Label text="giờ" styleClass="form-label"/>
+            <Label text=":" styleClass="form-label"/>
+            <Spinner fx:id="spStartMinute" prefWidth="60" editable="true"
+                     style="-fx-background-color: #F8FAFC; -fx-border-color: #CBD5E1; -fx-border-radius: 8px; -fx-background-radius: 8px;"/>
+            <Label text=":" styleClass="form-label"/>
+            <Spinner fx:id="spStartSecond" prefWidth="60" editable="true"
+                     style="-fx-background-color: #F8FAFC; -fx-border-color: #CBD5E1; -fx-border-radius: 8px; -fx-background-radius: 8px;"/>
         </HBox>
 
         <HBox spacing="12" alignment="CENTER_LEFT">
             <Label text="Thời gian kết thúc:" styleClass="form-label" prefWidth="120"/>
-            <DatePicker fx:id="dpEndTime"
+            <DatePicker fx:id="dpEndTime" prefWidth="150"
                         style="-fx-background-color: #F8FAFC; -fx-border-color: #CBD5E1; -fx-border-radius: 8px; -fx-background-radius: 8px;"/>
-            <Spinner fx:id="spEndHour" prefWidth="80" editable="true"
+            <Spinner fx:id="spEndHour" prefWidth="60" editable="true"
                      style="-fx-background-color: #F8FAFC; -fx-border-color: #CBD5E1; -fx-border-radius: 8px; -fx-background-radius: 8px;"/>
-            <Label text="giờ" styleClass="form-label"/>
+            <Label text=":" styleClass="form-label"/>
+            <Spinner fx:id="spEndMinute" prefWidth="60" editable="true"
+                     style="-fx-background-color: #F8FAFC; -fx-border-color: #CBD5E1; -fx-border-radius: 8px; -fx-background-radius: 8px;"/>
+            <Label text=":" styleClass="form-label"/>
+            <Spinner fx:id="spEndSecond" prefWidth="60" editable="true"
+                     style="-fx-background-color: #F8FAFC; -fx-border-color: #CBD5E1; -fx-border-radius: 8px; -fx-background-radius: 8px;"/>
         </HBox>
 
         <HBox spacing="16" alignment="CENTER">

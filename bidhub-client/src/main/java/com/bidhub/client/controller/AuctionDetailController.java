@@ -16,6 +16,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import javafx.animation.KeyFrame;
 import javafx.animation.Timeline;
 import javafx.application.Platform;
+import javafx.collections.FXCollections;
+import javafx.collections.ObservableList;
 import javafx.fxml.FXML;
 import javafx.scene.chart.LineChart;
 import javafx.scene.control.*;
@@ -36,6 +38,7 @@ public class AuctionDetailController implements ContextAware {
     @FXML private Label lblTitle;
     @FXML private Label lblItemName;
     @FXML private Label lblDescription;
+    @FXML private javafx.scene.image.ImageView imgProduct;
     @FXML private Label lblStartingPrice;
     @FXML private Label lblCurrentPrice;
     @FXML private Label lblHighestBidder;
@@ -47,12 +50,18 @@ public class AuctionDetailController implements ContextAware {
 
     // 📌 [Tieu chi: UX — Loading state]
     @FXML private ProgressIndicator loadingSpinner;
+    @FXML private ScrollPane chartScrollPane;
 
     // 📌 [Tieu chi: Price Chart — FXML inject LineChart]
     @FXML
     private LineChart<String, Number> bidChart;
 
+    @FXML private TableView<JsonNode> bidTable;
+    @FXML private TableColumn<JsonNode, String> colBidderName;
+    @FXML private TableColumn<JsonNode, String> colBidAmount;
+
     // --- Logic Fields ---
+    private final ObservableList<JsonNode> bidData = FXCollections.observableArrayList();
     private String auctionId;
     private LocalDateTime startTime;
     private LocalDateTime endTime;
@@ -83,6 +92,13 @@ public class AuctionDetailController implements ContextAware {
                     .navigateTo(com.bidhub.client.util.Views.AUCTION_LIST);
         });
 
+        // Setup bảng xếp hạng
+        colBidderName.setCellValueFactory(cellData ->
+                new javafx.beans.property.SimpleStringProperty(cellData.getValue().path("bidderName").asText("Unknown")));
+        colBidAmount.setCellValueFactory(cellData ->
+                new javafx.beans.property.SimpleStringProperty(String.format("%,.0f", cellData.getValue().path("bidAmount").asDouble(0))));
+        bidTable.setItems(bidData);
+
         // 📌 [Tieu chi: UX — TextField chi nhan so]
         UiUtils.applyNumericFilter(tfBidAmount);
 
@@ -92,6 +108,37 @@ public class AuctionDetailController implements ContextAware {
             bidChart.getData().clear();
             bidChart.getData().add(bidChartService.getSeries());
             bidChart.setAnimated(false); // Tat animation de realtime update nhanh hon
+            
+            // Xử lý sự kiện cuộn chuột để phóng to thu nhỏ (Zoom)
+            if (chartScrollPane != null) {
+                chartScrollPane.addEventFilter(javafx.scene.input.ScrollEvent.SCROLL, event -> {
+                    if (event.isControlDown() || true) { // Always zoom on scroll
+                        event.consume();
+                        double zoomFactor = 1.1;
+                        if (event.getDeltaY() < 0) {
+                            zoomFactor = 1 / zoomFactor;
+                        }
+                        
+                        double currentWidth = bidChart.getPrefWidth();
+                        if (currentWidth == javafx.scene.layout.Region.USE_COMPUTED_SIZE) {
+                            currentWidth = chartScrollPane.getWidth();
+                        }
+                        if (currentWidth == 0) currentWidth = 600;
+                        
+                        double newWidth = currentWidth * zoomFactor;
+                        
+                        // Giới hạn zoom
+                        double minWidth = chartScrollPane.getWidth();
+                        if (minWidth == 0) minWidth = 600;
+                        
+                        if (newWidth < minWidth) newWidth = minWidth;
+                        if (newWidth > 15000) newWidth = 15000;
+                        
+                        bidChart.setPrefWidth(newWidth);
+                        bidChart.setMinWidth(newWidth);
+                    }
+                });
+            }
         }
     }
 
@@ -132,29 +179,70 @@ public class AuctionDetailController implements ContextAware {
         lblTitle.setText("Chi tiết phiên đấu giá");
         lblItemName.setText(auction.path("itemName").asText(auction.path("itemId").asText("Sản phẩm không tên")));
         lblDescription.setText(auction.path("description").asText("Không có mô tả."));
-
-        lblStartingPrice.setText("Giá khởi điểm: " + auction.path("startingPrice").asDouble(0));
-        lblCurrentPrice.setText("Giá hiện tại: " + auction.path("currentHighestBid").asDouble(0));
-        lblHighestBidder.setText("Người dẫn đầu: " + auction.path("highestBidderName").asText(auction.path("highestBidderId").asText("Chưa có")));
-
-        // 📌 [Tieu chi: Price Chart — load history data tu server de ve bieu do]
-        JsonNode bidHistoryNode = payload.path("bidHistory");
-        if (bidHistoryNode != null && bidHistoryNode.isArray()) {
-            bidChartService.clearData();
-            for (JsonNode bid : bidHistoryNode) {
-                double amount = bid.path("bidAmount").asDouble(0);
-                String timeStr = bid.path("bidTime").asText("");
-                if (!timeStr.isEmpty()) {
-                    try {
-                        LocalDateTime time = LocalDateTime.parse(timeStr);
-                        bidChartService.addDataPoint(time, amount);
-                    } catch (Exception ignored) {}
+        
+        String imageUrl = auction.path("imageUrl").asText("");
+        if (!imageUrl.isEmpty()) {
+            try {
+                javafx.scene.image.Image img = new javafx.scene.image.Image(imageUrl, true);
+                if (imgProduct != null) {
+                    imgProduct.setImage(img);
                 }
+            } catch (Exception e) {
+                System.err.println("Cannot load image: " + imageUrl);
+            }
+        } else {
+            // Hình ảnh mặc định nếu không có
+            if (imgProduct != null) {
+                imgProduct.setImage(new javafx.scene.image.Image("https://via.placeholder.com/200x150?text=No+Image", true));
             }
         }
 
+        lblStartingPrice.setText(String.format("%,.0f đ", auction.path("startingPrice").asDouble(0)));
+        lblCurrentPrice.setText(String.format("%,.0f đ", auction.path("currentHighestBid").asDouble(0)));
+        lblHighestBidder.setText(auction.path("highestBidderName").asText(auction.path("highestBidderId").asText("Chưa có")));
+
+        // 📌 [Tieu chi: Price Chart — load history data tu server de ve bieu do]
+        JsonNode bidHistoryNode = payload.path("bidHistory");
+        bidChartService.clearData();
+        bidData.clear();
+
+        try {
+            String startTimeRaw = auction.path("startTime").asText("");
+            if (!startTimeRaw.isEmpty()) {
+                LocalDateTime startDT = LocalDateTime.parse(startTimeRaw);
+                double sPrice = auction.path("startingPrice").asDouble(0);
+                bidChartService.addDataPoint(startDT, sPrice, "Giá khởi điểm");
+            }
+        } catch (Exception ignored) {}
+
+        if (bidHistoryNode != null && bidHistoryNode.isArray()) {
+            java.util.List<JsonNode> bids = new java.util.ArrayList<>();
+            for (JsonNode bid : bidHistoryNode) {
+                bids.add(bid);
+                double amount = bid.path("bidAmount").asDouble(0);
+                String timeStr = bid.path("bidTime").asText("");
+                String bidderName = bid.path("bidderName").asText("Unknown");
+                if (!timeStr.isEmpty()) {
+                    try {
+                        LocalDateTime time = LocalDateTime.parse(timeStr);
+                        bidChartService.addDataPoint(time, amount, bidderName);
+                    } catch (Exception ignored) {}
+                }
+            }
+            // Sort bids by amount descending for the leaderboard
+            bids.sort((b1, b2) -> Double.compare(b2.path("bidAmount").asDouble(0), b1.path("bidAmount").asDouble(0)));
+            bidData.addAll(bids);
+        }
+
         String status = auction.path("status").asText("");
-        lblStatus.setText("Trạng thái: " + status);
+        String statusVN = switch (status) {
+            case "PENDING" -> "Chờ bắt đầu";
+            case "RUNNING" -> "Đang diễn ra";
+            case "FINISHED" -> "Đã kết thúc";
+            case "CLOSED" -> "Đã kết thúc";
+            default -> status;
+        };
+        lblStatus.setText(statusVN);
 
         // Xử lý Countdown
         String startTimeStr = auction.path("startTime").asText("");
@@ -226,11 +314,15 @@ public class AuctionDetailController implements ContextAware {
                         if ("BID_UPDATE".equals(eventType)) {
                             double newPrice = eventNode.path("bidAmount").asDouble(0);
                             String bidder = eventNode.path("bidderName").asText(eventNode.path("bidderId").asText("Unknown"));
-                            lblCurrentPrice.setText("Giá hiện tại: " + newPrice);
-                            lblHighestBidder.setText("Người dẫn đầu: " + bidder);
+                            lblCurrentPrice.setText(String.format("%,.0f đ", newPrice));
+                            lblHighestBidder.setText(bidder);
 
                             // 📌 [Tieu chi: Price Chart — realtime addDataPoint khi nhan BID_UPDATE]
-                            bidChartService.addDataPoint(LocalDateTime.now(), newPrice);
+                            bidChartService.addDataPoint(LocalDateTime.now(), newPrice, bidder);
+                            
+                            // Them vao bang xep hang va sap xep
+                            bidData.add(eventNode);
+                            FXCollections.sort(bidData, (b1, b2) -> Double.compare(b2.path("bidAmount").asDouble(0), b1.path("bidAmount").asDouble(0)));
 
                         } else if ("AUCTION_CLOSED".equals(eventType)) {
                             // 📌 [Tieu chi: UX — countdown dung khi auction dong]
@@ -373,7 +465,7 @@ public class AuctionDetailController implements ContextAware {
      * Khóa UI khi phiên đấu giá kết thúc.
      */
     private void disableBiddingUI() {
-        lblStatus.setText("Trạng thái: ĐÃ KẾT THÚC");
+        lblStatus.setText("ĐÃ KẾT THÚC");
         lblCountdown.setText("ĐÃ KẾT THÚC");
         btnPlaceBid.setDisable(true);
         tfBidAmount.setDisable(true);

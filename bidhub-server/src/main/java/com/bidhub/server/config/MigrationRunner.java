@@ -40,7 +40,7 @@ public final class MigrationRunner {
             // 📌 [Tieu chi: Quan ly nguoi dung — migration is_locked cho DB cu]
             // Migration: them cot is_locked vao bang users (cho DB da tao tu Tuan 3)
             String alterTableSql =
-                    "ALTER TABLE users ADD COLUMN IF NOT EXISTS is_locked "
+                    "ALTER TABLE users ADD COLUMN is_locked "
                             + "INTEGER NOT NULL DEFAULT 0";
             try (Statement stmt = conn.createStatement()) {
                 stmt.execute(alterTableSql);

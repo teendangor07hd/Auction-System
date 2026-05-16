@@ -15,6 +15,8 @@ import javafx.collections.FXCollections;
 import javafx.fxml.FXML;
 import javafx.scene.control.*;
 import javafx.scene.layout.VBox;
+import javafx.stage.FileChooser;
+import java.io.File;
 
 /**
  * Controller cho man hinh tao san pham — chi cho SELLER.
@@ -23,9 +25,14 @@ public class CreateItemController {
 
     @FXML private TextField nameField;
     @FXML private TextArea descriptionArea;
-    @FXML private TextField startingPriceField;
+    // @FXML private TextField startingPriceField; // Hidden by user request
     @FXML private ComboBox<String> itemTypeComboBox;
     @FXML private Label lblMessage;
+    
+    // Image selection
+    @FXML private Button btnSelectImage;
+    @FXML private Label lblImageName;
+    private String selectedImagePath = "";
 
     // Dynamic fields
     @FXML private VBox electronicsFields;
@@ -76,7 +83,7 @@ public class CreateItemController {
         lblMessage.getStyleClass().add("error-message");
 
         // 📌 [Tieu chi: UX — TextField chi nhan so]
-        UiUtils.applyNumericFilter(startingPriceField);
+        // UiUtils.applyNumericFilter(startingPriceField);
         UiUtils.applyNumericFilter(warrantyMonthsField);
         UiUtils.applyNumericFilter(yearCreatedField);
         UiUtils.applyNumericFilter(yearField);
@@ -87,6 +94,22 @@ public class CreateItemController {
         if (!"SELLER".equals(role)) {
             UiUtils.showError("Lỗi phân quyền", "Chỉ người bán (SELLER) mới được tạo sản phẩm.");
             if (btnSubmit != null) btnSubmit.setDisable(true);
+        }
+        
+        // Setup chon anh
+        if (btnSelectImage != null) {
+            btnSelectImage.setOnAction(e -> {
+                FileChooser fileChooser = new FileChooser();
+                fileChooser.setTitle("Chọn ảnh sản phẩm");
+                fileChooser.getExtensionFilters().addAll(
+                        new FileChooser.ExtensionFilter("Image Files", "*.png", "*.jpg", "*.jpeg", "*.gif")
+                );
+                File file = fileChooser.showOpenDialog(btnSelectImage.getScene().getWindow());
+                if (file != null) {
+                    selectedImagePath = file.toURI().toString();
+                    if (lblImageName != null) lblImageName.setText(file.getName());
+                }
+            });
         }
     }
 
@@ -103,7 +126,7 @@ public class CreateItemController {
 
         // 📌 [Tieu chi: UX — Form validation client-side]
         if (!UiUtils.validateNotEmpty(nameField, "Tên sản phẩm")) return;
-        if (!UiUtils.validatePositiveNumber(startingPriceField, "Giá khởi điểm")) return;
+        // if (!UiUtils.validatePositiveNumber(startingPriceField, "Giá khởi điểm")) return;
 
         String itemType = itemTypeComboBox.getValue();
         if (itemType == null) {
@@ -113,7 +136,7 @@ public class CreateItemController {
 
         String name = nameField.getText().trim();
         String description = descriptionArea.getText().trim();
-        double startingPrice = Double.parseDouble(startingPriceField.getText().trim());
+        double startingPrice = 1.0; // Default dummy value
         ObjectNode extras = JsonNodeFactory.instance.objectNode();
 
         // Kiểm tra và gán dữ liệu (assign data) tùy theo itemType
@@ -150,6 +173,7 @@ public class CreateItemController {
         payload.put("description", description);
         payload.put("startingPrice", startingPrice);
         payload.put("itemType", itemType);
+        payload.put("imageUrl", selectedImagePath);
         payload.set("extras", extras);
 
         MessageRequest request = new MessageRequest(

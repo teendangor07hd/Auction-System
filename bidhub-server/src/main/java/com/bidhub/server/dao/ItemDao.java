@@ -171,7 +171,7 @@ public class ItemDao {
         // Parse JSON extra_data → Map; Jackson decode số nguyên thành Integer
         Map<String, Object> extras = MAPPER.readValue(rs.getString("extra_data"), MAP_TYPE);
 
-        return switch (type) {
+        Item newItem = switch (type) {
             case ELECTRONICS -> new Electronics(
                     id, createdAt, updatedAt, name, description, startingPrice, sellerId,
                     (String) extras.get("brand"),
@@ -186,24 +186,36 @@ public class ItemDao {
                     ((Number) extras.get("year")).intValue(),
                     ((Number) extras.get("mileageKm")).intValue());
         };
+        if (extras.containsKey("imageUrl") && extras.get("imageUrl") != null) {
+            newItem.setImageUrl((String) extras.get("imageUrl"));
+        }
+        return newItem;
     }
 
     // Tạo Map extras từ Item để serialize thành JSON
     private Map<String, Object> buildExtras(Item item) {
-        return switch (item.getItemType()) {
+        Map<String, Object> extras = new HashMap<>();
+        switch (item.getItemType()) {
             case ELECTRONICS -> {
                 Electronics e = (Electronics) item;
-                yield Map.of("brand", e.getBrand(), "warrantyMonths", e.getWarrantyMonths());
+                extras.put("brand", e.getBrand());
+                extras.put("warrantyMonths", e.getWarrantyMonths());
             }
             case ART -> {
                 Art a = (Art) item;
-                yield Map.of("artist", a.getArtist(), "yearCreated", a.getYearCreated());
+                extras.put("artist", a.getArtist());
+                extras.put("yearCreated", a.getYearCreated());
             }
             case VEHICLE -> {
                 Vehicle v = (Vehicle) item;
-                yield Map.of("manufacturer", v.getManufacturer(), "year", v.getYear(),
-                        "mileageKm", v.getMileageKm());
+                extras.put("manufacturer", v.getManufacturer());
+                extras.put("year", v.getYear());
+                extras.put("mileageKm", v.getMileageKm());
             }
-        };
+        }
+        if (item.getImageUrl() != null) {
+            extras.put("imageUrl", item.getImageUrl());
+        }
+        return extras;
     }
 }

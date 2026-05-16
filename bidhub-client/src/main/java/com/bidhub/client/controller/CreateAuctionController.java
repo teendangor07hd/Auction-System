@@ -23,8 +23,12 @@ public class CreateAuctionController {
     @FXML private TextField tfMinIncrement;
     @FXML private DatePicker dpStartTime;
     @FXML private Spinner<Integer> spStartHour;
+    @FXML private Spinner<Integer> spStartMinute;
+    @FXML private Spinner<Integer> spStartSecond;
     @FXML private DatePicker dpEndTime;
     @FXML private Spinner<Integer> spEndHour;
+    @FXML private Spinner<Integer> spEndMinute;
+    @FXML private Spinner<Integer> spEndSecond;
     @FXML private Button btnSubmit;
     @FXML private Button btnBack;
 
@@ -42,11 +46,27 @@ public class CreateAuctionController {
                 new SpinnerValueFactory.IntegerSpinnerValueFactory(0, 23, 12);
         spStartHour.setValueFactory(startHourFactory);
         spStartHour.setEditable(true);
+        SpinnerValueFactory<Integer> startMinuteFactory =
+                new SpinnerValueFactory.IntegerSpinnerValueFactory(0, 59, 0);
+        spStartMinute.setValueFactory(startMinuteFactory);
+        spStartMinute.setEditable(true);
+        SpinnerValueFactory<Integer> startSecondFactory =
+                new SpinnerValueFactory.IntegerSpinnerValueFactory(0, 59, 0);
+        spStartSecond.setValueFactory(startSecondFactory);
+        spStartSecond.setEditable(true);
 
         SpinnerValueFactory<Integer> endHourFactory =
                 new SpinnerValueFactory.IntegerSpinnerValueFactory(0, 23, 12);
         spEndHour.setValueFactory(endHourFactory);
         spEndHour.setEditable(true);
+        SpinnerValueFactory<Integer> endMinuteFactory =
+                new SpinnerValueFactory.IntegerSpinnerValueFactory(0, 59, 0);
+        spEndMinute.setValueFactory(endMinuteFactory);
+        spEndMinute.setEditable(true);
+        SpinnerValueFactory<Integer> endSecondFactory =
+                new SpinnerValueFactory.IntegerSpinnerValueFactory(0, 59, 0);
+        spEndSecond.setValueFactory(endSecondFactory);
+        spEndSecond.setEditable(true);
 
         btnSubmit.setOnAction(e -> createAuction());
         btnBack.setOnAction(e ->
@@ -137,9 +157,9 @@ public class CreateAuctionController {
         double minIncrement = incStr.isEmpty() ? 1.0 : Double.parseDouble(incStr);
 
         String startTime = dpStartTime.getValue().toString() + "T"
-                + String.format("%02d:00:00", spStartHour.getValue());
+                + String.format("%02d:%02d:%02d", spStartHour.getValue(), spStartMinute.getValue(), spStartSecond.getValue());
         String endTime = dpEndTime.getValue().toString() + "T"
-                + String.format("%02d:00:00", spEndHour.getValue());
+                + String.format("%02d:%02d:%02d", spEndHour.getValue(), spEndMinute.getValue(), spEndSecond.getValue());
 
         // 📌 [Tieu chi: UX — Loading state]
         Runnable onComplete = (btnSubmit != null && loadingSpinner != null)

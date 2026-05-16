@@ -396,6 +396,9 @@ public final class RequestHandler {
         try {
             ItemCreator creator = ItemCreator.forType(itemType);
             item = creator.createItem(name, description, startingPrice, sellerId, extras);
+            if (payload.has("imageUrl")) {
+                item.setImageUrl(payload.get("imageUrl").asText(""));
+            }
         } catch (Exception e) {
             return MessageMapper.toJson(
                     MessageResponse.error("CREATE_ITEM",
@@ -836,13 +839,23 @@ public final class RequestHandler {
             info.put("status", auction.getStatus().name());
             info.put("minimumIncrement", auction.getMinimumIncrement());
 
-            // Tra cuu ten san pham tu ItemDao
+            // Tra cuu ten san pham, anh san pham, ten nguoi ban tu ItemDao va UserDao
             String itemName = "San pham khong xac dinh";
+            String imageUrl = null;
+            String sellerName = "Khong xac dinh";
             java.util.Optional<Item> itemOpt = itemDao.findById(auction.getItemId());
             if (itemOpt.isPresent()) {
-                itemName = itemOpt.get().getName();
+                Item item = itemOpt.get();
+                itemName = item.getName();
+                imageUrl = item.getImageUrl();
+                java.util.Optional<com.bidhub.server.model.User> sellerOpt = userDao.findById(item.getSellerId());
+                if (sellerOpt.isPresent()) {
+                    sellerName = sellerOpt.get().getUsername();
+                }
             }
             info.put("itemName", itemName);
+            info.put("imageUrl", imageUrl);
+            info.put("sellerName", sellerName);
 
             result.add(info);
         }
@@ -873,7 +886,19 @@ public final class RequestHandler {
                                 "Phien dau gia khong ton tai: " + auctionId)));
 
         // Lay lich su bid
-        List<BidTransaction> bidHistory = bidDao.findByAuctionId(auctionId);
+        List<BidTransaction> bids = bidDao.findByAuctionId(auctionId);
+        List<Map<String, Object>> bidHistory = new java.util.ArrayList<>();
+        for (BidTransaction b : bids) {
+            Map<String, Object> map = new HashMap<>();
+            map.put("id", b.getId());
+            map.put("bidAmount", b.getBidAmount());
+            map.put("bidTime", b.getBidTime().toString());
+            map.put("bidderId", b.getBidderId());
+            
+            java.util.Optional<com.bidhub.server.model.User> uOpt = userDao.findById(b.getBidderId());
+            map.put("bidderName", uOpt.map(com.bidhub.server.model.User::getUsername).orElse(b.getBidderId()));
+            bidHistory.add(map);
+        }
 
         // Enrich auction data voi ten san pham
         Map<String, Object> auctionInfo = new HashMap<>();
@@ -902,9 +927,11 @@ public final class RequestHandler {
             Item item = itemOpt.get();
             auctionInfo.put("itemName", item.getName());
             auctionInfo.put("description", item.getDescription());
+            auctionInfo.put("imageUrl", item.getImageUrl());
         } else {
             auctionInfo.put("itemName", "San pham khong xac dinh");
             auctionInfo.put("description", "");
+            auctionInfo.put("imageUrl", null);
         }
 
         return MessageMapper.toJson(MessageResponse.ok("GET_AUCTION_DETAIL",
