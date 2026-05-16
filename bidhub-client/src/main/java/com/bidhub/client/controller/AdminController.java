@@ -134,7 +134,9 @@ public class AdminController implements com.bidhub.client.navigation.ContextAwar
         colRole.setCellValueFactory(new PropertyValueFactory<>("role"));
         colStatus.setCellValueFactory(new PropertyValueFactory<>("status"));
         filteredUserData = new javafx.collections.transformation.FilteredList<>(userData, p -> true);
-        userTable.setItems(filteredUserData);
+        javafx.collections.transformation.SortedList<UserInfo> sortedUserData = new javafx.collections.transformation.SortedList<>(filteredUserData);
+        sortedUserData.comparatorProperty().bind(userTable.comparatorProperty());
+        userTable.setItems(sortedUserData);
 
         colAuctionItemName.setCellValueFactory(new PropertyValueFactory<>("itemName"));
         colAuctionStatus.setCellValueFactory(new PropertyValueFactory<>("status"));
@@ -169,7 +171,9 @@ public class AdminController implements com.bidhub.client.navigation.ContextAwar
         colAuctionItem.setCellValueFactory(new PropertyValueFactory<>("itemId"));
         colAuctionWinner.setCellValueFactory(new PropertyValueFactory<>("highestBidderId"));
         filteredAuctionData = new javafx.collections.transformation.FilteredList<>(auctionData, p -> true);
-        auctionReportTable.setItems(filteredAuctionData);
+        javafx.collections.transformation.SortedList<AuctionReportInfo> sortedAuctionData = new javafx.collections.transformation.SortedList<>(filteredAuctionData);
+        sortedAuctionData.comparatorProperty().bind(auctionReportTable.comparatorProperty());
+        auctionReportTable.setItems(sortedAuctionData);
 
         colBidderName.setCellValueFactory(new PropertyValueFactory<>("bidderName"));
         colBidAmount.setCellValueFactory(new PropertyValueFactory<>("bidAmount"));
@@ -190,7 +194,9 @@ public class AdminController implements com.bidhub.client.navigation.ContextAwar
         colBidAuctionId.setCellValueFactory(new PropertyValueFactory<>("auctionId"));
         colBidderId.setCellValueFactory(new PropertyValueFactory<>("bidderId"));
         filteredBidData = new javafx.collections.transformation.FilteredList<>(bidData, p -> true);
-        bidHistoryTable.setItems(filteredBidData);
+        javafx.collections.transformation.SortedList<BidHistoryInfo> sortedBidData = new javafx.collections.transformation.SortedList<>(filteredBidData);
+        sortedBidData.comparatorProperty().bind(bidHistoryTable.comparatorProperty());
+        bidHistoryTable.setItems(sortedBidData);
 
         colAuditTime.setCellValueFactory(new PropertyValueFactory<>("createdAt"));
         colAuditUserName.setCellValueFactory(new PropertyValueFactory<>("userName"));
@@ -199,7 +205,9 @@ public class AdminController implements com.bidhub.client.navigation.ContextAwar
         colAuditId.setCellValueFactory(new PropertyValueFactory<>("id"));
         colAuditUser.setCellValueFactory(new PropertyValueFactory<>("userId"));
         filteredAuditData = new javafx.collections.transformation.FilteredList<>(auditData, p -> true);
-        auditLogTable.setItems(filteredAuditData);
+        javafx.collections.transformation.SortedList<AuditLogInfo> sortedAuditData = new javafx.collections.transformation.SortedList<>(filteredAuditData);
+        sortedAuditData.comparatorProperty().bind(auditLogTable.comparatorProperty());
+        auditLogTable.setItems(sortedAuditData);
     }
 
     private void setupTableSelectionListener() {
@@ -257,6 +265,8 @@ public class AdminController implements com.bidhub.client.navigation.ContextAwar
     
     private void loadUsers() {
         statusLabel.setText("Đang tải danh sách người dùng...");
+        userData.clear();
+        userTable.setPlaceholder(new Label("Đang tải danh sách người dùng... ⏳"));
         executeRequest(CMD_GET_USER_LIST, null, payload -> {
             Platform.runLater(() -> {
                 userData.clear();
@@ -270,6 +280,9 @@ public class AdminController implements com.bidhub.client.navigation.ContextAwar
                         info.setUserId(node.path("id").asText(""));
                         userData.add(info);
                     }
+                }
+                if (userData.isEmpty()) {
+                    userTable.setPlaceholder(new Label("Không có dữ liệu người dùng"));
                 }
                 statusLabel.setText("Đã tải " + userData.size() + " người dùng.");
             });
@@ -310,6 +323,8 @@ public class AdminController implements com.bidhub.client.navigation.ContextAwar
     @FXML
     public void loadAuctionReport() {
         statusLabel.setText("Đang tải báo cáo Auction...");
+        auctionData.clear();
+        auctionReportTable.setPlaceholder(new Label("Đang tải báo cáo Auction... ⏳"));
         executeRequest(CMD_GET_AUCTION_REPORT, null, payload -> {
             Platform.runLater(() -> {
                 auctionData.clear();
@@ -327,6 +342,9 @@ public class AdminController implements com.bidhub.client.navigation.ContextAwar
                         auctionData.add(info);
                     }
                 }
+                if (auctionData.isEmpty()) {
+                    auctionReportTable.setPlaceholder(new Label("Không có dữ liệu báo cáo Auction"));
+                }
                 auctionReportLoaded = true;
                 statusLabel.setText("Đã tải " + auctionData.size() + " dòng báo cáo Auction.");
             });
@@ -341,6 +359,8 @@ public class AdminController implements com.bidhub.client.navigation.ContextAwar
     @FXML
     public void loadBidHistory() {
         statusLabel.setText("Đang tải lịch sử Bid toàn hệ thống...");
+        bidData.clear();
+        bidHistoryTable.setPlaceholder(new Label("Đang tải lịch sử Bid... ⏳"));
         ObjectNode payload = mapper.createObjectNode();
         payload.put("auctionId", "ALL");
         executeRequest(CMD_GET_BID_HISTORY_REPORT, payload, data -> {
@@ -358,6 +378,9 @@ public class AdminController implements com.bidhub.client.navigation.ContextAwar
                         bidData.add(info);
                     }
                 }
+                if (bidData.isEmpty()) {
+                    bidHistoryTable.setPlaceholder(new Label("Không có dữ liệu lịch sử Bid"));
+                }
                 bidHistoryLoaded = true;
                 statusLabel.setText("Đã tải " + bidData.size() + " lượt bid.");
             });
@@ -372,6 +395,8 @@ public class AdminController implements com.bidhub.client.navigation.ContextAwar
     @FXML
     public void loadAuditLog() {
         statusLabel.setText("Đang tải nhật ký hệ thống...");
+        auditData.clear();
+        auditLogTable.setPlaceholder(new Label("Đang tải nhật ký hệ thống... ⏳"));
         ObjectNode payload = mapper.createObjectNode();
         payload.put("limit", 200);
         executeRequest(CMD_GET_AUDIT_LOG, payload, data -> {
@@ -388,6 +413,9 @@ public class AdminController implements com.bidhub.client.navigation.ContextAwar
                         info.setDetails(node.path("details").asText(""));
                         auditData.add(info);
                     }
+                }
+                if (auditData.isEmpty()) {
+                    auditLogTable.setPlaceholder(new Label("Không có dữ liệu nhật ký hệ thống"));
                 }
                 auditLogLoaded = true;
                 statusLabel.setText("Đã tải " + auditData.size() + " log hệ thống.");
