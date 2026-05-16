@@ -116,8 +116,19 @@ public class MainLayoutController {
             ViewRouter.getInstance().navigateTo(Views.LOGIN);
         };
 
-        task.setOnSucceeded(ev -> Platform.runLater(forceLogout));
-        task.setOnFailed(ev -> Platform.runLater(forceLogout));
+        task.setOnSucceeded(ev -> Platform.runLater(() -> {
+            MessageResponse resp = task.getValue();
+            if (resp != null && resp.isOk()) {
+                forceLogout.run();
+            } else {
+                Alert alert = new Alert(Alert.AlertType.ERROR, "Đăng xuất thất bại từ phía máy chủ: " + (resp != null ? resp.getMessage() : "Lỗi không xác định"));
+                alert.showAndWait();
+            }
+        }));
+        task.setOnFailed(ev -> Platform.runLater(() -> {
+            Alert alert = new Alert(Alert.AlertType.ERROR, "Lỗi kết nối khi đăng xuất. Không thể ngắt phiên làm việc trên máy chủ.");
+            alert.showAndWait();
+        }));
         new Thread(task, "logout-thread").start();
     }
 

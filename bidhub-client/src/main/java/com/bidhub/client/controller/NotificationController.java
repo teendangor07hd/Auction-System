@@ -204,6 +204,7 @@ public class NotificationController {
         // Click để đánh dấu đã đọc
         card.setOnMouseClicked(e -> {
             item.setRead(true);
+            sendMarkReadRequest(item.getId());
             renderNotifications();
             updateUnreadCount();
         });
@@ -331,9 +332,26 @@ public class NotificationController {
 
     @FXML
     public void handleMarkAllRead() {
-        allNotifications.forEach(n -> n.setRead(true));
+        allNotifications.forEach(n -> {
+            if (!n.isRead()) {
+                n.setRead(true);
+                sendMarkReadRequest(n.getId());
+            }
+        });
         renderNotifications();
         updateUnreadCount();
+    }
+
+    private void sendMarkReadRequest(String notifId) {
+        ObjectNode payload = mapper.createObjectNode();
+        payload.put("notificationId", notifId);
+        MessageRequest req = new MessageRequest();
+        req.setType("MARK_NOTIFICATION_READ");
+        req.setToken(ClientSession.getInstance().getToken());
+        req.setPayload(payload);
+        new Thread(() -> {
+            try { ServerGateway.getInstance().sendRequest(req); } catch (Exception ignored) {}
+        }).start();
     }
 
     @FXML

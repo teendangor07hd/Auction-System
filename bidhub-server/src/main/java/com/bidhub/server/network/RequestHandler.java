@@ -51,8 +51,11 @@ public final class RequestHandler {
             "GET_USER_LIST", "LOCK_USER", "UNLOCK_USER",
             "GET_BID_HISTORY_REPORT", "GET_AUDIT_LOG", "RUN_INTEGRITY_CHECK",
             "SEND_NOTIFICATION", "GET_NOTIFICATIONS",
-            "GET_MY_AUCTIONS", "UPDATE_ITEM", "CANCEL_AUCTION"
+            "GET_MY_AUCTIONS", "UPDATE_ITEM", "CANCEL_AUCTION",
+            "SUBSCRIBE_AUCTION", "MARK_NOTIFICATION_READ"
     );
+
+    private static final java.util.Map<String, java.util.Set<String>> userReadNotifications = new java.util.concurrent.ConcurrentHashMap<>();
 
     // ← THÊM: field DAO (null ở T4 — sẽ được gán thực sự ở T5)
     // Giữ package-private để test inject được mà không cần reflection
@@ -180,6 +183,9 @@ public final class RequestHandler {
                 case "GET_MY_AUCTIONS"        -> handleGetMyAuctions(session, payload);
                 case "UPDATE_ITEM"            -> handleUpdateItem(session, payload);
                 case "CANCEL_AUCTION"         -> handleCancelAuction(session, payload);
+                case "MARK_NOTIFICATION_READ" -> handleMarkNotificationRead(session, payload);
+                case "ADMIN_STOP_AUCTION"     -> handleAdminStopAuction(session, payload);
+                case "ADMIN_DELETE_AUCTION"   -> handleAdminDeleteAuction(session, payload);
                 default              -> MessageMapper.toJson(
                         MessageResponse.error(type, "Lệnh không xác định: " + type));
             };
@@ -1236,6 +1242,7 @@ public final class RequestHandler {
      */
     private String handleGetNotifications(Session session, JsonNode payload) {
         SecurityContext.requireAuthenticated(session);
+        String userId = session.getAuthenticatedUserId();
         // Lấy các broadcast notification từ audit log
         List<Map<String, Object>> notifications = new java.util.ArrayList<>();
         try {
@@ -1249,12 +1256,14 @@ public final class RequestHandler {
                         com.fasterxml.jackson.databind.ObjectMapper om = new com.fasterxml.jackson.databind.ObjectMapper();
                         JsonNode detailNode = om.readTree(detail);
                         Map<String, Object> notif = new HashMap<>();
-                        notif.put("id", log.getOrDefault("id", ""));
+                        String notifId = String.valueOf(log.getOrDefault("id", ""));
+                        notif.put("id", notifId);
                         notif.put("title", detailNode.path("title").asText("Thông báo"));
                         notif.put("message", detailNode.path("message").asText(""));
                         notif.put("type", detailNode.path("type").asText("SYSTEM"));
                         notif.put("createdAt", log.getOrDefault("createdAt", ""));
-                        notif.put("isRead", false);
+                        boolean isRead = userReadNotifications.getOrDefault(userId, java.util.Collections.emptySet()).contains(notifId);
+                        notif.put("isRead", isRead);
                         notifications.add(notif);
                     } catch (Exception ignored) {}
                 }
@@ -1263,6 +1272,15 @@ public final class RequestHandler {
             logger.warn("Không thể lấy danh sách thông báo: {}", e.getMessage());
         }
         return MessageMapper.toJson(MessageResponse.ok("GET_NOTIFICATIONS", notifications));
+    }
+
+    private String handleMarkNotificationRead(Session session, JsonNode payload) {
+        String userId = SecurityContext.requireAuthenticated(session);
+        String notifId = getTextSafe(payload, "notificationId");
+        if (notifId != null && !notifId.isBlank()) {
+            userReadNotifications.computeIfAbsent(userId, k -> java.util.concurrent.ConcurrentHashMap.newKeySet()).add(notifId);
+        }
+        return MessageMapper.toJson(MessageResponse.ok("MARK_NOTIFICATION_READ", Map.of("message", "Đã đánh dấu đọc")));
     }
 
     /**
@@ -1336,11 +1354,15 @@ public final class RequestHandler {
             newPrice = payload.get("startingPrice").asDouble();
         }
 
+        String newImageUrl = getTextSafe(payload, "imageUrl");
+        if (newImageUrl != null && !newImageUrl.isBlank()) item.setImageUrl(newImageUrl);
+
         // Dùng updateItem() (UPDATE SQL) thay vì save() (INSERT SQL) để tránh lỗi duplicate key
         itemDao.updateItem(itemId,
                 newName != null && !newName.isBlank() ? newName : null,
                 newDesc,
-                newPrice);
+                newPrice,
+                newImageUrl);
 
         auditLogService.log(userId, "ITEM_UPDATED",
                 "{\"itemId\":\"" + itemId + "\",\"newName\":\"" + item.getName() + "\"}");
@@ -1387,5 +1409,35 @@ public final class RequestHandler {
 
         return MessageMapper.toJson(MessageResponse.ok("CANCEL_AUCTION",
                 Map.of("message", "Đã hủy phiên đấu giá.", "auctionId", auctionId)));
+    }
+
+    private String handleAdminStopAuction(Session session, JsonNode payload) {
+        String userId = SecurityContext.requireRole(session, UserRole.ADMIN);
+        String auctionId = getTextSafe(payload, "auctionId");
+        if (auctionId == null || auctionId.isBlank()) {
+            return MessageMapper.toJson(MessageResponse.error("ADMIN_STOP_AUCTION", "auctionId không được để trống."));
+        }
+        java.util.Optional<Auction> aucOpt = auctionDao.findById(auctionId);
+        if (aucOpt.isEmpty()) {
+            return MessageMapper.toJson(MessageResponse.error("ADMIN_STOP_AUCTION", "Phiên đấu giá không tồn tại."));
+        }
+        auctionDao.updateStatus(auctionId, AuctionStatus.CANCELED);
+        auditLogService.log(userId, "ADMIN_STOP_AUCTION", "{\"auctionId\":\"" + auctionId + "\"}");
+        return MessageMapper.toJson(MessageResponse.ok("ADMIN_STOP_AUCTION", Map.of("message", "Đã dừng/hủy phiên đấu giá thành công.", "auctionId", auctionId)));
+    }
+
+    private String handleAdminDeleteAuction(Session session, JsonNode payload) {
+        String userId = SecurityContext.requireRole(session, UserRole.ADMIN);
+        String auctionId = getTextSafe(payload, "auctionId");
+        if (auctionId == null || auctionId.isBlank()) {
+            return MessageMapper.toJson(MessageResponse.error("ADMIN_DELETE_AUCTION", "auctionId không được để trống."));
+        }
+        java.util.Optional<Auction> aucOpt = auctionDao.findById(auctionId);
+        if (aucOpt.isEmpty()) {
+            return MessageMapper.toJson(MessageResponse.error("ADMIN_DELETE_AUCTION", "Phiên đấu giá không tồn tại."));
+        }
+        auctionDao.deleteById(auctionId);
+        auditLogService.log(userId, "ADMIN_DELETE_AUCTION", "{\"auctionId\":\"" + auctionId + "\"}");
+        return MessageMapper.toJson(MessageResponse.ok("ADMIN_DELETE_AUCTION", Map.of("message", "Đã xóa phiên đấu giá thành công.", "auctionId", auctionId)));
     }
 }
