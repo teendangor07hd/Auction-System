@@ -20,9 +20,9 @@ public final class ClientConnectionThread implements Runnable {
     private final Session session;
     private final RequestHandler handler;
 
-    public ClientConnectionThread(Session session) {
+    public ClientConnectionThread(Session session, RequestHandler handler) {
         this.session = session;
-        this.handler = new RequestHandler();
+        this.handler = handler;
     }
 
     @Override

@@ -20,9 +20,16 @@ public final class SocketServerCore {
     private static final Logger logger = LoggerFactory.getLogger(SocketServerCore.class);
 
     // 📌 [Tieu chi: Kien truc Client–Server — 0.5d] Fixed pool tranh OOM khi nhieu client dong thoi
-    private final ExecutorService threadPool = Executors.newFixedThreadPool(30);
+    private final ExecutorService threadPool;
+    private final RequestHandler requestHandler = new RequestHandler();
     private ServerSocket serverSocket;
     private volatile boolean running = false; // volatile: shutdown() tu thread khac thay ngay
+
+    public SocketServerCore() {
+        int poolSize = com.bidhub.server.config.ConfigLoader.getIntOrDefault("server.poolSize", 30);
+        this.threadPool = Executors.newFixedThreadPool(poolSize);
+        Runtime.getRuntime().addShutdownHook(new Thread(this::shutdown, "server-shutdown-hook"));
+    }
 
     /**
      * Bat dau lang nghe — blocking. Goi tu main thread sau khi tat ca setup xong.
@@ -39,7 +46,7 @@ public final class SocketServerCore {
             try {
                 Socket clientSocket = serverSocket.accept();
                 Session session = new Session(clientSocket);
-                threadPool.submit(new ClientConnectionThread(session));
+                threadPool.submit(new ClientConnectionThread(session, requestHandler));
                 logger.info("Client moi: {} | session={}", clientSocket.getInetAddress(), session.getSessionId());
             } catch (IOException e) {
                 if (running) {
