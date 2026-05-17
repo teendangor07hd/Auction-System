@@ -172,15 +172,19 @@ public class AuctionDao {
                 newEndTime.toString(), LocalDateTime.now().toString(), auctionId);
     }
 
-    // Helper để DRY các UPDATE 3-param đơn giản
-    private void runUpdate(String sql, String p1, String p2, String p3) {
+    private void runUpdate(String sql, Object... params) {
         Connection conn = null;
         try {
             conn = acquireConnection();
             try (PreparedStatement ps = conn.prepareStatement(sql)) {
-                ps.setString(1, p1);
-                ps.setString(2, p2);
-                ps.setString(3, p3);
+                for (int i = 0; i < params.length; i++) {
+                    Object p = params[i];
+                    if (p instanceof String s) ps.setString(i + 1, s);
+                    else if (p instanceof Double d) ps.setDouble(i + 1, d);
+                    else if (p instanceof Integer in) ps.setInt(i + 1, in);
+                    else if (p == null) ps.setNull(i + 1, Types.NULL);
+                    else ps.setObject(i + 1, p);
+                }
                 ps.executeUpdate();
             }
         } catch (SQLException e) {
@@ -197,8 +201,9 @@ public class AuctionDao {
         String itemId = rs.getString("item_id");
         LocalDateTime startTime = LocalDateTime.parse(rs.getString("start_time"));
         LocalDateTime endTime = LocalDateTime.parse(rs.getString("end_time"));
-        double startingPrice = rs.getDouble("starting_price");
-        double currentHighestBid = rs.getDouble("current_highest_bid");
+        // Lam tron so thap phan sang VND (so nguyen) de tranh sai lech float
+        double startingPrice = Math.round(rs.getDouble("starting_price"));
+        double currentHighestBid = Math.round(rs.getDouble("current_highest_bid"));
 
         // getString trả về null khi cột NULL trong DB — null-safe cho phiên chưa có bid
         String highestBidderId = rs.getString("highest_bidder_id");
@@ -207,10 +212,10 @@ public class AuctionDao {
         AuctionStatus status;
         try {
             status = AuctionStatus.valueOf(statusStr);
-        } catch (Exception e) {
-            status = AuctionStatus.FINISHED;
+        } catch (IllegalArgumentException | NullPointerException e) {
+            throw new RuntimeException("Loi map status: " + statusStr, e);
         }
-        double minimumIncrement = rs.getDouble("minimum_increment");
+        double minimumIncrement = Math.round(rs.getDouble("minimum_increment"));
 
         return new Auction(id, createdAt, updatedAt, itemId, startTime, endTime,
                 startingPrice, currentHighestBid, highestBidderId, status, minimumIncrement);
@@ -242,16 +247,27 @@ public class AuctionDao {
         return result;
     }
 
+  public static class AuctionBidDto {
+      public final String id;
+      public final double currentHighestBid;
+      public final String highestBidderId;
+      public final String itemName;
+
+      public AuctionBidDto(String id, double currentHighestBid, String highestBidderId, String itemName) {
+          this.id = id;
+          this.currentHighestBid = currentHighestBid;
+          this.highestBidderId = highestBidderId;
+          this.itemName = itemName;
+      }
+  }
+
   /**
    * Lay tat ca auction voi thong tin bid — dung cho DataIntegrityService.
    *
-   * <p>Tra ve List<Map> thay vi List<Auction> de lay ca currentHighestBid
-   * va highestBidderId dang raw cho so sanh.
-   *
-   * @return danh sach map chua thong tin auction
+   * @return danh sach chua thong tin auction
    */
-  public List<Map<String, Object>> findAllWithBidInfo() {
-    List<Map<String, Object>> result = new ArrayList<>();
+  public List<AuctionBidDto> findAllWithBidInfo() {
+    List<AuctionBidDto> result = new ArrayList<>();
     String sql = "SELECT a.id, a.current_highest_bid, a.highest_bidder_id, i.name as item_name FROM auctions a LEFT JOIN items i ON a.item_id = i.id";
     Connection conn = null;
     try {
@@ -259,12 +275,12 @@ public class AuctionDao {
       try (PreparedStatement ps = conn.prepareStatement(sql);
            ResultSet rs = ps.executeQuery()) {
         while (rs.next()) {
-          Map<String, Object> row = new HashMap<>();
-          row.put("id", rs.getString("id"));
-          row.put("currentHighestBid", rs.getDouble("current_highest_bid"));
-          row.put("highestBidderId", rs.getString("highest_bidder_id"));
-          row.put("itemName", rs.getString("item_name") != null ? rs.getString("item_name") : "Không rõ tên");
-          result.add(row);
+          result.add(new AuctionBidDto(
+              rs.getString("id"),
+              Math.round(rs.getDouble("current_highest_bid")),
+              rs.getString("highest_bidder_id"),
+              rs.getString("item_name") != null ? rs.getString("item_name") : "Không rõ tên"
+          ));
         }
       }
     } catch (SQLException e) {
@@ -275,6 +291,68 @@ public class AuctionDao {
     }
     return result;
   }
+
+    public int countByStatus(AuctionStatus status) {
+        String sql = "SELECT COUNT(*) FROM auctions WHERE status = ?";
+        Connection conn = null;
+        try {
+            conn = acquireConnection();
+            try (PreparedStatement ps = conn.prepareStatement(sql)) {
+                ps.setString(1, status.name());
+                ResultSet rs = ps.executeQuery();
+                if (rs.next()) return rs.getInt(1);
+                return 0;
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException("AuctionDao.countByStatus that bai: " + e.getMessage(), e);
+        } finally {
+            releaseConnection(conn);
+        }
+    }
+
+    public double sumHighestBids() {
+        String sql = "SELECT SUM(current_highest_bid) FROM auctions";
+        Connection conn = null;
+        try {
+            conn = acquireConnection();
+            try (PreparedStatement ps = conn.prepareStatement(sql);
+                 ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) return rs.getDouble(1);
+                return 0.0;
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException("AuctionDao.sumHighestBids that bai: " + e.getMessage(), e);
+        } finally {
+            releaseConnection(conn);
+        }
+    }
+
+    public Map<String, String> getItemAuctionStatusMap() {
+        Map<String, String> result = new HashMap<>();
+        String sql = "SELECT item_id, status FROM auctions";
+        Connection conn = null;
+        try {
+            conn = acquireConnection();
+            try (PreparedStatement ps = conn.prepareStatement(sql);
+                 ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    String itemId = rs.getString("item_id");
+                    String status = rs.getString("status");
+                    String existing = result.get(itemId);
+                    if (existing == null) {
+                        result.put(itemId, status);
+                    } else if ("RUNNING".equals(status)) {
+                        result.put(itemId, "RUNNING");
+                    }
+                }
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException("AuctionDao.getItemAuctionStatusMap that bai: " + e.getMessage(), e);
+        } finally {
+            releaseConnection(conn);
+        }
+        return result;
+    }
 
     /**
      * Xóa phiên đấu giá theo ID — dùng để hủy phiên PENDING.

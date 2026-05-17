@@ -132,19 +132,20 @@ public class ItemDao {
      * @param newPrice       giá mới (<0 = giữ nguyên)
      * @param newImageUrl    URL ảnh mới (null = giữ nguyên)
      */
-    public void updateItem(String itemId, String newName, String newDescription, double newPrice, String newImageUrl) {
+    public void updateItem(String itemId, String newName, String newDescription, Double newPrice, String newImageUrl) {
         String sql = """
             UPDATE items
             SET name = COALESCE(?, name),
                 description = COALESCE(?, description),
-                starting_price = CASE WHEN ? >= 0 THEN ? ELSE starting_price END,
+                starting_price = COALESCE(?, starting_price),
                 extra_data = ?,
                 updated_at = ?
             WHERE id = ?
             """;
         Connection conn = null;
         try {
-            Optional<Item> existingOpt = findById(itemId);
+            conn = acquireConnection();
+            Optional<Item> existingOpt = querySingle("SELECT * FROM items WHERE id = ?", itemId, conn);
             if (existingOpt.isEmpty()) return;
             Item existing = existingOpt.get();
             if (newImageUrl != null && !newImageUrl.isBlank()) {
@@ -152,15 +153,17 @@ public class ItemDao {
             }
             String newExtraJson = MAPPER.writeValueAsString(buildExtras(existing));
 
-            conn = acquireConnection();
             try (PreparedStatement ps = conn.prepareStatement(sql)) {
                 ps.setString(1, newName);
                 ps.setString(2, newDescription);
-                ps.setDouble(3, newPrice);
-                ps.setDouble(4, newPrice);
-                ps.setString(5, newExtraJson);
-                ps.setString(6, java.time.LocalDateTime.now().toString());
-                ps.setString(7, itemId);
+                if (newPrice != null) {
+                    ps.setDouble(3, newPrice);
+                } else {
+                    ps.setNull(3, Types.DOUBLE);
+                }
+                ps.setString(4, newExtraJson);
+                ps.setString(5, java.time.LocalDateTime.now().toString());
+                ps.setString(6, itemId);
                 ps.executeUpdate();
             }
         } catch (Exception e) {
@@ -174,16 +177,20 @@ public class ItemDao {
         Connection conn = null;
         try {
             conn = acquireConnection();
-            try (PreparedStatement ps = conn.prepareStatement(sql)) {
-                if (param != null) ps.setString(1, param);
-                ResultSet rs = ps.executeQuery();
-                if (rs.next()) return Optional.of(mapRow(rs));
-                return Optional.empty();
-            }
+            return querySingle(sql, param, conn);
         } catch (Exception e) {
             throw new RuntimeException("ItemDao query thất bại: " + e.getMessage(), e);
         } finally {
             releaseConnection(conn);
+        }
+    }
+
+    private Optional<Item> querySingle(String sql, String param, Connection conn) throws Exception {
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            if (param != null) ps.setString(1, param);
+            ResultSet rs = ps.executeQuery();
+            if (rs.next()) return Optional.of(mapRow(rs));
+            return Optional.empty();
         }
     }
 

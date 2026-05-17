@@ -4,6 +4,9 @@ import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -23,7 +26,25 @@ public final class DbConnectionProvider {
     private final String jdbcUrl;
 
     private DbConnectionProvider() {
-        this.jdbcUrl = "jdbc:sqlite:" + ConfigLoader.getString("db.path");
+        String dbPath = ConfigLoader.getString("db.path");
+        if (dbPath != null && !dbPath.isBlank() && !dbPath.equals(":memory:")) {
+            try {
+                Path path = Paths.get(dbPath);
+                if (path.getParent() != null) {
+                    Files.createDirectories(path.getParent());
+                }
+            } catch (Exception e) {
+                logger.error("Loi tao thu muc cho db: {}", e.getMessage());
+            }
+        }
+        this.jdbcUrl = dbPath.equals(":memory:") ? "jdbc:sqlite::memory:" : "jdbc:sqlite:" + dbPath;
+
+        try (Connection conn = DriverManager.getConnection(this.jdbcUrl);
+             Statement stmt = conn.createStatement()) {
+            stmt.execute("PRAGMA journal_mode=WAL");
+        } catch (SQLException e) {
+            logger.error("Loi kich hoat WAL mode: {}", e.getMessage());
+        }
     }
 
     /** Trả về instance duy nhất, tạo mới nếu chưa tồn tại (thread-safe). */
@@ -39,17 +60,13 @@ public final class DbConnectionProvider {
     }
 
     /**
-     * Mở và trả về Connection mới với WAL mode đã bật.
+     * Mở và trả về Connection mới.
      *
      * @return {@link Connection} sẵn sàng dùng
      * @throws SQLException nếu không thể mở kết nối
      */
     public Connection getConnection() throws SQLException {
-        Connection conn = DriverManager.getConnection(jdbcUrl);
-        try (Statement stmt = conn.createStatement()) {
-            stmt.execute("PRAGMA journal_mode=WAL");
-        }
-        return conn;
+        return DriverManager.getConnection(jdbcUrl);
     }
 
     /**
@@ -65,6 +82,11 @@ public final class DbConnectionProvider {
                 logger.error("Loi dong ket noi: {}", e.getMessage());
             }
         }
+    }
+
+    /** Reset singleton cho mục đích Unit Test. */
+    public static void reset() {
+        instance = null;
     }
 
     /**
