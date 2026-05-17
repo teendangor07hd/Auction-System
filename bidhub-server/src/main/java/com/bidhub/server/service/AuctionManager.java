@@ -63,6 +63,9 @@ public final class AuctionManager {
         return instance;
     }
 
+    // 📌 [Tieu chi: Ky thuat quan trong — guard chong goi start() nhieu lan]
+    private volatile boolean started = false;
+
     /**
      * Khoi dong AuctionManager — load tat ca OPEN va RUNNING auction tu DB vao RAM,
      * schedule {@link AuctionLifecycleTask} chay moi 5 giay.
@@ -70,6 +73,13 @@ public final class AuctionManager {
      * <p>// 📌 [Tieu chi: Chuc nang dau gia — tu dong kiem tra va dong phien]
      */
     public void start() {
+        // Chong goi start() nhieu lan → duplicate scheduled tasks
+        if (started) {
+            logger.warn("AuctionManager.start() da duoc goi truoc do — bo qua.");
+            return;
+        }
+        started = true;
+
         // Load tat ca OPEN + RUNNING auction tu DB
         AuctionDao auctionDao = new AuctionDao();
         List<Auction> activeAuctions = auctionDao.findActiveAuctions();
@@ -78,10 +88,11 @@ public final class AuctionManager {
         }
         logger.info("Da load {} RUNNING auctions vao RAM.", activeAuctions.size());
 
-        // Schedule lifecycle task moi 5 giay
+        // 📌 [Tieu chi: Ky thuat quan trong — initialDelay = 0 de xu ly auction het han
+        //    ngay khi khoi dong, tranh gap 5s de auction expire trong khoang trong]
         AuctionLifecycleTask task = new AuctionLifecycleTask();
-        scheduler.scheduleAtFixedRate(task, 5, 5, TimeUnit.SECONDS);
-        logger.info("Lifecycle task scheduled (5s interval).");
+        scheduler.scheduleAtFixedRate(task, 0, 5, TimeUnit.SECONDS);
+        logger.info("Lifecycle task scheduled (5s interval, chay ngay).");
     }
 
     /**

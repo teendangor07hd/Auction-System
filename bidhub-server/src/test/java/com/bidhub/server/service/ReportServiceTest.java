@@ -18,7 +18,12 @@ class ReportServiceTest {
     // --- START STUB: Mock DAO de pass test khi khong co database that (Phan cua Khoa them de thay cho DB) ---
     AuctionDao mockAuctionDao = new AuctionDao() {
         @Override public List<com.bidhub.server.model.Auction> findAll() {
-            return List.of(new com.bidhub.server.model.Auction("auc1", java.time.LocalDateTime.now(), java.time.LocalDateTime.now(), "item1", java.time.LocalDateTime.now(), java.time.LocalDateTime.now(), 100, 150, "user1", com.bidhub.server.model.AuctionStatus.RUNNING, 10));
+            java.time.LocalDateTime start = java.time.LocalDateTime.now();
+            java.time.LocalDateTime end = start.plusHours(1);
+            return List.of(new com.bidhub.server.model.Auction("auc1", start, start, "item1", start, end, 100, 150, "user1", com.bidhub.server.model.AuctionStatus.RUNNING, 10));
+        }
+        @Override public java.util.Optional<com.bidhub.server.model.Auction> findById(String id) {
+            return java.util.Optional.empty();
         }
     };
     BidDao mockBidDao = new BidDao() {
@@ -32,7 +37,17 @@ class ReportServiceTest {
             return List.of(new com.bidhub.server.model.AuditLog("user1", "action1", "details1"));
         }
     };
-    reportService = new ReportService(mockAuctionDao, mockBidDao, mockAuditLogDao);
+    com.bidhub.server.dao.UserDao mockUserDao = new com.bidhub.server.dao.UserDao() {
+        @Override public java.util.Optional<com.bidhub.server.model.User> findById(String id) {
+            return java.util.Optional.empty();
+        }
+    };
+    com.bidhub.server.dao.ItemDao mockItemDao = new com.bidhub.server.dao.ItemDao() {
+        @Override public java.util.Optional<com.bidhub.server.model.Item> findById(String id) {
+            return java.util.Optional.empty();
+        }
+    };
+    reportService = new ReportService(mockAuctionDao, mockBidDao, mockAuditLogDao, mockUserDao, mockItemDao);
     // --- END STUB ---
   }
 
@@ -83,7 +98,7 @@ class ReportServiceTest {
   @DisplayName("ReportService constructor inject khong crash")
   void constructor_inject_noCrash() {
     assertDoesNotThrow(() ->
-        new ReportService(null, null, null));
+        new ReportService(null, null, null, null, null));
   }
 
   @Test
