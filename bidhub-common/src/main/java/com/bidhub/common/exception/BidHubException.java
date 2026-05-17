@@ -53,7 +53,7 @@ public class BidHubException extends RuntimeException {
         this.errorCode = errorCode;
     }
 
-    public BidHubException(String message) {
+    protected BidHubException(String message) {
         super(message);
         this.errorCode = "UNKNOWN_ERROR"; //gan loi mac dinh (final errorCode)
     }

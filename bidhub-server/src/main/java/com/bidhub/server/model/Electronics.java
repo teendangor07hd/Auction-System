@@ -47,7 +47,7 @@ public final class Electronics extends Item {
                        String brand, int warrantyMonths) {
         super(id, createdAt, updatedAt, name, description, startingPrice, sellerId,
                 com.bidhub.server.model.ItemType.ELECTRONICS);
-        if (brand == null) throw new IllegalArgumentException("brand không được null");
+        Objects.requireNonNull(brand, "brand không được null");
         if (warrantyMonths < 0) throw new IllegalArgumentException("warrantyMonths không được âm");
         this.brand = brand;
         this.warrantyMonths = warrantyMonths;

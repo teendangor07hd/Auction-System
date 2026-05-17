@@ -30,7 +30,7 @@ public final class MigrationRunner {
         try {
             conn = DbConnectionProvider.getInstance().getConnection();
             try (Statement stmt = conn.createStatement()) {
-                for (String statement : sql.split(";")) {
+                for (String statement : sql.split(";\n|;\r\n")) {
                     String trimmed = statement.trim();
                     if (!trimmed.isEmpty()) {
                         stmt.execute(trimmed);
