@@ -95,8 +95,13 @@ public class AuctionDetailController implements ContextAware {
         btnPlaceBid.setOnAction(e -> placeBid());
         btnBack.setOnAction(e -> {
             cleanup(); // Dọn dẹp tài nguyên trước khi thoát
-            com.bidhub.client.navigation.ViewRouter.getInstance()
-                    .navigateTo(com.bidhub.client.util.Views.AUCTION_LIST);
+            if (com.bidhub.client.network.ClientSession.getInstance().isLoggedIn()) {
+                com.bidhub.client.navigation.ViewRouter.getInstance()
+                        .navigateTo(com.bidhub.client.util.Views.AUCTION_LIST);
+            } else {
+                com.bidhub.client.navigation.ViewRouter.getInstance()
+                        .navigateTo(com.bidhub.client.util.Views.LOGIN);
+            }
         });
 
         // Setup bảng xếp hạng
@@ -613,4 +618,6 @@ public class AuctionDetailController implements ContextAware {
             }
         }
     }
-}
+
+
+}

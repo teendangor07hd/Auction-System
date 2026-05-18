@@ -44,6 +44,9 @@ public final class Views {
     /** Trang quản lý của người bán — xem/sửa/xóa sản phẩm và phiên của mình */
     public static final String SELLER_DASHBOARD = "SellerDashboardView";
 
+    /** Trang sản phẩm đã thắng — dành cho Bidder */
+    public static final String BIDDER_ITEMS = "BidderItemsView";
+
     /** Ngăn khởi tạo class này */
     private Views() {}
 }

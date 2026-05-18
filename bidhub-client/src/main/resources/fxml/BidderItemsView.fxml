@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+
+<VBox xmlns:fx="http://javafx.com/fxml/1"
+      fx:controller="com.bidhub.client.controller.BidderItemsController"
+      stylesheets="@/css/styles.css"
+      styleClass="root"
+      spacing="0">
+
+    <!-- Header -->
+    <HBox alignment="CENTER_LEFT" spacing="15"
+          style="-fx-padding: 16 20; -fx-background-color: #161B22; -fx-border-color: rgba(255,255,255,0.06); -fx-border-width: 0 0 1 0;">
+        <Label text="🏆" style="-fx-font-size: 20px;"/>
+        <VBox spacing="2">
+            <Label text="Sản Phẩm Đã Thắng"
+                   style="-fx-text-fill: white; -fx-font-size: 20px; -fx-font-weight: 900;"/>
+            <Label fx:id="lblCount" text="0 sản phẩm"
+                   style="-fx-text-fill: #64748B; -fx-font-size: 12px;"/>
+        </VBox>
+        <Region HBox.hgrow="ALWAYS"/>
+        <ProgressIndicator fx:id="loadingSpinner" visible="false" prefWidth="24" prefHeight="24"/>
+        <Button text="⟳ Làm mới" onAction="#handleRefresh"
+                style="-fx-background-color: #2B3139; -fx-text-fill: #E2E8F0; -fx-background-radius: 8; -fx-cursor: hand; -fx-padding: 8 16; -fx-border-color: #475569; -fx-border-radius: 8;"/>
+    </HBox>
+
+    <StackPane VBox.vgrow="ALWAYS">
+        <ScrollPane fx:id="scrollPane" fitToWidth="true"
+                    style="-fx-background-color: transparent; -fx-background: transparent;">
+            <FlowPane fx:id="cardContainer" hgap="20" vgap="20" alignment="TOP_CENTER"
+                      style="-fx-padding: 20; -fx-background-color: transparent;"/>
+        </ScrollPane>
+
+        <Label fx:id="lblEmptyMessage" text="Đang tải dữ liệu..."
+               style="-fx-font-size: 16px; -fx-text-fill: #64748B;"/>
+    </StackPane>
+
+</VBox>
