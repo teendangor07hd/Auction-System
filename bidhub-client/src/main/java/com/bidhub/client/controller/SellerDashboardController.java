@@ -49,6 +49,8 @@ public class SellerDashboardController {
     private final ObjectMapper mapper = new ObjectMapper();
     private String editingItemId = null; // ID sản phẩm đang chỉnh sửa
 
+    @FXML private javafx.scene.control.Label lblEditImageName;
+
     @FXML
     public void initialize() {
         loadAll();
@@ -65,6 +67,20 @@ public class SellerDashboardController {
 
     @FXML
     public void handleEditCancel() { hideEditOverlay(); }
+
+    @FXML
+    public void handleEditUploadImage() {
+        javafx.stage.FileChooser fc = new javafx.stage.FileChooser();
+        fc.setTitle("Chọn ảnh sản phẩm");
+        fc.getExtensionFilters().add(
+                new javafx.stage.FileChooser.ExtensionFilter("Image Files", "*.png", "*.jpg", "*.jpeg", "*.gif"));
+        java.io.File file = fc.showOpenDialog(
+                editImageUrl != null ? editImageUrl.getScene().getWindow() : null);
+        if (file != null) {
+            if (editImageUrl != null) editImageUrl.setText(file.toURI().toString());
+            if (lblEditImageName != null) lblEditImageName.setText("✔ " + file.getName());
+        }
+    }
 
     // =====================================================================
     // Load dữ liệu
@@ -297,6 +313,15 @@ public class SellerDashboardController {
         lblTime.setStyle("-fx-text-fill: #64748B; -fx-font-size: 11px;");
 
         info.getChildren().addAll(lblName, lblStatus, lblPrice, lblTime);
+
+        // Hiển thị thông tin người thắng cuộc nếu có
+        String winnerName = auc.path("winnerName").asText("");
+        String winnerEmail = auc.path("winnerEmail").asText("");
+        if (!winnerName.isEmpty()) {
+            Label lblWinner = new Label("🏆 Người thắng: " + winnerName + " (" + winnerEmail + ")");
+            lblWinner.setStyle("-fx-text-fill: #10B981; -fx-font-size: 11px; -fx-font-weight: bold;");
+            info.getChildren().add(lblWinner);
+        }
 
         // Nút hành động
         VBox actions = new VBox(8);

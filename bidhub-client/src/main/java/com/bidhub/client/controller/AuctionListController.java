@@ -71,10 +71,10 @@ public class AuctionListController {
     }
 
     // === Bộ lọc trạng thái ===
-    @FXML public void handleAucFilterAll()     { currentStatusFilter = "ALL";     updateStatusBtns(); applyFilters(); }
-    @FXML public void handleAucFilterRunning() { currentStatusFilter = "RUNNING"; updateStatusBtns(); applyFilters(); }
-    @FXML public void handleAucFilterPending() { currentStatusFilter = "PENDING"; updateStatusBtns(); applyFilters(); }
-    @FXML public void handleAucFilterClosed()  { currentStatusFilter = "CLOSED";  updateStatusBtns(); applyFilters(); }
+    @FXML public void handleAucFilterAll()     { currentStatusFilter = "ALL";      updateStatusBtns(); applyFilters(); }
+    @FXML public void handleAucFilterRunning() { currentStatusFilter = "RUNNING";  updateStatusBtns(); applyFilters(); }
+    @FXML public void handleAucFilterPending() { currentStatusFilter = "PENDING";  updateStatusBtns(); applyFilters(); }
+    @FXML public void handleAucFilterClosed()  { currentStatusFilter = "FINISHED"; updateStatusBtns(); applyFilters(); }
     @FXML public void handleAucApplyFilter()   { applyFilters(); }
     @FXML public void handleAucClearFilter() {
         if (tfAucSearch != null) tfAucSearch.clear();
@@ -92,8 +92,8 @@ public class AuctionListController {
         String inactive = "-fx-background-color: #2B3139; -fx-text-fill: #B7BDC6; -fx-background-radius: 20; -fx-cursor: hand; -fx-padding: 5 14; -fx-font-size: 12px;";
         if (btnAucAll     != null) btnAucAll.setStyle("ALL".equals(currentStatusFilter)     ? active : inactive);
         if (btnAucRunning != null) btnAucRunning.setStyle("RUNNING".equals(currentStatusFilter) ? active : inactive);
-        if (btnAucPending != null) btnAucPending.setStyle("PENDING".equals(currentStatusFilter) ? active : inactive);
-        if (btnAucClosed  != null) btnAucClosed.setStyle("CLOSED".equals(currentStatusFilter)  ? active : inactive);
+        if (btnAucPending != null) btnAucPending.setStyle("PENDING".equals(currentStatusFilter)  ? active : inactive);
+        if (btnAucClosed  != null) btnAucClosed.setStyle("FINISHED".equals(currentStatusFilter)  ? active : inactive);
     }
 
     private void applyFilters() {
@@ -119,7 +119,15 @@ public class AuctionListController {
             if (price < fMin || price > fMax) continue;
 
             String status = node.path("status").asText("PENDING");
-            if (!"ALL".equals(currentStatusFilter) && !currentStatusFilter.equals(status)) continue;
+            // FINISHED và PAID đều là “đã kết thúc”
+            boolean isFinished = "FINISHED".equals(status) || "PAID".equals(status) || "CANCELED".equals(status);
+            if (!"ALL".equals(currentStatusFilter)) {
+                if ("FINISHED".equals(currentStatusFilter)) {
+                    if (!isFinished) continue;
+                } else if (!currentStatusFilter.equals(status)) {
+                    continue;
+                }
+            }
 
             filtered.add(node);
         }
@@ -185,7 +193,8 @@ public class AuctionListController {
             String statusVN = switch (status) {
                 case "PENDING" -> "Chờ bắt đầu";
                 case "RUNNING" -> "Đang diễn ra";
-                case "CLOSED"  -> "Đã kết thúc";
+                case "OPEN"    -> "Chờ bắt đầu";
+                case "FINISHED", "PAID", "CANCELED", "CLOSED" -> "Đã kết thúc";
                 default -> status;
             };
 
@@ -235,7 +244,7 @@ public class AuctionListController {
             Label lblStatus = new Label(statusVN);
             String statusStyle = switch (status) {
                 case "RUNNING" -> "-fx-background-color: rgba(16,185,129,0.15); -fx-text-fill: #10B981; -fx-padding: 3 10; -fx-background-radius: 12; -fx-font-size: 11px; -fx-font-weight: bold;";
-                case "PENDING" -> "-fx-background-color: rgba(245,158,11,0.15); -fx-text-fill: #F59E0B; -fx-padding: 3 10; -fx-background-radius: 12; -fx-font-size: 11px; -fx-font-weight: bold;";
+                case "PENDING", "OPEN" -> "-fx-background-color: rgba(245,158,11,0.15); -fx-text-fill: #F59E0B; -fx-padding: 3 10; -fx-background-radius: 12; -fx-font-size: 11px; -fx-font-weight: bold;";
                 default -> "-fx-background-color: rgba(100,116,139,0.15); -fx-text-fill: #94A3B8; -fx-padding: 3 10; -fx-background-radius: 12; -fx-font-size: 11px; -fx-font-weight: bold;";
             };
             lblStatus.setStyle(statusStyle);

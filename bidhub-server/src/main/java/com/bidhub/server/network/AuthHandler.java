@@ -94,10 +94,14 @@ class AuthHandler {
         String hashedPassword = AuthService.hashPassword(password);
 
         User newUser;
-        if (role == UserRole.SELLER) {
-            newUser = new Seller(username, hashedPassword, email);
-        } else {
-            newUser = new Bidder(username, hashedPassword, email);
+        try {
+            if (role == UserRole.SELLER) {
+                newUser = new Seller(username, hashedPassword, email);
+            } else {
+                newUser = new Bidder(username, hashedPassword, email);
+            }
+        } catch (IllegalArgumentException e) {
+            return MessageMapper.toJson(MessageResponse.error("REGISTER", e.getMessage()));
         }
 
         handler.userDao.save(newUser);

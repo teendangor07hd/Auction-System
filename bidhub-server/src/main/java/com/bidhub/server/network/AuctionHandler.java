@@ -211,7 +211,7 @@ class AuctionHandler {
     }
 
     String handleGetAuctionList(Session session, JsonNode payload) {
-        List<Auction> auctions = handler.auctionDao.findActiveAuctions();
+        List<Auction> auctions = handler.auctionDao.findAll();
 
         java.util.List<Map<String, Object>> result = new java.util.ArrayList<>();
         for (Auction auction : auctions) {
@@ -352,6 +352,19 @@ class AuctionHandler {
             info.put("status", auc.getStatus().name());
             info.put("startTime", auc.getStartTime() != null ? auc.getStartTime().toString() : "");
             info.put("endTime", auc.getEndTime() != null ? auc.getEndTime().toString() : "");
+
+            // Nếu phiên đã kết thúc, gửi thêm thông tin liên hệ của người thắng cuộc
+            if (auc.getStatus() == com.bidhub.server.model.AuctionStatus.FINISHED || auc.getStatus() == com.bidhub.server.model.AuctionStatus.PAID) {
+                java.util.Optional<com.bidhub.server.model.BidTransaction> highestBidOpt = handler.bidDao.getHighestBid(auc.getId());
+                if (highestBidOpt.isPresent()) {
+                    String winnerId = highestBidOpt.get().getBidderId();
+                    java.util.Optional<com.bidhub.server.model.User> winnerOpt = handler.userDao.findById(winnerId);
+                    if (winnerOpt.isPresent()) {
+                        info.put("winnerName", winnerOpt.get().getUsername());
+                        info.put("winnerEmail", winnerOpt.get().getEmail());
+                    }
+                }
+            }
             result.add(info);
         }
         return MessageMapper.toJson(MessageResponse.ok("GET_MY_AUCTIONS", result));
@@ -386,5 +399,39 @@ class AuctionHandler {
 
         return MessageMapper.toJson(MessageResponse.ok("CANCEL_AUCTION",
                 Map.of("message", "Đã hủy phiên đấu giá.", "auctionId", auctionId)));
+    }
+
+    String handleGetWonAuctions(Session session, JsonNode payload) {
+        String bidderId = SecurityContext.requireAuthenticated(session);
+        List<Auction> all = handler.auctionDao.findAll();
+        java.util.List<Map<String, Object>> result = new java.util.ArrayList<>();
+        for (Auction auc : all) {
+            if (auc.getStatus() != com.bidhub.server.model.AuctionStatus.FINISHED
+                    && auc.getStatus() != com.bidhub.server.model.AuctionStatus.PAID) continue;
+            if (!bidderId.equals(auc.getHighestBidderId())) continue;
+            Map<String, Object> info = new HashMap<>();
+            info.put("id", auc.getId());
+            info.put("itemId", auc.getItemId());
+            info.put("startingPrice", auc.getStartingPrice());
+            info.put("currentHighestBid", auc.getCurrentHighestBid());
+            info.put("status", auc.getStatus().name());
+            info.put("startTime", auc.getStartTime() != null ? auc.getStartTime().toString() : "");
+            info.put("endTime", auc.getEndTime() != null ? auc.getEndTime().toString() : "");
+            java.util.Optional<com.bidhub.server.model.Item> itemOpt = handler.itemDao.findById(auc.getItemId());
+            if (itemOpt.isPresent()) {
+                info.put("itemName", itemOpt.get().getName());
+                info.put("imageUrl", itemOpt.get().getImageUrl());
+                info.put("description", itemOpt.get().getDescription());
+                java.util.Optional<com.bidhub.server.model.User> sellerOpt = handler.userDao.findById(itemOpt.get().getSellerId());
+                info.put("sellerName", sellerOpt.map(com.bidhub.server.model.User::getUsername).orElse("Unknown"));
+            } else {
+                info.put("itemName", "Sản phẩm không xác định");
+                info.put("imageUrl", null);
+                info.put("description", "");
+                info.put("sellerName", "Unknown");
+            }
+            result.add(info);
+        }
+        return MessageMapper.toJson(MessageResponse.ok("GET_WON_AUCTIONS", result));
     }
 }

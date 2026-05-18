@@ -182,7 +182,6 @@ public abstract class User extends Entity {
 
     /** Trang thai khoa tai khoan — true la bi khoa, false la binh thuong. */
     private boolean locked = false;
-
     /**
      * Kiem tra tai khoan co bi khoa khong.
      *

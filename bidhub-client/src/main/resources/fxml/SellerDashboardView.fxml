@@ -94,8 +94,14 @@
                 <TextField fx:id="editPrice" styleClass="text-input-field"/>
             </VBox>
             <VBox spacing="8">
-                <Label text="Đường dẫn ảnh (URL)" style="-fx-text-fill: #94A3B8; -fx-font-size: 12px;"/>
-                <TextField fx:id="editImageUrl" styleClass="text-input-field" promptText="https://..."/>
+                <Label text="Hình ảnh" style="-fx-text-fill: #94A3B8; -fx-font-size: 12px;"/>
+                <HBox spacing="8" alignment="CENTER_LEFT">
+                    <TextField fx:id="editImageUrl" styleClass="text-input-field" promptText="https://..." HBox.hgrow="ALWAYS"/>
+                    <Button fx:id="btnEditUploadImage" text="📁 Chọn ảnh"
+                            style="-fx-background-color: #2B3139; -fx-text-fill: #E2E8F0; -fx-background-radius: 8; -fx-cursor: hand; -fx-padding: 8 14; -fx-border-color: #475569; -fx-border-radius: 8; -fx-font-size: 12px;"
+                            onAction="#handleEditUploadImage"/>
+                </HBox>
+                <Label fx:id="lblEditImageName" text="" style="-fx-text-fill: #64748B; -fx-font-size: 11px;"/>
             </VBox>
             <HBox spacing="12" alignment="CENTER_RIGHT">
                 <Button text="Hủy" onAction="#handleEditCancel"

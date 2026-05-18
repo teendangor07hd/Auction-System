@@ -34,7 +34,8 @@ public final class RequestHandler {
             "SEND_NOTIFICATION", "GET_NOTIFICATIONS",
             "GET_MY_AUCTIONS", "UPDATE_ITEM", "CANCEL_AUCTION",
             "SUBSCRIBE_AUCTION", "MARK_NOTIFICATION_READ",
-            "ADMIN_STOP_AUCTION", "ADMIN_DELETE_AUCTION"
+            "ADMIN_STOP_AUCTION", "ADMIN_DELETE_AUCTION",
+            "GET_WON_AUCTIONS"
     );
 
     static final java.util.Map<String, java.util.Set<String>> userReadNotifications = new java.util.concurrent.ConcurrentHashMap<>();
@@ -143,6 +144,7 @@ public final class RequestHandler {
                 case "MARK_NOTIFICATION_READ"-> adminHandler.handleMarkNotificationRead(session, payload);
                 case "ADMIN_STOP_AUCTION"    -> adminHandler.handleAdminStopAuction(session, payload);
                 case "ADMIN_DELETE_AUCTION"  -> adminHandler.handleAdminDeleteAuction(session, payload);
+                case "GET_WON_AUCTIONS"      -> auctionHandler.handleGetWonAuctions(session, payload);
                 default                      -> MessageMapper.toJson(
                         MessageResponse.error(type, "Lệnh không xác định: " + type));
             };

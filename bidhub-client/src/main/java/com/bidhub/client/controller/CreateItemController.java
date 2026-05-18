@@ -32,6 +32,7 @@ public class CreateItemController {
     // Image selection
     @FXML private Button btnSelectImage;
     @FXML private Label lblImageName;
+    @FXML private TextField tfImageUrl;
     private String selectedImagePath = "";
 
     // Dynamic fields
@@ -174,11 +175,15 @@ public class CreateItemController {
                 : () -> { if (btnSubmit != null) btnSubmit.setDisable(false); };
 
         ObjectNode payload = JsonNodeFactory.instance.objectNode();
+        // URL field takes priority, then file path
+        String finalImageUrl = (tfImageUrl != null && !tfImageUrl.getText().trim().isEmpty())
+                ? tfImageUrl.getText().trim()
+                : selectedImagePath;
         payload.put("name", name);
         payload.put("description", description);
         payload.put("startingPrice", startingPrice);
         payload.put("itemType", itemType);
-        payload.put("imageUrl", selectedImagePath);
+        payload.put("imageUrl", finalImageUrl);
         payload.set("extras", extras);
 
         MessageRequest request = new MessageRequest(
