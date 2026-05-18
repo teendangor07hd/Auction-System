@@ -44,6 +44,18 @@ public class BidHubApp extends Application {
         primaryStage.setTitle(APP_TITLE);
         primaryStage.setScene(scene);
         primaryStage.setResizable(true);
+
+        // [B11] Shutdown hook: gọi disconnect() và Platform.exit() khi đóng cửa sổ
+        // Đảm bảo ServerGateway không để socket leak khi user bấm X
+        primaryStage.setOnCloseRequest(windowEvent -> {
+            try {
+                ServerGateway.getInstance().disconnect();
+            } catch (Exception e) {
+                System.err.println("[BidHubApp] Lỗi khi disconnect: " + e.getMessage());
+            }
+            Platform.exit();
+        });
+
         primaryStage.show();
 
         // Truyền root vào hàm connect để có thể mở khóa sau khi kết nối xong
