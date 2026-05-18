@@ -42,10 +42,17 @@
             <ComboBox fx:id="itemTypeComboBox" maxWidth="Infinity" promptText="-- Chọn danh mục --" styleClass="text-input-field" GridPane.columnIndex="1" GridPane.rowIndex="3" />
 
             <Label text="Hình ảnh:" GridPane.rowIndex="4" />
-            <HBox spacing="10" GridPane.columnIndex="1" GridPane.rowIndex="4" alignment="CENTER_LEFT">
-                <Button fx:id="btnSelectImage" text="Chọn ảnh" styleClass="button, btn-outline" />
-                <Label fx:id="lblImageName" text="Chưa chọn ảnh nào" style="-fx-text-fill: #7f8c8d;" />
-            </HBox>
+            <VBox spacing="6" GridPane.columnIndex="1" GridPane.rowIndex="4">
+                <HBox spacing="10" alignment="CENTER_LEFT">
+                    <Button fx:id="btnSelectImage" text="📁 Chọn ảnh từ máy" styleClass="button, btn-outline" />
+                    <Label fx:id="lblImageName" text="Chưa chọn ảnh nào" style="-fx-text-fill: #7f8c8d;" />
+                </HBox>
+                <HBox spacing="8" alignment="CENTER_LEFT">
+                    <Label text="Hoặc URL:" style="-fx-text-fill: #7f8c8d; -fx-font-size: 11px;"/>
+                    <TextField fx:id="tfImageUrl" promptText="https://... (tuỳ chọn)"
+                               styleClass="text-input-field" HBox.hgrow="ALWAYS"/>
+                </HBox>
+            </VBox>
         </children>
         <rowConstraints>
             <RowConstraints />

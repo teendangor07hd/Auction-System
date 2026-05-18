@@ -202,6 +202,8 @@ public class UserDao {
             case ADMIN  -> new Admin(id, createdAt, updatedAt, username, passwordHash, email, extraInt < 1 ? 1 : extraInt, locked);
         };
 
+
+
         return user;
     }
 
@@ -244,4 +246,6 @@ public class UserDao {
             releaseConnection(conn);
         }
     }
+
+
 }

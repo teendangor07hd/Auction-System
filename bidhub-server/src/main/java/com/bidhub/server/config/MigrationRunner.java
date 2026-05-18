@@ -49,6 +49,7 @@ public final class MigrationRunner {
                 // Cot da ton tai hoac loi khac — khong block server startup
                 logger.warn("Canh bao migration is_locked: {}", e.getMessage());
             }
+
             logger.info("Schema da san sang.");
         } catch (SQLException e) {
             throw new RuntimeException("Migration thất bại: " + e.getMessage(), e);
