@@ -18,24 +18,30 @@ import javafx.scene.control.cell.PropertyValueFactory;
 
 /**
  * Controller xử lý logic cho màn hình Quản trị viên (Admin Panel).
- * <p>
- * Trách nhiệm (Single Responsibility):
+ *
+ * <p>Trách nhiệm (Single Responsibility):
  * - Hiển thị danh sách người dùng (TableView).
  * - Cung cấp tính năng Khóa/Mở khóa tài khoản.
  * - Giao tiếp với Server thông qua Socket layer.
+ *
+ * <p>// 📌 [B37] Thêm null check trước khi gọi isArray() trên payload.
+ * // 📌 [B38] getCurrentRole() giờ trả "" thay vì null (B4 fix) → không dùng String.valueOf() nữa.
+ * // 📌 [B42/GAP1] Thêm nút RUN_INTEGRITY_CHECK + handler.
  */
 public class AdminController implements com.bidhub.client.navigation.ContextAware {
 
     // ========================================================================
-    // CONSTANTS (Hằng số định nghĩa các Command và Role để tránh Magic Strings)
+    // CONSTANTS
     // ========================================================================
     private static final String ROLE_ADMIN = "ADMIN";
     private static final String CMD_GET_USER_LIST = "GET_USER_LIST";
     private static final String CMD_LOCK_USER = "LOCK_USER";
     private static final String CMD_UNLOCK_USER = "UNLOCK_USER";
+    // [B42/GAP1] Command này trước đây khai báo nhưng không bao giờ gọi — giờ được sử dụng
+    private static final String CMD_RUN_INTEGRITY_CHECK = "RUN_INTEGRITY_CHECK";
 
     // ========================================================================
-    // FXML INJECTIONS (Các thành phần giao diện được bind từ file .fxml)
+    // FXML INJECTIONS
     // ========================================================================
     @FXML private TableView<UserInfo> userTable;
     @FXML private TableColumn<UserInfo, String> colUsername;
@@ -47,22 +53,14 @@ public class AdminController implements com.bidhub.client.navigation.ContextAwar
     @FXML private Label statusLabel;
 
     // ========================================================================
-    // INTERNAL STATE (Trạng thái nội bộ của Controller)
+    // INTERNAL STATE
     // ========================================================================
-
-    /** * Danh sách dữ liệu observable để bind trực tiếp vào TableView.
-     * Khi list này thay đổi, UI sẽ tự động update.
-     */
     private final ObservableList<UserInfo> userData = FXCollections.observableArrayList();
-
-    /** * Tái sử dụng (Reuse) ObjectMapper để tối ưu hiệu năng (Performance optimization).
-     * ObjectMapper là thread-safe sau khi cấu hình xong.
-     */
     private static final ObjectMapper mapper = new ObjectMapper();
 
     @Override
     public void setContext(java.util.Map<String, Object> params) {
-        // Màn hình này không yêu cầu tham số ngữ cảnh (context params) khi điều hướng tới
+        // Màn hình này không yêu cầu tham số ngữ cảnh khi điều hướng tới
     }
 
     /**
@@ -72,15 +70,13 @@ public class AdminController implements com.bidhub.client.navigation.ContextAwar
     public void initialize() {
         setupTableColumns();
 
-        // Security Check: Đảm bảo chỉ User có role ADMIN mới được truy cập.
-        // Ép kiểu (Type Casting) về String để giữ tính độc lập (Decoupling) giữa Client và Server.
-        String currentRole = String.valueOf(ClientSession.getInstance().getCurrentRole());
+        // [B38] Security Check: getCurrentRole() trả "" (không null) nhờ B4 fix
+        String currentRole = ClientSession.getInstance().getCurrentRole();
         if (!ROLE_ADMIN.equals(currentRole)) {
             ViewRouter.getInstance().navigateTo(Views.AUCTION_LIST);
             return;
         }
 
-        // Tải dữ liệu ban đầu
         loadUsers();
         setupTableSelectionListener();
     }
@@ -97,8 +93,7 @@ public class AdminController implements com.bidhub.client.navigation.ContextAwar
     }
 
     /**
-     * Lắng nghe sự kiện (Event Listener) khi người dùng chọn một dòng trên bảng.
-     * Dùng để bật/tắt (enable/disable) các nút hành động tương ứng.
+     * Lắng nghe sự kiện khi người dùng chọn một dòng trên bảng.
      */
     private void setupTableSelectionListener() {
         userTable.getSelectionModel().selectedItemProperty().addListener((observable, oldValue, newValue) -> {
@@ -107,75 +102,74 @@ public class AdminController implements com.bidhub.client.navigation.ContextAwar
                 unlockBtn.setDisable(true);
                 return;
             }
-
-            // Business logic: Không cho phép Admin khóa tài khoản của một Admin khác.
+            // Business logic: Không cho phép Admin khóa tài khoản của Admin khác.
             boolean isAdmin = ROLE_ADMIN.equals(newValue.getRole());
             lockBtn.setDisable(isAdmin);
-            unlockBtn.setDisable(false); // Luôn cho phép mở khóa (nếu tài khoản đang bị khóa)
+            unlockBtn.setDisable(false);
         });
     }
 
     /**
-     * Gửi request lấy danh sách User từ Server (Background Thread)
-     * và cập nhật lên TableView (UI Thread).
+     * Gửi request lấy danh sách User từ Server (Background Thread).
      */
     private void loadUsers() {
         MessageRequest req = new MessageRequest();
         req.setType(CMD_GET_USER_LIST);
         req.setToken(ClientSession.getInstance().getToken());
 
-        // Sử dụng NetworkTask để xử lý network I/O bất đồng bộ (Asynchronous)
-        NetworkTask<String> task = new NetworkTask<>(() -> {
-            MessageResponse resp = ServerGateway.getInstance().sendRequest(req);
-            return com.bidhub.common.network.MessageMapper.toJson(resp);
-        });
+        NetworkTask<MessageResponse> task = new NetworkTask<>(
+                () -> ServerGateway.getInstance().sendRequest(req));
 
-        // Xử lý khi nhận response thành công (Callback chạy trên JavaFX Application Thread)
         task.setOnSucceeded(event -> {
-            String jsonResponse = task.getValue();
-            parseAndPopulateUserData(jsonResponse);
+            // [B40] Làm việc trực tiếp với MessageResponse thay vì serialize rồi re-parse
+            MessageResponse resp = task.getValue();
+            parseAndPopulateUserData(resp);
         });
 
-        // Xử lý khi tác vụ mạng thất bại (Timeout, Mất kết nối, v.v.)
-        task.setOnFailed(event -> {
-            Platform.runLater(() -> statusLabel.setText("Không thể kết nối đến máy chủ để tải danh sách."));
-        });
+        task.setOnFailed(event ->
+                Platform.runLater(() -> statusLabel.setText("Không thể kết nối đến máy chủ để tải danh sách.")));
 
-        // Khởi chạy thread mới
         new Thread(task).start();
     }
 
     /**
-     * Phân tích (Parse) JSON response và đổ dữ liệu (Populate) vào TableView.
-     * * @param jsonResponse Chuỗi JSON trả về từ Server.
+     * Phân tích response và đổ dữ liệu vào TableView.
+     *
+     * <p>// 📌 [B37] Kiểm tra null trên payload VÀ gọi isArray() an toàn.
+     *
+     * @param response MessageResponse từ server
      */
-    private void parseAndPopulateUserData(String jsonResponse) {
+    private void parseAndPopulateUserData(MessageResponse response) {
         try {
-            JsonNode root = mapper.readTree(jsonResponse);
-            JsonNode dataArray = root.get("data");
-
-            if (dataArray != null && dataArray.isArray()) {
-                // Đảm bảo thao tác cập nhật UI luôn nằm trong Platform.runLater
-                Platform.runLater(() -> {
-                    userData.clear();
-                    for (JsonNode userNode : dataArray) {
-                        UserInfo info = new UserInfo();
-                        info.setUsername(userNode.has("username") ? userNode.get("username").asText() : "N/A");
-                        info.setEmail(userNode.has("email") ? userNode.get("email").asText() : "N/A");
-                        info.setRole(userNode.has("role") ? userNode.get("role").asText() : "UNKNOWN");
-
-                        // Parse status dựa trên boolean isLocked
-                        boolean isLocked = userNode.has("isLocked") && userNode.get("isLocked").asBoolean();
-                        info.setStatus(isLocked ? "Đã khóa" : "Bình thường");
-
-                        info.setUserId(userNode.has("id") ? userNode.get("id").asText() : "");
-                        userData.add(info);
-                    }
-                    statusLabel.setText("Đã tải " + userData.size() + " người dùng thành công.");
-                });
+            if (response == null || response.getPayload() == null) {
+                // [B37] Null check trước khi gọi isArray() — tránh NPE
+                Platform.runLater(() -> statusLabel.setText("Không có dữ liệu từ server."));
+                return;
             }
+
+            // [B40] Convert trực tiếp từ payload object thay vì JSON → re-parse
+            JsonNode dataArray = mapper.valueToTree(response.getPayload());
+
+            if (!dataArray.isArray()) {
+                Platform.runLater(() -> statusLabel.setText("Dữ liệu không đúng định dạng."));
+                return;
+            }
+
+            Platform.runLater(() -> {
+                userData.clear();
+                for (JsonNode userNode : dataArray) {
+                    UserInfo info = new UserInfo();
+                    info.setUsername(userNode.path("username").asText("N/A"));
+                    info.setEmail(userNode.path("email").asText("N/A"));
+                    info.setRole(userNode.path("role").asText("UNKNOWN"));
+                    boolean isLocked = userNode.path("isLocked").asBoolean(false);
+                    info.setStatus(isLocked ? "Đã khóa" : "Bình thường");
+                    info.setUserId(userNode.path("id").asText(""));
+                    userData.add(info);
+                }
+                statusLabel.setText("Đã tải " + userData.size() + " người dùng thành công.");
+            });
         } catch (Exception ex) {
-            // Log lỗi cho developer và thông báo thân thiện cho user
             ex.printStackTrace();
             Platform.runLater(() -> statusLabel.setText("Lỗi xử lý dữ liệu: " + ex.getMessage()));
         }
@@ -183,7 +177,8 @@ public class AdminController implements com.bidhub.client.navigation.ContextAwar
 
     /**
      * Xử lý sự kiện click nút Khóa tài khoản.
-     * Yêu cầu xác nhận (Confirmation) trước khi thực hiện luồng nguy hiểm (Dangerous action).
+     *
+     * <p>// 📌 [B39] Confirmation dialog trước khi thực hiện.
      */
     @FXML
     public void handleLockUser() {
@@ -204,14 +199,24 @@ public class AdminController implements com.bidhub.client.navigation.ContextAwar
 
     /**
      * Xử lý sự kiện click nút Mở khóa tài khoản.
+     *
+     * <p>// 📌 [B39] Thêm confirmation cho mở khóa.
      */
     @FXML
     public void handleUnlockUser() {
         UserInfo selectedUser = userTable.getSelectionModel().getSelectedItem();
         if (selectedUser == null) return;
 
-        // Mở khóa thường không phải là hành động phá hủy (destructive), có thể bỏ qua bước confirm.
-        sendLockRequest(selectedUser.getUserId(), false);
+        Alert confirmDialog = new Alert(Alert.AlertType.CONFIRMATION);
+        confirmDialog.setTitle("Xác nhận thao tác");
+        confirmDialog.setHeaderText("Mở khóa tài khoản");
+        confirmDialog.setContentText("Mở khóa tài khoản '" + selectedUser.getUsername() + "'?");
+
+        confirmDialog.showAndWait().ifPresent(response -> {
+            if (response == ButtonType.OK) {
+                sendLockRequest(selectedUser.getUserId(), false);
+            }
+        });
     }
 
     /**
@@ -225,30 +230,66 @@ public class AdminController implements com.bidhub.client.navigation.ContextAwar
         req.setType(isLock ? CMD_LOCK_USER : CMD_UNLOCK_USER);
         req.setToken(ClientSession.getInstance().getToken());
 
-        // Tạo ObjectNode an toàn (Type-safe) thay vì cộng chuỗi String thủ công
-        // Giúp tránh các lỗi cú pháp JSON (như thiếu dấu ngoặc kép)
         com.fasterxml.jackson.databind.node.ObjectNode payloadNode = mapper.createObjectNode();
         payloadNode.put("userId", userId);
         req.setPayload(payloadNode);
 
-        NetworkTask<String> task = new NetworkTask<>(() -> {
-            MessageResponse resp = ServerGateway.getInstance().sendRequest(req);
-            return com.bidhub.common.network.MessageMapper.toJson(resp);
-        });
+        NetworkTask<MessageResponse> task = new NetworkTask<>(
+                () -> ServerGateway.getInstance().sendRequest(req));
 
         task.setOnSucceeded(event -> {
             Platform.runLater(() -> {
                 String actionMsg = isLock ? "Đã khóa" : "Đã mở khóa";
                 statusLabel.setText(actionMsg + " tài khoản thành công.");
-                loadUsers(); // Refresh lại danh sách (Data synchronization)
+                loadUsers(); // Refresh lại danh sách
             });
         });
 
-        task.setOnFailed(event -> {
-            Platform.runLater(() -> statusLabel.setText("Thao tác mạng thất bại. Vui lòng kiểm tra kết nối."));
-        });
+        task.setOnFailed(event ->
+                Platform.runLater(() -> statusLabel.setText("Thao tác mạng thất bại. Vui lòng kiểm tra kết nối.")));
 
         new Thread(task).start();
+    }
+
+    /**
+     * [B42/GAP1] Xử lý sự kiện RUN_INTEGRITY_CHECK — trước đây là dead code.
+     * Gửi request đến server để kiểm tra tính toàn vẹn dữ liệu.
+     */
+    @FXML
+    public void handleRunIntegrityCheck() {
+        statusLabel.setText("Đang chạy kiểm tra toàn vẹn dữ liệu...");
+
+        MessageRequest req = new MessageRequest();
+        req.setType(CMD_RUN_INTEGRITY_CHECK);
+        req.setToken(ClientSession.getInstance().getToken());
+
+        NetworkTask<MessageResponse> task = new NetworkTask<>(
+                () -> ServerGateway.getInstance().sendRequest(req));
+
+        task.setOnSucceeded(event -> {
+            MessageResponse resp = task.getValue();
+            Platform.runLater(() -> {
+                if ("OK".equals(resp.getStatus())) {
+                    statusLabel.setText("Kiểm tra toàn vẹn hoàn tất: " + resp.getMessage());
+                    // Hiện kết quả chi tiết nếu có
+                    if (resp.getPayload() != null) {
+                        JsonNode result = mapper.valueToTree(resp.getPayload());
+                        Alert resultAlert = new Alert(Alert.AlertType.INFORMATION);
+                        resultAlert.setTitle("Kết quả kiểm tra toàn vẹn");
+                        resultAlert.setHeaderText("Data Integrity Check Results");
+                        resultAlert.setContentText(result.toPrettyString());
+                        resultAlert.show();
+                    }
+                } else {
+                    statusLabel.setText("Kiểm tra thất bại: " + resp.getMessage());
+                }
+            });
+        });
+
+        task.setOnFailed(event ->
+                Platform.runLater(() -> statusLabel.setText("Không thể chạy kiểm tra toàn vẹn: kết nối thất bại.")));
+
+        new Thread(task, "integrity-check").start();
     }
 
     /**
@@ -269,12 +310,11 @@ public class AdminController implements com.bidhub.client.navigation.ContextAwar
     }
 
     // ========================================================================
-    // INNER CLASSES (Lớp nội bộ dùng làm DTO - Data Transfer Object cho bảng)
+    // INNER CLASSES
     // ========================================================================
 
     /**
      * DTO (Data Transfer Object) lưu trữ thông tin User để hiển thị lên UI.
-     * Phải có đầy đủ Getter/Setter đúng chuẩn Java Beans để PropertyValueFactory hoạt động.
      */
     public static class UserInfo {
         private String userId;
