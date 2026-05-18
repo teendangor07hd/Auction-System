@@ -33,6 +33,11 @@
                     maxWidth="Infinity" onAction="#handleNotifications"
                     styleClass="button, btn-primary" />
 
+            <!-- Nút dành riêng cho BIDDER -->
+            <Button fx:id="btnBidderItems" text="🏆  Sản Phẩm Đã Thắng"
+                    maxWidth="Infinity" onAction="#handleBidderItems"
+                    styleClass="button, btn-primary" visible="false" managed="false" />
+
             <Label text="NGƯỜI BÁN" style="-fx-text-fill: #475569; -fx-font-size: 10px; -fx-font-weight: bold; -fx-padding: 8 0 4 5;"/>
 
             <Button fx:id="btnCreateItem"    text="➕  Thêm Sản Phẩm"
@@ -52,10 +57,16 @@
 
             <Button fx:id="btnAccount"       text="👤  Tài Khoản"
                     maxWidth="Infinity" styleClass="button, btn-primary" />
+            <!-- Đăng nhập (khi chưa login) -->
+            <Button fx:id="btnLogin"         text="🔑  Đăng Nhập"
+                    maxWidth="Infinity"
+                    style="-fx-background-color: #4F46E5; -fx-border-radius: 8; -fx-background-radius: 8; -fx-text-fill: white; -fx-cursor: hand; -fx-padding: 10 20; -fx-font-weight: bold;"
+                    visible="false" managed="false" onAction="#handleLogin" />
             <Button fx:id="btnLogout"        text="🚪  Đăng Xuất"
                     maxWidth="Infinity" style="-fx-background-color: transparent; -fx-border-color: #EF4444; -fx-border-radius: 8; -fx-border-width: 1.5; -fx-text-fill: #EF4444; -fx-cursor: hand; -fx-padding: 10 20; -fx-font-weight: bold;" />
         </VBox>
     </left>
     <center>
     </center>
+
 </BorderPane>
