@@ -43,6 +43,7 @@ public class RegisterController {
     private String selectedRole = "BIDDER"; // Mặc định là BIDDER
     private boolean isPasswordVisible = false;
     private boolean isConfirmVisible = false;
+    private final javafx.beans.property.BooleanProperty isRegistering = new javafx.beans.property.SimpleBooleanProperty(false);
 
     // Style cho nút được chọn (active)
     private static final String STYLE_ACTIVE =
@@ -71,6 +72,14 @@ public class RegisterController {
             confirmPasswordTextField.setVisible(false);
         }
 
+        // Đồng bộ dữ liệu giữa TextField và PasswordField
+        if (passwordTextField != null) {
+            passwordTextField.textProperty().bindBidirectional(passwordField.textProperty());
+        }
+        if (confirmPasswordTextField != null) {
+            confirmPasswordTextField.textProperty().bindBidirectional(confirmPasswordField.textProperty());
+        }
+
         // 📌 [Tieu chi: MVC — bind realtime password confirmation]
         passwordMatchLabel.visibleProperty().bind(
                 Bindings.createBooleanBinding(
@@ -86,19 +95,7 @@ public class RegisterController {
         passwordMatchLabel.managedProperty().bind(passwordMatchLabel.visibleProperty());
         passwordMatchLabel.setText("Mật khẩu xác nhận không khớp!");
 
-        registerButton.disableProperty().bind(
-                Bindings.createBooleanBinding(
-                        () -> usernameField.getText().isBlank()
-                                || passwordField.getText().length() < 8
-                                || emailField.getText().isBlank()
-                                || !emailField.getText().contains("@")
-                                || !passwordField.getText().equals(confirmPasswordField.getText()),
-                        usernameField.textProperty(),
-                        passwordField.textProperty(),
-                        confirmPasswordField.textProperty(),
-                        emailField.textProperty()
-                )
-        );
+        registerButton.disableProperty().bind(isRegistering);
 
         errorLabel.setVisible(false);
         errorLabel.setManaged(false);
@@ -136,7 +133,6 @@ public class RegisterController {
     public void handleTogglePassword() {
         isPasswordVisible = !isPasswordVisible;
         if (isPasswordVisible) {
-            passwordTextField.setText(passwordField.getText());
             passwordTextField.setVisible(true);
             passwordTextField.setManaged(true);
             passwordField.setVisible(false);
@@ -144,7 +140,6 @@ public class RegisterController {
             togglePasswordBtn.setText("🙈");
             passwordTextField.requestFocus();
         } else {
-            passwordField.setText(passwordTextField.getText());
             passwordField.setVisible(true);
             passwordField.setManaged(true);
             passwordTextField.setVisible(false);
@@ -159,7 +154,6 @@ public class RegisterController {
     public void handleToggleConfirm() {
         isConfirmVisible = !isConfirmVisible;
         if (isConfirmVisible) {
-            confirmPasswordTextField.setText(confirmPasswordField.getText());
             confirmPasswordTextField.setVisible(true);
             confirmPasswordTextField.setManaged(true);
             confirmPasswordField.setVisible(false);
@@ -167,7 +161,6 @@ public class RegisterController {
             toggleConfirmBtn.setText("🙈");
             confirmPasswordTextField.requestFocus();
         } else {
-            confirmPasswordField.setText(confirmPasswordTextField.getText());
             confirmPasswordField.setVisible(true);
             confirmPasswordField.setManaged(true);
             confirmPasswordTextField.setVisible(false);
@@ -183,21 +176,30 @@ public class RegisterController {
     @FXML
     public void handleRegister() {
         String username = usernameField.getText().trim();
-        // Lấy password từ field đang hiển thị
-        String password = isPasswordVisible ? passwordTextField.getText() : passwordField.getText();
-        String confirmPassword = isConfirmVisible ? confirmPasswordTextField.getText() : confirmPasswordField.getText();
+        String password = passwordField.getText();
+        String confirmPassword = confirmPasswordField.getText();
         String email = emailField.getText().trim();
         String role = selectedRole;
 
-        // Client-side validation
-        if (!password.equals(confirmPassword)) {
-            showError("Mật khẩu xác nhận không khớp!");
+        // Bắt lỗi ValidationException gom tất cả lỗi cùng lúc
+        try {
+            java.util.List<String> errors = new java.util.ArrayList<>();
+            if (username.isBlank()) errors.add("Tên đăng nhập không được để trống.");
+            if (password.length() < 8) errors.add("Mật khẩu phải có ít nhất 8 ký tự.");
+            if (email.isBlank()) errors.add("Email không được để trống.");
+            else if (!email.contains("@")) errors.add("Email không hợp lệ (phải chứa @).");
+            if (!password.equals(confirmPassword)) errors.add("Mật khẩu xác nhận không khớp.");
+            
+            if (!errors.isEmpty()) {
+                throw new com.bidhub.common.exception.ValidationException(errors);
+            }
+        } catch (com.bidhub.common.exception.ValidationException e) {
+            showError(String.join("\n", e.getErrors()));
             return;
         }
 
         hideError();
-        registerButton.disableProperty().unbind();
-        registerButton.setDisable(true);
+        isRegistering.set(true);
 
         // 📌 [Tieu chi: MVC — tạo REGISTER request payload]
         ObjectNode payload = JsonNodeFactory.instance.objectNode();
@@ -218,13 +220,13 @@ public class RegisterController {
                 ViewRouter.getInstance().navigateTo(Views.LOGIN);
             } else {
                 showError(response.getMessage());
-                registerButton.setDisable(false);
+                isRegistering.set(false);
             }
         });
 
         task.setOnFailed(e -> {
             showError("Không kết nối được máy chủ. Thử lại sau.");
-            registerButton.setDisable(false);
+            isRegistering.set(false);
         });
 
         new Thread(task).start();
