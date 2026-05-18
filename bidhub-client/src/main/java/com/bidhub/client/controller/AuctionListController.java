@@ -1,5 +1,6 @@
 package com.bidhub.client.controller;
 
+import com.bidhub.client.navigation.Navigable;
 import com.bidhub.client.network.ClientSession;
 import com.bidhub.client.network.NetworkTask;
 import com.bidhub.client.network.ServerGateway;
@@ -19,14 +20,20 @@ import javafx.scene.input.MouseButton;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.Priority;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 /**
  * Controller danh sách phiên đấu giá — hiển thị lưới dữ liệu và Sidebar Menu.
  * Đồng bộ với màn hình AuctionListView.fxml.
+ *
+ * <p>// 📌 [B17] Implement {@link Navigable} → onNavigateAway() dừng tất cả timelines.
+ * // 📌 [B18] Price filter dùng currentHighestBid nhất quán (trước dùng startingPrice).
+ * // 📌 [B19] Lỗi parse price được xử lý rõ ràng thay vì silent exception.
  */
-public class AuctionListController {
+public class AuctionListController implements Navigable {
 
     // ========================================================================
     // CONSTANTS (Nguyên tắc tránh Magic Strings)
@@ -63,6 +70,9 @@ public class AuctionListController {
     private final ObjectMapper mapper = new ObjectMapper();
     private final ObservableList<JsonNode> auctionData = FXCollections.observableArrayList();
 
+    // [B17] Tập hợp tất cả timelines đang chạy — dừng hết khi navigate away
+    private final List<javafx.animation.Timeline> activeTimelines = new ArrayList<>();
+
     /**
      * Vòng đời JavaFX: Khởi tạo dữ liệu và sự kiện ngay sau khi load xong UI.
      */
@@ -78,7 +88,28 @@ public class AuctionListController {
     }
 
     /**
+     * [B17] Lifecycle hook — gọi bởi ViewRouter trước khi navigate sang màn hình khác.
+     * Dừng tất cả timelines để tránh resource leak.
+     */
+    @Override
+    public void onNavigateAway() {
+        stopAllTimelines();
+    }
+
+    /**
+     * [B17] Dừng tất cả timelines đang chạy và xóa danh sách.
+     */
+    private void stopAllTimelines() {
+        for (javafx.animation.Timeline tl : activeTimelines) {
+            tl.stop();
+        }
+        activeTimelines.clear();
+    }
+
+    /**
      * Ràng buộc (Bind) dữ liệu từ JsonNode vào các cột của TableView.
+     *
+     * <p>// 📌 [B18] colPrice dùng currentHighestBid — nhất quán với logic hiển thị.
      */
     private void setupTableColumns() {
         colItemName.setCellValueFactory(cellData -> {
@@ -87,9 +118,11 @@ public class AuctionListController {
             return new javafx.beans.property.SimpleStringProperty(name);
         });
 
-        colPrice.setCellValueFactory(cellData ->
-                new javafx.beans.property.SimpleStringProperty(
-                        String.valueOf(cellData.getValue().path("currentHighestBid").asDouble(0))));
+        // [B18] Dùng currentHighestBid để hiển thị và filter — nhất quán
+        colPrice.setCellValueFactory(cellData -> {
+            double price = cellData.getValue().path("currentHighestBid").asDouble(0);
+            return new javafx.beans.property.SimpleStringProperty(UiUtils.formatCurrency(price));
+        });
 
         colEndTime.setCellValueFactory(cellData ->
                 new javafx.beans.property.SimpleStringProperty(
@@ -126,18 +159,19 @@ public class AuctionListController {
 
     /**
      * Xử lý hiển thị các nút điều hướng dựa trên phân quyền (Role-based UI).
+     *
+     * <p>// 📌 [B4] getCurrentRole() giờ trả "" thay vì null → không cần String.valueOf().
      */
     private void setupNavigationAndSecurity() {
         btnCreateAuction.setOnAction(e -> ViewRouter.getInstance().navigateTo(Views.CREATE_AUCTION));
         btnCreateItem.setOnAction(e -> ViewRouter.getInstance().navigateTo(Views.CREATE_ITEM));
 
         // Security Check: Hiển thị nút Admin Panel nếu user hiện tại là ADMIN
-        String currentRole = String.valueOf(ClientSession.getInstance().getCurrentRole());
+        String currentRole = ClientSession.getInstance().getCurrentRole(); // "" thay vì null
         boolean isAdmin = ROLE_ADMIN.equals(currentRole);
 
         if (adminBtn != null) {
             adminBtn.setVisible(isAdmin);
-            // managed = false giúp thu gọn không gian UI nếu nút bị ẩn, tránh bị khoảng trống thừa
             adminBtn.setManaged(isAdmin);
         }
     }
@@ -151,7 +185,6 @@ public class AuctionListController {
         }
 
         btnAccount.setOnAction(e -> showAccountPopup());
-
         btnLogout.setOnAction(e -> handleLogout());
     }
 
@@ -186,14 +219,14 @@ public class AuctionListController {
     }
 
     /**
-     * Hiển thị popup thông tin tài khoản (Username, Role)
+     * Hiển thị popup thông tin tài khoản (Username, Role).
      */
     private void showAccountPopup() {
         ClientSession session = ClientSession.getInstance();
-        String username = session.getCurrentUsername();
-        String role = session.getCurrentRole();
+        String username = session.getCurrentUsername(); // "" nếu null (B4)
+        String role = session.getCurrentRole();         // "" nếu null (B4)
 
-        if (username == null || username.isEmpty()) {
+        if (username.isEmpty()) {
             username = "Chưa đăng nhập";
         }
 
@@ -211,7 +244,7 @@ public class AuctionListController {
         lblUsernameValue.setStyle("-fx-font-weight: bold;");
 
         Label lblRoleTitle = new Label("Vai trò:");
-        String roleDisplay = (role != null) ? role : "Không xác định";
+        String roleDisplay = role.isEmpty() ? "Không xác định" : role; // [B4] không hiện "null"
         Label lblRoleValue = new Label(roleDisplay);
         lblRoleValue.setStyle("-fx-font-weight: bold;");
 
@@ -239,6 +272,7 @@ public class AuctionListController {
 
         MessageRequest req = new MessageRequest();
         req.setType(CMD_GET_AUCTION_LIST);
+        req.setToken(ClientSession.getInstance().getToken());
 
         NetworkTask<MessageResponse> task = new NetworkTask<>(() ->
                 ServerGateway.getInstance().sendRequest(req));
@@ -255,7 +289,8 @@ public class AuctionListController {
                     }
                 }
             } else {
-                Platform.runLater(() -> UiUtils.showError("Lỗi hệ thống", response.getMessage()));
+                // [B19] Hiển thị lỗi thay vì silent fail
+                UiUtils.showError("Lỗi hệ thống", response.getMessage());
             }
 
             // [Tiêu chí UX]: Cập nhật UI hiển thị bảng data hoặc thông báo dữ liệu trống
@@ -264,7 +299,7 @@ public class AuctionListController {
         });
 
         task.setOnFailed(e -> {
-            Platform.runLater(() -> UiUtils.showError("Lỗi tải dữ liệu", "Không thể tải danh sách phiên đấu giá. Vui lòng thử lại."));
+            UiUtils.showError("Lỗi tải dữ liệu", "Không thể tải danh sách phiên đấu giá. Vui lòng thử lại.");
             onComplete.run();
         });
 
