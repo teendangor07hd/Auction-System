@@ -43,10 +43,20 @@ public final class BidChartService {
      * @param time  thoi gian dat gia
      * @param price gia dat
      */
+    // 📌 [B57] Gioi han toi da 100 data points — tranh chart cham sau ~200 bids
+    private static final int MAX_DATA_POINTS = 100;
+
     // 📌 [Tieu chi: Kỹ thuật quan trọng — DateTimeFormatter format LocalDateTime → String]
     public void addDataPoint(LocalDateTime time, double price) {
+        ObservableList<XYChart.Data<String, Number>> data = series.getData();
+
+        // [B57] Xoa data point cu nhat khi vuot qua gioi han
+        if (data.size() >= MAX_DATA_POINTS) {
+            data.remove(0);
+        }
+
         String timeStr = time.format(TIME_FORMATTER);
-        series.getData().add(new XYChart.Data<>(timeStr, price));
+        data.add(new XYChart.Data<>(timeStr, price));
     }
 
     /**
