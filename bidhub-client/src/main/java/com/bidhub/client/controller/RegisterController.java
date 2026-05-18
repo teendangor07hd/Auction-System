@@ -5,7 +5,6 @@ import com.bidhub.client.network.NetworkTask;
 import com.bidhub.client.network.ServerGateway;
 import com.bidhub.client.navigation.ViewRouter;
 import com.bidhub.client.util.Views;
-import com.bidhub.common.network.MessageMapper;
 import com.bidhub.common.network.MessageRequest;
 import com.bidhub.common.network.MessageResponse;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
@@ -23,14 +22,18 @@ import javafx.scene.control.TextField;
  * Controller cho man hinh dang ky.
  *
  * <p>// 📌 [Tieu chi: MVC — Controller dieu phoi form validation + network]
- * Validation realtime: password confirmation bind, email check.
- * Submit → NetworkTask → REGISTER → thanh cong → navigate ve LoginView.
+ * // 📌 [B27] Password match binding watch CẢ visible text fields (toggle password).
+ * // 📌 [B28] Re-bind registerButton.disableProperty() sau khi task hoàn thành.
+ * // 📌 [B29] Email validation dùng regex cơ bản thay vì chỉ contains("@").
+ * // 📌 [B31] Validate username length >= 3 ký tự.
  */
 public class RegisterController {
 
     @FXML private TextField usernameField;
     @FXML private PasswordField passwordField;
     @FXML private PasswordField confirmPasswordField;
+    @FXML private TextField passwordTextField;      // visible password toggle
+    @FXML private TextField confirmPasswordTextField; // visible confirm toggle
     @FXML private Label passwordMatchLabel;
     @FXML private TextField emailField;
     @FXML private ChoiceBox<String> roleChoiceBox;
@@ -43,35 +46,96 @@ public class RegisterController {
                 FXCollections.observableArrayList("BIDDER", "SELLER"));
         roleChoiceBox.setValue("BIDDER");
 
+        // Ẩn visible fields ban đầu (nếu có trong FXML)
+        if (passwordTextField != null) {
+            passwordTextField.setManaged(false);
+            passwordTextField.setVisible(false);
+        }
+        if (confirmPasswordTextField != null) {
+            confirmPasswordTextField.setManaged(false);
+            confirmPasswordTextField.setVisible(false);
+        }
+
         // 📌 [Tieu chi: MVC — bind realtime password confirmation]
+        // [B27] Watch cả 4 text properties (PasswordField + TextField visible toggle)
         passwordMatchLabel.visibleProperty().bind(
                 Bindings.createBooleanBinding(
                         () -> {
-                            String pw = passwordField.getText();
-                            String cpw = confirmPasswordField.getText();
+                            String pw = getPassword();
+                            String cpw = getConfirmPassword();
                             return !cpw.isEmpty() && !pw.equals(cpw);
                         },
                         passwordField.textProperty(),
-                        confirmPasswordField.textProperty()
+                        confirmPasswordField.textProperty(),
+                        passwordTextField == null
+                                ? passwordField.textProperty()  // fallback nếu không có toggle
+                                : passwordTextField.textProperty(),
+                        confirmPasswordTextField == null
+                                ? confirmPasswordField.textProperty()
+                                : confirmPasswordTextField.textProperty()
                 )
         );
-        passwordMatchLabel.setText("Mat khau xac nhan khong khop!");
+        passwordMatchLabel.setText("Mật khẩu xác nhận không khớp!");
 
-        registerButton.disableProperty().bind(
-                Bindings.createBooleanBinding(
-                        () -> usernameField.getText().isBlank()
-                                || passwordField.getText().length() < 8
-                                || emailField.getText().isBlank()
-                                || !emailField.getText().contains("@")
-                                || !passwordField.getText().equals(confirmPasswordField.getText()),
-                        usernameField.textProperty(),
-                        passwordField.textProperty(),
-                        emailField.textProperty()
-                )
-        );
+        // Bind disable button — sẽ được re-bind sau khi task hoàn thành (B28)
+        bindRegisterButton();
 
         errorLabel.setVisible(false);
         errorLabel.getStyleClass().add("error-message");
+    }
+
+    /**
+     * Bind registerButton.disableProperty() với điều kiện validation.
+     *
+     * <p>// 📌 [B28] Tách thành method riêng để có thể gọi lại sau khi task hoàn thành (re-bind).
+     * // 📌 [B29] Email validation dùng regex [\w+-.]+@[\w-]+\.[a-z]{2,} thay vì chỉ contains("@").
+     * // 📌 [B31] Username phải có ít nhất 3 ký tự.
+     */
+    private void bindRegisterButton() {
+        registerButton.disableProperty().bind(
+                Bindings.createBooleanBinding(
+                        () -> {
+                            // [B31] Username >= 3 ký tự, chỉ chứa chữ cái, số, underscore
+                            String username = usernameField.getText();
+                            if (username == null || username.trim().length() < 3) return true;
+                            if (!username.trim().matches("[a-zA-Z0-9_]+")) return true;
+
+                            // Password >= 8 ký tự
+                            if (passwordField.getText().length() < 8) return true;
+
+                            // [B29] Email regex cơ bản
+                            String email = emailField.getText().trim();
+                            if (!email.matches("[\\w+\\-.]+@[\\w\\-]+\\.[a-z]{2,}")) return true;
+
+                            // Password khớp
+                            return !getPassword().equals(getConfirmPassword());
+                        },
+                        usernameField.textProperty(),
+                        passwordField.textProperty(),
+                        confirmPasswordField.textProperty(),
+                        emailField.textProperty()
+                )
+        );
+    }
+
+    /**
+     * Lấy password từ field đang hiển thị (PasswordField hoặc TextField toggle).
+     */
+    private String getPassword() {
+        if (passwordTextField != null && passwordTextField.isVisible()) {
+            return passwordTextField.getText();
+        }
+        return passwordField.getText();
+    }
+
+    /**
+     * Lấy confirm password từ field đang hiển thị.
+     */
+    private String getConfirmPassword() {
+        if (confirmPasswordTextField != null && confirmPasswordTextField.isVisible()) {
+            return confirmPasswordTextField.getText();
+        }
+        return confirmPasswordField.getText();
     }
 
     /**
@@ -80,19 +144,21 @@ public class RegisterController {
     @FXML
     public void handleRegister() {
         String username = usernameField.getText().trim();
-        String password = passwordField.getText();
-        String confirmPassword = confirmPasswordField.getText();
+        String password = getPassword();
+        String confirmPassword = getConfirmPassword();
         String email = emailField.getText().trim();
         String role = roleChoiceBox.getValue();
 
         // Client-side validation
         if (!password.equals(confirmPassword)) {
-            errorLabel.setText("Mat khau xac nhan khong khop!");
+            errorLabel.setText("Mật khẩu xác nhận không khớp!");
             errorLabel.setVisible(true);
             return;
         }
 
         errorLabel.setVisible(false);
+
+        // [B28] Unbind trước khi disable để tránh lỗi "bound value cannot be set"
         registerButton.disableProperty().unbind();
         registerButton.setDisable(true);
 
@@ -116,14 +182,16 @@ public class RegisterController {
             } else {
                 errorLabel.setText(response.getMessage());
                 errorLabel.setVisible(true);
-                registerButton.setDisable(false);
+                // [B28] Re-bind sau khi task hoàn thành (thất bại) — nút sẽ tự disable lại đúng
+                bindRegisterButton();
             }
         });
 
         task.setOnFailed(e -> {
-            errorLabel.setText("Khong ket noi duoc may chu. Thu lai sau.");
+            errorLabel.setText("Không kết nối được máy chủ. Thử lại sau.");
             errorLabel.setVisible(true);
-            registerButton.setDisable(false);
+            // [B28] Re-bind sau khi task thất bại
+            bindRegisterButton();
         });
 
         new Thread(task).start();
