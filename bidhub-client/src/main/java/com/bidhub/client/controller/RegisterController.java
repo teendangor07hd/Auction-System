@@ -5,7 +5,6 @@ import com.bidhub.client.network.NetworkTask;
 import com.bidhub.client.network.ServerGateway;
 import com.bidhub.client.navigation.ViewRouter;
 import com.bidhub.client.util.Views;
-import com.bidhub.common.network.MessageMapper;
 import com.bidhub.common.network.MessageRequest;
 import com.bidhub.common.network.MessageResponse;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
@@ -72,30 +71,71 @@ public class RegisterController {
             confirmPasswordTextField.setVisible(false);
         }
 
-        // Đồng bộ dữ liệu giữa TextField và PasswordField
+        // Ẩn visible fields ban đầu (nếu có trong FXML)
         if (passwordTextField != null) {
-            passwordTextField.textProperty().bindBidirectional(passwordField.textProperty());
+            passwordTextField.setManaged(false);
+            passwordTextField.setVisible(false);
         }
         if (confirmPasswordTextField != null) {
-            confirmPasswordTextField.textProperty().bindBidirectional(confirmPasswordField.textProperty());
+            confirmPasswordTextField.setManaged(false);
+            confirmPasswordTextField.setVisible(false);
         }
 
         // 📌 [Tieu chi: MVC — bind realtime password confirmation]
+        // [B27] Watch cả 4 text properties (PasswordField + TextField visible toggle)
         passwordMatchLabel.visibleProperty().bind(
                 Bindings.createBooleanBinding(
                         () -> {
-                            String pw = passwordField.getText();
-                            String cpw = confirmPasswordField.getText();
+                            String pw = getPassword();
+                            String cpw = getConfirmPassword();
                             return !cpw.isEmpty() && !pw.equals(cpw);
                         },
                         passwordField.textProperty(),
-                        confirmPasswordField.textProperty()
+                        confirmPasswordField.textProperty(),
+                        passwordTextField == null
+                                ? passwordField.textProperty()  // fallback nếu không có toggle
+                                : passwordTextField.textProperty(),
+                        confirmPasswordTextField == null
+                                ? confirmPasswordField.textProperty()
+                                : confirmPasswordTextField.textProperty()
                 )
         );
         passwordMatchLabel.managedProperty().bind(passwordMatchLabel.visibleProperty());
         passwordMatchLabel.setText("Mật khẩu xác nhận không khớp!");
 
-        registerButton.disableProperty().bind(isRegistering);
+    /**
+     * Bind registerButton.disableProperty() với điều kiện validation.
+     *
+     * <p>// 📌 [B28] Tách thành method riêng để có thể gọi lại sau khi task hoàn thành (re-bind).
+     * // 📌 [B29] Email validation dùng regex [\w+-.]+@[\w-]+\.[a-z]{2,} thay vì chỉ contains("@").
+     * // 📌 [B31] Username phải có ít nhất 3 ký tự.
+     */
+    private void bindRegisterButton() {
+        registerButton.disableProperty().bind(
+                Bindings.createBooleanBinding(
+                        () -> {
+                            // [B31] Username >= 3 ký tự, chỉ chứa chữ cái, số, underscore
+                            String username = usernameField.getText();
+                            if (username == null || username.trim().length() < 3) return true;
+                            if (!username.trim().matches("[a-zA-Z0-9_]+")) return true;
+
+                            // Password >= 8 ký tự
+                            if (passwordField.getText().length() < 8) return true;
+
+                            // [B29] Email regex cơ bản
+                            String email = emailField.getText().trim();
+                            if (!email.matches("[\\w+\\-.]+@[\\w\\-]+\\.[a-z]{2,}")) return true;
+
+                            // Password khớp
+                            return !getPassword().equals(getConfirmPassword());
+                        },
+                        usernameField.textProperty(),
+                        passwordField.textProperty(),
+                        confirmPasswordField.textProperty(),
+                        emailField.textProperty()
+                )
+        );
+    }
 
         errorLabel.setVisible(false);
         errorLabel.setManaged(false);

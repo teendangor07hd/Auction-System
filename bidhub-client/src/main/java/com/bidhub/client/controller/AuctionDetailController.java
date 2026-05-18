@@ -1,6 +1,7 @@
 package com.bidhub.client.controller;
 
 import com.bidhub.client.navigation.ContextAware;
+import com.bidhub.client.navigation.Navigable;
 import com.bidhub.client.network.BidUpdateCallback;
 import com.bidhub.client.network.ClientSession;
 import com.bidhub.client.network.EventListenerThread;
@@ -26,15 +27,22 @@ import javafx.scene.image.ImageView;
 import javafx.util.Duration;
 
 import java.io.BufferedReader;
+import java.io.IOException;
 import java.io.InputStreamReader;
+import java.net.Socket;
 import java.time.LocalDateTime;
 import java.util.Map;
 
 /**
  * Controller chi tiết phiên đấu giá.
  * Hỗ trợ Real-time updates qua Observer Pattern và Countdown Timer.
+ *
+ * <p>// 📌 [B13] Implement {@link Navigable} → ViewRouter gọi onNavigateAway() khi rời màn hình.
+ * // 📌 [B14] subscribeRealtimeEvents() chạy trên background thread (NetworkTask), không chạy trên FX thread.
+ * // 📌 [B15] flashTimeline lưu reference → stop trong cleanup(), không leak.
+ * // 📌 [B16] validate bid-against-self client-side trước khi gửi request.
  */
-public class AuctionDetailController implements ContextAware {
+public class AuctionDetailController implements ContextAware, Navigable {
 
     // --- FXML Components ---
     @FXML private Label lblTitle;
@@ -60,8 +68,7 @@ public class AuctionDetailController implements ContextAware {
     @FXML private Button btnZoomReset;
 
     // 📌 [Tieu chi: Price Chart — FXML inject LineChart]
-    @FXML
-    private LineChart<String, Number> bidChart;
+    @FXML private LineChart<String, Number> bidChart;
 
     @FXML private TableView<JsonNode> bidTable;
     @FXML private TableColumn<JsonNode, String> colBidderName;
@@ -73,11 +80,21 @@ public class AuctionDetailController implements ContextAware {
     private LocalDateTime startTime;
     private LocalDateTime endTime;
     private Timeline countdownTimeline;
+
+    // [B15] flashTimeline — lưu reference để stop/cleanup tránh leak
+    private Timeline flashTimeline;
+
     private final ObjectMapper mapper = new ObjectMapper();
 
     // Fields cho Real-time Event Listener
     private EventListenerThread eventListener;
+    private Thread eventThread;
+    private Socket eventSocket; // socket riêng cho event (B14 — tách khỏi request socket)
     private boolean isSubscribed = false;
+
+    // 📌 [B16] lưu highestBidderId để validate bid-against-self
+    private String highestBidderId = "";
+    private String sellerId = "";
 
     // 📌 [Tieu chi: Price Chart — BidChartService quan ly du lieu chart]
     private BidChartService bidChartService;
@@ -94,14 +111,9 @@ public class AuctionDetailController implements ContextAware {
     public void initialize() {
         btnPlaceBid.setOnAction(e -> placeBid());
         btnBack.setOnAction(e -> {
-            cleanup(); // Dọn dẹp tài nguyên trước khi thoát
-            if (com.bidhub.client.network.ClientSession.getInstance().isLoggedIn()) {
-                com.bidhub.client.navigation.ViewRouter.getInstance()
-                        .navigateTo(com.bidhub.client.util.Views.AUCTION_LIST);
-            } else {
-                com.bidhub.client.navigation.ViewRouter.getInstance()
-                        .navigateTo(com.bidhub.client.util.Views.LOGIN);
-            }
+            onNavigateAway(); // Dọn dẹp tài nguyên trước khi thoát
+            com.bidhub.client.navigation.ViewRouter.getInstance()
+                    .navigateTo(com.bidhub.client.util.Views.AUCTION_LIST);
         });
 
         // Setup bảng xếp hạng
@@ -139,6 +151,15 @@ public class AuctionDetailController implements ContextAware {
     }
 
     /**
+     * [B13] Lifecycle hook — gọi bởi ViewRouter khi navigate rời khỏi màn hình này.
+     * Dọn dẹp tất cả tài nguyên: countdown, event socket, event thread, flash timeline.
+     */
+    @Override
+    public void onNavigateAway() {
+        cleanup();
+    }
+
+    /**
      * Tải thông tin chi tiết phiên đấu giá từ Server.
      */
     private void loadAuctionDetail() {
@@ -156,14 +177,14 @@ public class AuctionDetailController implements ContextAware {
                 JsonNode payload = mapper.valueToTree(response.getPayload());
                 populateLabels(payload);
             } else {
-                Platform.runLater(() -> UiUtils.showError("Lỗi hệ thống", response.getMessage()));
+                UiUtils.showError("Lỗi hệ thống", response.getMessage());
             }
         });
 
         task.setOnFailed(e ->
-                Platform.runLater(() -> UiUtils.showError("Lỗi kết nối", "Không thể kết nối đến máy chủ.")));
+                UiUtils.showError("Lỗi kết nối", "Không thể kết nối đến máy chủ."));
 
-        new Thread(task).start();
+        new Thread(task, "load-auction-detail").start();
     }
 
     /**
@@ -171,6 +192,10 @@ public class AuctionDetailController implements ContextAware {
      */
     private void populateLabels(JsonNode payload) {
         JsonNode auction = payload.path("auction");
+
+        // [B16] Lưu sellerId và highestBidderId để validate trước khi đặt giá
+        this.sellerId = auction.path("sellerId").asText("");
+        this.highestBidderId = auction.path("highestBidderId").asText("");
 
         lblTitle.setText("Chi tiết phiên đấu giá");
         lblItemName.setText(auction.path("itemName").asText(auction.path("itemId").asText("Sản phẩm không tên")));
@@ -260,10 +285,11 @@ public class AuctionDetailController implements ContextAware {
         // Nếu đã kết thúc thì disable form luôn
         if ("FINISHED".equals(status) || "CLOSED".equals(status)) {
             disableBiddingUI();
+            return;
         }
 
-        // Kích hoạt Real-time (Observer pattern)
-        subscribeRealtimeEvents();
+        // [B14] subscribeRealtimeEvents() phải chạy trên background thread — KHÔNG chạy trên FX thread
+        new Thread(this::subscribeRealtimeEvents, "event-subscribe-" + auctionId).start();
     }
 
     private java.net.Socket eventSocket;
@@ -317,6 +343,9 @@ public class AuctionDetailController implements ContextAware {
                             lblCurrentPrice.setStyle("-fx-background-color: #FEF08A; -fx-text-fill: #B45309; -fx-padding: 2 8; -fx-background-radius: 4;");
                             new Timeline(new KeyFrame(Duration.millis(600), k -> lblCurrentPrice.setStyle(""))).play();
 
+                            // [B15] flashTimeline — lưu reference, không tạo mới vô hạn
+                            flashPriceLabel();
+
                             // 📌 [Tieu chi: Price Chart — realtime addDataPoint khi nhan BID_UPDATE]
                             bidChartService.addDataPoint(LocalDateTime.now(), newPrice, bidder);
 
@@ -332,8 +361,12 @@ public class AuctionDetailController implements ContextAware {
                             // 📌 [Tieu chi: Anti-Sniping — reset countdown khi nhan AUCTION_EXTENDED]
                             String newEndTimeStr = eventNode.path("newEndTime").asText("");
                             if (!newEndTimeStr.isEmpty()) {
-                                endTime = LocalDateTime.parse(newEndTimeStr);
-                                startCountdown();
+                                try {
+                                    endTime = LocalDateTime.parse(newEndTimeStr);
+                                    startCountdown();
+                                } catch (Exception ex) {
+                                    System.err.println("[AuctionDetail] Parse newEndTime loi: " + ex.getMessage());
+                                }
                             }
                         }
                     });
@@ -342,10 +375,10 @@ public class AuctionDetailController implements ContextAware {
                 }
             };
 
-            eventListener = new EventListenerThread(reader, callback);
-            Thread thread = new Thread(eventListener, "EventListener-" + auctionId);
-            thread.setDaemon(true);
-            thread.start();
+            eventListener = new EventListenerThread(eventReader, callback);
+            eventThread = new Thread(eventListener, "EventListener-" + auctionId);
+            eventThread.setDaemon(true);
+            eventThread.start();
 
             isSubscribed = true;
             System.out.println("[AuctionDetail] Real-time subscription active via dedicated socket.");
@@ -355,7 +388,32 @@ public class AuctionDetailController implements ContextAware {
     }
 
     /**
+     * Hiệu ứng flash màu xanh khi giá mới được cập nhật.
+     *
+     * <p>// 📌 [B15] Lưu reference flashTimeline → stop() trước khi tạo mới để không leak.
+     */
+    private void flashPriceLabel() {
+        // [B15] Stop timeline cũ nếu đang chạy
+        if (flashTimeline != null) {
+            flashTimeline.stop();
+        }
+
+        String originalStyle = lblCurrentPrice.getStyle();
+        lblCurrentPrice.setStyle("-fx-text-fill: #22C55E; -fx-font-weight: bold; -fx-font-size: 16px;");
+
+        flashTimeline = new Timeline(
+                new KeyFrame(Duration.seconds(1.5), ev ->
+                        lblCurrentPrice.setStyle(originalStyle)
+                )
+        );
+        flashTimeline.setCycleCount(1);
+        flashTimeline.play();
+    }
+
+    /**
      * Xử lý gửi yêu cầu đặt giá lên Server.
+     *
+     * <p>// 📌 [B16] Validate bid-against-self client-side trước khi gửi request.
      */
     private void placeBid() {
         // Client-side validation
@@ -363,6 +421,17 @@ public class AuctionDetailController implements ContextAware {
             return;
         }
         if (!UiUtils.validatePositiveNumber(tfBidAmount, "Số tiền đặt giá")) {
+            return;
+        }
+
+        // [B16] Validate bid-against-self — không để gửi rồi server reject, UX kém
+        String currentUserId = ClientSession.getInstance().getCurrentUserId();
+        if (!sellerId.isEmpty() && sellerId.equals(currentUserId)) {
+            UiUtils.showError("Không thể đặt giá", "Bạn không thể đặt giá phiên đấu giá của chính mình.");
+            return;
+        }
+        if (!highestBidderId.isEmpty() && highestBidderId.equals(currentUserId)) {
+            UiUtils.showError("Không thể đặt giá", "Bạn đang là người trả giá cao nhất. Hãy chờ người khác đặt giá.");
             return;
         }
 
@@ -387,8 +456,7 @@ public class AuctionDetailController implements ContextAware {
             MessageResponse response = task.getValue();
             if ("OK".equals(response.getStatus())) {
                 tfBidAmount.clear();
-                UiUtils.showInfo("Đặt giá thành công", "Đã đặt giá "
-                        + String.format("%,.0f VND", bidAmount));
+                UiUtils.showInfo("Đặt giá thành công", "Đã đặt giá " + UiUtils.formatCurrency(bidAmount));
             } else {
                 // 📌 [Tieu chi: UX — hien Alert khi bid that bai]
                 String errorMsg = response.getMessage();
@@ -407,7 +475,7 @@ public class AuctionDetailController implements ContextAware {
     }
 
     /**
-     * Map server error code sang message thông thân thiện cho user.
+     * Map server error code sang message thân thiện cho user.
      */
     private String mapErrorMessage(String errorCode) {
         if (errorCode == null) {
@@ -598,12 +666,24 @@ public class AuctionDetailController implements ContextAware {
 
     private void stopEventListener() {
         if (eventListener != null) {
-            eventListener.stop();
+            eventListener.stop(); // [B10] stop() giờ đóng reader → interrupt readLine()
             eventListener = null;
+        }
+        if (eventThread != null) {
+            eventThread.interrupt();
+            eventThread = null;
+        }
+        // Đóng event socket
+        if (eventSocket != null && !eventSocket.isClosed()) {
+            try { eventSocket.close(); } catch (IOException ignored) {}
+            eventSocket = null;
         }
         isSubscribed = false;
     }
 
+    /**
+     * Dọn dẹp tất cả tài nguyên. Gọi từ {@link #onNavigateAway()} và btnBack handler.
+     */
     @FXML
     public void cleanup() {
         stopCountdown();
@@ -618,6 +698,4 @@ public class AuctionDetailController implements ContextAware {
             }
         }
     }
-
-
-}
+}

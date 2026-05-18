@@ -4,7 +4,11 @@
 <?import javafx.scene.layout.*?>
 <?import javafx.scene.control.cell.*?>
 
-<VBox xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1"
+<!-- [B76] Thêm stylesheets attribute — trước đây thiếu nên CSS không load -->
+<!-- [B77] Đổi xmlns version từ 21 về 17 để nhất quán với các FXML khác -->
+<!-- [B75] Dùng CSS classes đã được định nghĩa trong styles.css -->
+<!-- [B42/GAP1] Thêm nút "Kiểm tra toàn vẹn" để gọi RUN_INTEGRITY_CHECK API -->
+<VBox xmlns="http://javafx.com/javafx/17.0.12" xmlns:fx="http://javafx.com/fxml/1"
       fx:controller="com.bidhub.client.controller.AdminController"
       spacing="10" styleClass="container" prefWidth="1000" prefHeight="700">
 
@@ -128,6 +132,7 @@
         </tabs>
     </TabPane>
 
-    <Label fx:id="statusLabel" styleClass="status-label" />
+    <!-- [B75] Dùng .status-label — đã được thêm vào styles.css -->
+    <Label fx:id="statusLabel" styleClass="status-label" text="Sẵn sàng." />
 
 </VBox>

@@ -122,15 +122,26 @@ public class LoginController {
 
     private void handleLoginSuccess(MessageResponse response) {
         Object payload = response.getPayload();
-        if (payload instanceof Map<?, ?> map) {
-            ClientSession.getInstance().login(
-                    (String) map.get("token"),
-                    (String) map.get("userId"),
-                    (String) map.get("username"),
-                    (String) map.get("role")
-            );
+        // [B33] Safe cast voi instanceof + null check — tranh ClassCastException
+        if (payload instanceof java.util.Map<?, ?> map) {
+            Object token    = map.get("token");
+            Object userId   = map.get("userId");
+            Object username = map.get("username");
+            Object role     = map.get("role");
+            if (token instanceof String && userId instanceof String
+                    && username instanceof String && role instanceof String) {
+                ClientSession.getInstance().login(
+                        (String) token, (String) userId,
+                        (String) username, (String) role
+                );
+            } else {
+                System.err.println("[LoginController] Payload thieu truong: " + map);
+            }
+        } else {
+            System.err.println("[LoginController] Payload khong phai Map: " + payload);
         }
-        Platform.runLater(() -> ViewRouter.getInstance().navigateTo(Views.AUCTION_LIST));
+        // [B32] setOnSucceeded da chay tren FX thread — Platform.runLater() la thua
+        ViewRouter.getInstance().navigateTo(Views.AUCTION_LIST);
     }
 
     @FXML

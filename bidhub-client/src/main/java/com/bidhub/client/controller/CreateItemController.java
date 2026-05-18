@@ -93,8 +93,8 @@ public class CreateItemController {
 
         // Kiem tra role — chi SELLER duoc tao item
         String role = ClientSession.getInstance().getCurrentRole();
-        if (!"SELLER".equals(role)) {
-            UiUtils.showError("Lỗi phân quyền", "Chỉ người bán (SELLER) mới được tạo sản phẩm.");
+        if (!"SELLER".equals(role) && !"ADMIN".equals(role)) {
+            UiUtils.showError("Lỗi phân quyền", "Chỉ người bán (SELLER) hoặc quản trị viên (ADMIN) mới được tạo sản phẩm.");
             if (btnSubmit != null) btnSubmit.setDisable(true);
         }
         
@@ -120,9 +120,10 @@ public class CreateItemController {
      */
     @FXML
     public void handleSubmit() {
+        // [B22] SELLER hoac ADMIN duoc tao item
         String role = ClientSession.getInstance().getCurrentRole();
-        if (!"SELLER".equals(role)) {
-            UiUtils.showError("Lỗi phân quyền", "Chỉ người bán (SELLER) mới được tạo sản phẩm.");
+        if (!"SELLER".equals(role) && !"ADMIN".equals(role)) {
+            UiUtils.showError("Lỗi phân quyền", "Chỉ người bán (SELLER) hoặc quản trị viên (ADMIN) mới được tạo sản phẩm.");
             return;
         }
 

@@ -44,6 +44,9 @@ public final class BidChartService {
      * @param time  thoi gian dat gia
      * @param price gia dat
      */
+    // 📌 [B57] Gioi han toi da 100 data points — tranh chart cham sau ~200 bids
+    private static final int MAX_DATA_POINTS = 100;
+
     // 📌 [Tieu chi: Kỹ thuật quan trọng — DateTimeFormatter format LocalDateTime → String]
     public void addDataPoint(LocalDateTime time, double price) {
         addDataPoint(time, price, "Khách");

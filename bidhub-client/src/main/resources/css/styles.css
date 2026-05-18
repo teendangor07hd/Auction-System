@@ -1,20 +1,22 @@
 /* ==============================================
-   BIDHUB - MODERN UI THEME (Final Optimized)
+   BIDHUB - DARK THEME (Refactored)
    File: src/main/resources/css/styles.css
    ============================================== */
 
-/* 1. GLOBAL SETTINGS (Cài đặt chung) */
+/* 1. GLOBAL SETTINGS */
+/* [B83] Đổi .root background từ #E2E8F0 (light) sang #0B0E11 (dark) — nhất quán với FXML */
 .root {
     -fx-font-family: "Segoe UI", "Helvetica Neue", Arial, sans-serif;
-    -fx-background-color: #E2E8F0; /* Nền xám nhạt hiện đại */
+    -fx-background-color: #0B0E11; /* Dark background — nhất quán với FXML inline styles */
     -fx-font-size: 14px;
+    -fx-text-fill: #E2E8F0; /* Default text color trên dark theme */
 }
 
-/* 2. HEADER BAR (Thanh tiêu đề - Thường dùng cho HBox trên cùng) */
+/* 2. HEADER BAR */
 .header-bar {
     -fx-background-color: linear-gradient(to right, #1E1B4B, #4338CA);
     -fx-padding: 15px 25px;
-    -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.2), 10, 0, 0, 3);
+    -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.4), 10, 0, 0, 3);
 }
 
 .header-title {
@@ -23,25 +25,25 @@
     -fx-font-weight: 900;
 }
 
-/* 3. CENTER CONTENT (Khung chứa nội dung chung) */
+/* 3. CENTER CONTENT */
+/* [B85] Đổi .content-pane sang dark theme — không dùng white background trên dark app */
 .content-pane {
-    -fx-background-color: white;
+    -fx-background-color: #151A2B; /* Dark blue-grey */
     -fx-background-radius: 12px;
     -fx-padding: 20px;
-    -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.05), 8, 0, 0, 4);
+    -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.3), 8, 0, 0, 4);
 }
 
-/* 4. BUTTONS (Nút bấm) */
+/* 4. BUTTONS */
 .button {
     -fx-padding: 10px 20px;
     -fx-background-radius: 8px;
     -fx-font-weight: bold;
     -fx-cursor: hand;
-    -fx-transition: 0.2s;
 }
 
 .btn-primary {
-    -fx-background-color: #4F46E5;
+    -fx-background-color: #4F46E5; /* Indigo */
     -fx-text-fill: white;
 }
 
@@ -59,7 +61,7 @@
 }
 
 .btn-danger-outline:hover {
-    -fx-background-color: #FEF2F2;
+    -fx-background-color: rgba(239, 68, 68, 0.1);
 }
 
 .btn-full-width {
@@ -67,15 +69,91 @@
     -fx-font-size: 15px;
 }
 
-/* 5. TABLE VIEW (Bảng dữ liệu sạch sẽ) */
+/* [B84] Thêm các CSS classes AdminView cần */
+.container {
+    -fx-background-color: #0B0E11;
+    -fx-padding: 20px;
+    -fx-spacing: 15px;
+}
+
+.header {
+    -fx-background-color: linear-gradient(to right, #1E1B4B, #312E81);
+    -fx-padding: 15px 20px;
+    -fx-background-radius: 8px;
+}
+
+.title-label {
+    -fx-text-fill: white;
+    -fx-font-size: 20px;
+    -fx-font-weight: bold;
+}
+
+.btn-secondary {
+    -fx-background-color: #334155; /* Slate dark */
+    -fx-text-fill: #E2E8F0;
+    -fx-background-radius: 8px;
+}
+
+.btn-secondary:hover {
+    -fx-background-color: #475569;
+}
+
+.btn-danger {
+    -fx-background-color: #DC2626; /* Red */
+    -fx-text-fill: white;
+    -fx-background-radius: 8px;
+}
+
+.btn-danger:hover {
+    -fx-background-color: #B91C1C;
+}
+
+.btn-success {
+    -fx-background-color: #16A34A; /* Green */
+    -fx-text-fill: white;
+    -fx-background-radius: 8px;
+}
+
+.btn-success:hover {
+    -fx-background-color: #15803D;
+}
+
+.btn-warning {
+    -fx-background-color: #D97706; /* Amber */
+    -fx-text-fill: white;
+    -fx-background-radius: 8px;
+}
+
+.btn-warning:hover {
+    -fx-background-color: #B45309;
+}
+
+.status-label {
+    -fx-text-fill: #94A3B8;
+    -fx-font-size: 12px;
+    -fx-padding: 5px 0;
+}
+
+/* 5. TABLE VIEW — Dark theme */
 .table-view {
-    -fx-background-color: transparent;
-    -fx-border-color: #E2E8F0;
+    -fx-background-color: #151A2B;
+    -fx-border-color: #1E293B;
     -fx-border-radius: 8px;
 }
 
 .table-view .column-header-background {
-    -fx-background-color: #F8FAFC;
+    -fx-background-color: #1E1B4B;
+}
+
+.table-view .column-header .label {
+    -fx-text-fill: #E2E8F0;
+    -fx-font-weight: bold;
+}
+
+.table-row-cell {
+    -fx-background-color: #151A2B;
+    -fx-text-fill: #E2E8F0;
+    -fx-border-color: transparent;
 }
 
 .table-row-cell:odd {
@@ -96,38 +174,42 @@
     -fx-text-fill: white;
 }
 
-/* 6. FORM & LOGIN ELEMENTS (Thành phần biểu mẫu) */
+/* 6. FORM ELEMENTS — Dark theme */
 
+/* [B85] Đổi login-card sang dark theme */
 .login-card {
-    -fx-background-color: white;
+    -fx-background-color: #151A2B; /* Dark — không phải white */
     -fx-padding: 40px;
     -fx-background-radius: 16px;
-    -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.15), 20, 0, 0, 8);
+    -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.5), 20, 0, 0, 8);
 }
 
 .login-title {
     -fx-font-size: 28px;
     -fx-font-weight: 900;
-    -fx-text-fill: #4F46E5; /* Quan trọng: Đã sửa từ -fx-fill sang -fx-text-fill */
+    -fx-text-fill: #4F46E5;
 }
 
 .login-subtitle {
     -fx-font-size: 14px;
-    -fx-text-fill: #64748B; /* Quan trọng: Đã sửa từ -fx-fill sang -fx-text-fill */
+    -fx-text-fill: #94A3B8;
 }
 
+/* .form-label — dark theme: text sáng trên nền tối */
 .form-label {
     -fx-font-weight: bold;
     -fx-font-size: 13px;
-    -fx-text-fill: #334155;
+    -fx-text-fill: #CBD5E1; /* Light slate — dễ đọc trên dark background */
 }
 
 .text-input-field {
     -fx-pref-height: 45px;
     -fx-background-radius: 8px;
-    -fx-border-color: #CBD5E1;
+    -fx-border-color: #334155;
     -fx-border-radius: 8px;
-    -fx-background-color: #F8FAFC;
+    -fx-background-color: #1E293B;
+    -fx-text-fill: #E2E8F0;
+    -fx-prompt-text-fill: #475569;
     -fx-padding: 8px 15px;
     -fx-background-insets: 0;
 }
@@ -135,36 +217,36 @@
 .text-input-field:focused {
     -fx-border-color: #4F46E5;
     -fx-border-width: 2px;
-    -fx-background-color: white;
+    -fx-background-color: #1E293B;
     -fx-focus-color: transparent;
     -fx-faint-focus-color: transparent;
 }
 
-/* Thông báo lỗi dạng banner nhỏ */
+/* Thông báo lỗi */
 .error-message {
-    -fx-text-fill: #EF4444;
+    -fx-text-fill: #FCA5A5;
     -fx-font-size: 13px;
     -fx-padding: 8px 12px;
-    -fx-background-color: #FEF2F2;
+    -fx-background-color: rgba(239, 68, 68, 0.15);
     -fx-background-radius: 6px;
-    -fx-border-color: #FCA5A5;
+    -fx-border-color: rgba(252, 165, 165, 0.3);
     -fx-border-radius: 6px;
 }
 
 .link-text {
     -fx-font-size: 13px;
-    -fx-text-fill: #4F46E5;
+    -fx-text-fill: #818CF8; /* Indigo nhạt */
     -fx-underline: false;
 }
 
 .link-text:hover {
-    -fx-text-fill: #4338CA;
+    -fx-text-fill: #A5B4FC;
     -fx-underline: true;
 }
 
 .choice-box {
-    -fx-background-color: #F8FAFC;
-    -fx-border-color: #CBD5E1;
+    -fx-background-color: #1E293B;
+    -fx-border-color: #334155;
     -fx-border-radius: 8px;
     -fx-background-radius: 8px;
 }

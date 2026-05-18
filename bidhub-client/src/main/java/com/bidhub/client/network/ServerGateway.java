@@ -9,6 +9,7 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
+import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.util.Properties;
 
@@ -18,8 +19,19 @@ import java.util.Properties;
  * <p>Quản lý một kết nối TCP duy nhất. Đảm bảo đóng kết nối cũ trước khi mở
  * kết nối mới để tránh rò rỉ tài nguyên (Resource Leak).
  * Mọi network call phải bọc trong {@link NetworkTask} để không làm đơ (block) FX thread.
+ *
+ * <p>// 📌 [B5] connect()/disconnect()/isConnected() đều synchronized → tránh race condition.
+ * <p>// 📌 [B6] socket timeout 30s → không block mãi nếu server không phản hồi.
+ * <p>// 📌 [B7] disconnect() đóng writer → reader → socket theo đúng thứ tự.
+ * <p>// 📌 [B9] connect timeout 5s thay vì new Socket() block mãi.
  */
 public final class ServerGateway {
+
+    /** Timeout đọc response — 30 giây. */
+    private static final int READ_TIMEOUT_MS = 30_000;
+
+    /** Timeout kết nối — 5 giây. */
+    private static final int CONNECT_TIMEOUT_MS = 5_000;
 
     // Biến lưu trữ phiên bản duy nhất, dùng volatile để đảm bảo Thread-safe
     private static volatile ServerGateway instance;
@@ -53,7 +65,6 @@ public final class ServerGateway {
             serverHost = props.getProperty("server.host", "localhost");
             serverPort = Integer.parseInt(props.getProperty("server.port", "9090"));
         } catch (Exception e) {
-            // In lỗi ra để tránh tình trạng Silent Fail (lỗi ngầm)
             System.err.println("[ServerGateway] Lỗi đọc config, dùng cấu hình mặc định: " + e.getMessage());
             serverHost = "localhost";
             serverPort = 9090;
@@ -64,21 +75,32 @@ public final class ServerGateway {
      * Mở kết nối TCP đến server.
      * Tự động dọn dẹp (cleanup) kết nối cũ nếu đang tồn tại.
      *
+     * <p>// 📌 [B5] synchronized — tránh race với sendRequest()/disconnect().
+     * <p>// 📌 [B9] Dùng socket.connect() với connect timeout 5s thay vì new Socket(host, port)
+     * để không block mãi nếu server không reachable.
+     *
      * @param host hostname server
      * @param port cổng server
      * @throws IOException nếu không kết nối được
      */
-    public void connect(String host, int port) throws IOException {
+    public synchronized void connect(String host, int port) throws IOException {
         // Tránh Resource Leak: Ngắt kết nối cũ trước khi tạo kết nối mới
-        if (isConnected()) {
+        if (isConnectedUnsafe()) {
             System.out.println("[ServerGateway] Đóng kết nối cũ để chuẩn bị kết nối mới...");
-            disconnect();
+            disconnectUnsafe();
         }
 
-        socket = new Socket(host, port);
-        // autoFlush=true để println() đẩy data (flush) đi ngay lập tức thay vì giữ trong bộ đệm
-        writer = new PrintWriter(socket.getOutputStream(), true);
-        reader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+        // [B9] connect timeout 5s — không block mãi nếu server unreachable
+        Socket newSocket = new Socket();
+        newSocket.connect(new InetSocketAddress(host, port), CONNECT_TIMEOUT_MS);
+
+        // [B6] socket read timeout 30s — không block mãi khi server không phản hồi
+        newSocket.setSoTimeout(READ_TIMEOUT_MS);
+
+        this.socket = newSocket;
+        // autoFlush=true để println() đẩy data (flush) đi ngay lập tức
+        this.writer = new PrintWriter(socket.getOutputStream(), true);
+        this.reader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
 
         System.out.println("[ServerGateway] Kết nối thành công tới: " + host + ":" + port);
     }
@@ -93,14 +115,14 @@ public final class ServerGateway {
      * @throws IOException nếu mất kết nối trong khi giao tiếp
      */
     public synchronized MessageResponse sendRequest(MessageRequest request) throws IOException {
-        if (!isConnected()) {
+        if (!isConnectedUnsafe()) {
             throw new IOException("Chưa kết nối server. Vui lòng kiểm tra lại mạng hoặc gọi connect() trước.");
         }
 
         // Gửi data (Serialize object thành chuỗi JSON)
         writer.println(MessageMapper.toJson(request));
 
-        // Chờ nhận data từ Server (luồng sẽ đứng đợi ở đây)
+        // Chờ nhận data từ Server (luồng sẽ đứng đợi ở đây, tối đa READ_TIMEOUT_MS)
         String responseLine = reader.readLine();
 
         if (responseLine == null) {
@@ -115,8 +137,32 @@ public final class ServerGateway {
         }
     }
 
-    /** Đóng kết nối TCP và giải phóng tài nguyên mạng. */
-    public void disconnect() {
+    /**
+     * Đóng kết nối TCP và giải phóng tài nguyên mạng.
+     *
+     * <p>// 📌 [B5] synchronized — tránh race với connect()/sendRequest().
+     */
+    public synchronized void disconnect() {
+        disconnectUnsafe();
+    }
+
+    /**
+     * Nội bộ: đóng kết nối KHÔNG synchronized — chỉ gọi từ method đã synchronized.
+     *
+     * <p>// 📌 [B7] Đóng theo thứ tự: writer → reader → socket.
+     */
+    private void disconnectUnsafe() {
+        // [B7] Đóng writer trước để flush buffer và signal EOF phía server
+        if (writer != null) {
+            try { writer.close(); } catch (Exception ignored) {}
+            writer = null;
+        }
+        // [B7] Đóng reader
+        if (reader != null) {
+            try { reader.close(); } catch (Exception ignored) {}
+            reader = null;
+        }
+        // [B7] Đóng socket cuối cùng
         if (socket != null && !socket.isClosed()) {
             try {
                 socket.close();
@@ -124,15 +170,17 @@ public final class ServerGateway {
             } catch (IOException e) {
                 System.err.println("[ServerGateway] Lỗi khi đóng socket: " + e.getMessage());
             }
+            socket = null;
         }
-        // Gán các biến về trạng thái null để bộ thu gom rác (Garbage Collector) dọn dẹp
-        socket = null;
-        writer = null;
-        reader = null;
     }
 
-    /** Kiểm tra trạng thái mạng hiện tại. */
-    public boolean isConnected() {
+    /** Kiểm tra trạng thái mạng hiện tại (thread-safe). */
+    public synchronized boolean isConnected() {
+        return isConnectedUnsafe();
+    }
+
+    /** Nội bộ: kiểm tra kết nối KHÔNG synchronized. */
+    private boolean isConnectedUnsafe() {
         return socket != null && socket.isConnected() && !socket.isClosed();
     }
 
@@ -144,5 +192,5 @@ public final class ServerGateway {
         return serverPort;
     }
 
-    public Socket getSocket() { return socket; }
+    // [B8] getSocket() đã bị xóa — không expose internal socket state
 }
