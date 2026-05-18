@@ -76,16 +76,17 @@ public class CreateItemController {
         lblMessage.getStyleClass().add("error-message");
 
         // 📌 [Tieu chi: UX — TextField chi nhan so]
-        UiUtils.applyNumericFilter(startingPriceField);
-        UiUtils.applyNumericFilter(warrantyMonthsField);
-        UiUtils.applyNumericFilter(yearCreatedField);
-        UiUtils.applyNumericFilter(yearField);
-        UiUtils.applyNumericFilter(mileageKmField);
+        UiUtils.applyNumericFilter(startingPriceField); // decimal cho gia tien
+        // [B20] Dung applyIntegerFilter cho cac field so nguyen — tranh crash Integer.parseInt("12.5")
+        UiUtils.applyIntegerFilter(warrantyMonthsField);
+        UiUtils.applyIntegerFilter(yearCreatedField);
+        UiUtils.applyIntegerFilter(yearField);
+        UiUtils.applyIntegerFilter(mileageKmField);
 
-        // Kiem tra role — chi SELLER duoc tao item
+        // [B22] Kiem tra role — SELLER hoac ADMIN duoc tao item
         String role = ClientSession.getInstance().getCurrentRole();
-        if (!"SELLER".equals(role)) {
-            UiUtils.showError("Lỗi phân quyền", "Chỉ người bán (SELLER) mới được tạo sản phẩm.");
+        if (!"SELLER".equals(role) && !"ADMIN".equals(role)) {
+            UiUtils.showError("Lỗi phân quyền", "Chỉ người bán (SELLER) hoặc quản trị viên (ADMIN) mới được tạo sản phẩm.");
             if (btnSubmit != null) btnSubmit.setDisable(true);
         }
     }
@@ -95,9 +96,10 @@ public class CreateItemController {
      */
     @FXML
     public void handleSubmit() {
+        // [B22] SELLER hoac ADMIN duoc tao item
         String role = ClientSession.getInstance().getCurrentRole();
-        if (!"SELLER".equals(role)) {
-            UiUtils.showError("Lỗi phân quyền", "Chỉ người bán (SELLER) mới được tạo sản phẩm.");
+        if (!"SELLER".equals(role) && !"ADMIN".equals(role)) {
+            UiUtils.showError("Lỗi phân quyền", "Chỉ người bán (SELLER) hoặc quản trị viên (ADMIN) mới được tạo sản phẩm.");
             return;
         }
 
