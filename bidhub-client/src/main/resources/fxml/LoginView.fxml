@@ -29,12 +29,7 @@
 
          <Region VBox.vgrow="ALWAYS"/>
 
-         <VBox spacing="5" style="-fx-background-color: rgba(255, 255, 255, 0.1); -fx-background-radius: 10; -fx-padding: 15;">
-            <Label text="🎯 Tài khoản demo:" style="-fx-text-fill: white; -fx-font-size: 12px; -fx-font-weight: bold;"/>
-            <Label text="Admin: admin01 / Admin@123" style="-fx-text-fill: #E2E8F0; -fx-font-size: 11px;"/>
-            <Label text="Seller: seller01 / Seller@123" style="-fx-text-fill: #E2E8F0; -fx-font-size: 11px;"/>
-            <Label text="Bidder: bidder01 / Bidder@123" style="-fx-text-fill: #E2E8F0; -fx-font-size: 11px;"/>
-         </VBox>
+         <!-- [B68] DEMO CREDENTIALS ĐÃ BỊ XÓA — không hiển thị mật khẩu trực tiếp trên UI -->
       </VBox>
 
       <VBox HBox.hgrow="ALWAYS" prefWidth="400" spacing="25" alignment="CENTER_LEFT" style="-fx-background-color: #151A2B; -fx-background-radius: 0 15 15 0; -fx-padding: 50;">
