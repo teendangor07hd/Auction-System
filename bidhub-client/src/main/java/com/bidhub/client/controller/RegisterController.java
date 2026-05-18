@@ -185,6 +185,8 @@ public class RegisterController {
         try {
             java.util.List<String> errors = new java.util.ArrayList<>();
             if (username.isBlank()) errors.add("Tên đăng nhập không được để trống.");
+            else if (username.length() < 3 || username.length() > 50) errors.add("Tên đăng nhập phải từ 3 đến 50 ký tự.");
+            
             if (password.length() < 8) errors.add("Mật khẩu phải có ít nhất 8 ký tự.");
             if (email.isBlank()) errors.add("Email không được để trống.");
             else if (!email.contains("@")) errors.add("Email không hợp lệ (phải chứa @).");
