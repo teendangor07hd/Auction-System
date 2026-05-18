@@ -21,6 +21,7 @@ public class MainLayoutController {
     private static final String CMD_LOGOUT = "LOGOUT";
     private static final String ROLE_ADMIN = "ADMIN";
     private static final String ROLE_SELLER = "SELLER";
+    private static final String ROLE_BIDDER = "BIDDER";
 
     @FXML private BorderPane mainPane;
     @FXML private Button btnCreateAuction;
@@ -31,6 +32,8 @@ public class MainLayoutController {
     @FXML private Button btnSellerDashboard;
     @FXML private Button btnAccount;
     @FXML private Button btnLogout;
+    @FXML private Button btnLogin;
+    @FXML private Button btnBidderItems;
     @FXML private Button adminBtn;
     @FXML private Label lblSidebarUser;
     @FXML private Label lblSidebarRole;
@@ -53,34 +56,73 @@ public class MainLayoutController {
             btnItemCatalog.setOnAction(e -> ViewRouter.getInstance().navigateTo(Views.ITEM_CATALOG));
         }
 
+        boolean isLoggedIn = ClientSession.getInstance().isLoggedIn();
         String currentUsername = ClientSession.getInstance().getCurrentUsername();
         String currentRole = String.valueOf(ClientSession.getInstance().getCurrentRole());
         boolean isAdmin = ROLE_ADMIN.equals(currentRole);
         boolean isSeller = ROLE_SELLER.equals(currentRole);
+        boolean isBidder = ROLE_BIDDER.equals(currentRole);
 
         if (lblSidebarUser != null) {
             lblSidebarUser.setText("👤 " + (currentUsername != null && !currentUsername.isBlank() ? currentUsername : "Khách"));
         }
         if (lblSidebarRole != null) {
-            lblSidebarRole.setText("Vai trò: " + (currentRole != null && !currentRole.isBlank() ? currentRole : "Bidder"));
+            String roleDisplay = isLoggedIn ? currentRole : "Chưa đăng nhập";
+            lblSidebarRole.setText("Vai trò: " + roleDisplay);
         }
 
+        // Admin button
         if (adminBtn != null) {
             adminBtn.setVisible(isAdmin);
             adminBtn.setManaged(isAdmin);
         }
 
-        // Hiện nút "Sản phẩm của tôi" chỉ cho SELLER (và ADMIN)
+        // Seller buttons
         if (btnSellerDashboard != null) {
             boolean showSeller = isSeller || isAdmin;
             btnSellerDashboard.setVisible(showSeller);
             btnSellerDashboard.setManaged(showSeller);
         }
+
+        // Bidder buttons
+        if (btnBidderItems != null) {
+            btnBidderItems.setVisible(isBidder);
+            btnBidderItems.setManaged(isBidder);
+        }
+
+        // Login/Logout buttons
+        if (btnLogin != null) {
+            btnLogin.setVisible(!isLoggedIn);
+            btnLogin.setManaged(!isLoggedIn);
+        }
+        if (btnLogout != null) {
+            btnLogout.setVisible(isLoggedIn);
+            btnLogout.setManaged(isLoggedIn);
+        }
+        if (btnAccount != null) {
+            btnAccount.setVisible(isLoggedIn);
+            btnAccount.setManaged(isLoggedIn);
+        }
+
+        // Ẩn các nút SELLER nếu chưa đăng nhập
+        if (!isLoggedIn) {
+            setVisible(btnCreateItem, false);
+            setVisible(btnCreateAuction, false);
+        }
+    }
+
+    private void setVisible(Button btn, boolean visible) {
+        if (btn != null) { btn.setVisible(visible); btn.setManaged(visible); }
     }
 
     private void setupActionHandlers() {
-        btnAccount.setOnAction(e -> showAccountPopup());
-        btnLogout.setOnAction(e -> handleLogout());
+        if (btnAccount != null) btnAccount.setOnAction(e -> showAccountPopup());
+        if (btnLogout != null) btnLogout.setOnAction(e -> handleLogout());
+    }
+
+    @FXML
+    public void handleLogin() {
+        ViewRouter.getInstance().navigateTo(Views.LOGIN);
     }
 
     @FXML
@@ -101,6 +143,11 @@ public class MainLayoutController {
     @FXML
     public void handleSellerDashboard() {
         ViewRouter.getInstance().navigateTo(Views.SELLER_DASHBOARD);
+    }
+
+    @FXML
+    public void handleBidderItems() {
+        ViewRouter.getInstance().navigateTo(Views.BIDDER_ITEMS);
     }
 
     private void handleLogout() {

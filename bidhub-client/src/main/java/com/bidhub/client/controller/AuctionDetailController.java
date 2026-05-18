@@ -95,8 +95,13 @@ public class AuctionDetailController implements ContextAware {
         btnPlaceBid.setOnAction(e -> placeBid());
         btnBack.setOnAction(e -> {
             cleanup(); // Dọn dẹp tài nguyên trước khi thoát
-            com.bidhub.client.navigation.ViewRouter.getInstance()
-                    .navigateTo(com.bidhub.client.util.Views.AUCTION_LIST);
+            if (com.bidhub.client.network.ClientSession.getInstance().isLoggedIn()) {
+                com.bidhub.client.navigation.ViewRouter.getInstance()
+                        .navigateTo(com.bidhub.client.util.Views.AUCTION_LIST);
+            } else {
+                com.bidhub.client.navigation.ViewRouter.getInstance()
+                        .navigateTo(com.bidhub.client.util.Views.LOGIN);
+            }
         });
 
         // Setup bảng xếp hạng
@@ -384,6 +389,8 @@ public class AuctionDetailController implements ContextAware {
                 tfBidAmount.clear();
                 UiUtils.showInfo("Đặt giá thành công", "Đã đặt giá "
                         + String.format("%,.0f VND", bidAmount));
+                // 🎉 Hiệu ứng pháo hoa khi đặt giá thành công
+                Platform.runLater(this::launchFireworks);
             } else {
                 // 📌 [Tieu chi: UX — hien Alert khi bid that bai]
                 String errorMsg = response.getMessage();
@@ -613,4 +620,54 @@ public class AuctionDetailController implements ContextAware {
             }
         }
     }
-}
+
+    /**
+     * Hiệu ứng pháo hoa / confetti khi đặt giá thành công.
+     * Dùng nhiều Label emoji bay lên và mờ dần.
+     */
+    private void launchFireworks() {
+        javafx.scene.layout.Pane overlay = null;
+        try {
+            // Tìm root pane để đặt overlay
+            if (btnPlaceBid != null && btnPlaceBid.getScene() != null) {
+                javafx.scene.Parent root = btnPlaceBid.getScene().getRoot();
+                if (root instanceof javafx.scene.layout.Pane pane) {
+                    overlay = pane;
+                } else if (root instanceof javafx.scene.layout.BorderPane bp && bp.getCenter() instanceof javafx.scene.layout.Pane p) {
+                    overlay = p;
+                }
+            }
+        } catch (Exception ignored) {}
+        if (overlay == null) return;
+
+        final javafx.scene.layout.Pane finalOverlay = overlay;
+        String[] emojis = {"🎉", "🎊", "✨", "🏆", "🥇", "⭐", "💫", "🎯"};
+        java.util.Random rand = new java.util.Random();
+        double width = finalOverlay.getWidth() > 0 ? finalOverlay.getWidth() : 800;
+
+        for (int i = 0; i < 20; i++) {
+            final int idx = i;
+            javafx.scene.control.Label lbl = new javafx.scene.control.Label(emojis[rand.nextInt(emojis.length)]);
+            lbl.setStyle("-fx-font-size: " + (20 + rand.nextInt(20)) + "px;");
+            double x = rand.nextDouble() * width;
+            lbl.setLayoutX(x);
+            lbl.setLayoutY(finalOverlay.getHeight() > 0 ? finalOverlay.getHeight() - 50 : 500);
+            finalOverlay.getChildren().add(lbl);
+
+            javafx.animation.TranslateTransition tt = new javafx.animation.TranslateTransition(
+                    Duration.millis(1000 + rand.nextInt(800)), lbl);
+            tt.setByY(-(200 + rand.nextInt(200)));
+            tt.setByX((rand.nextDouble() - 0.5) * 200);
+
+            javafx.animation.FadeTransition ft = new javafx.animation.FadeTransition(
+                    Duration.millis(1000 + rand.nextInt(800)), lbl);
+            ft.setFromValue(1.0);
+            ft.setToValue(0.0);
+
+            javafx.animation.ParallelTransition pt = new javafx.animation.ParallelTransition(lbl, tt, ft);
+            pt.setDelay(Duration.millis(idx * 60));
+            pt.setOnFinished(e2 -> finalOverlay.getChildren().remove(lbl));
+            pt.play();
+        }
+    }
+}
