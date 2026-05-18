@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BidHub Real Image Parallax</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap" rel="stylesheet">
+</head>
+<body>
+    <!-- Navbar -->
+    <nav class="navbar">
+        <div class="logo">BidHub</div>
+        <div class="links">
+            <a href="#">Community</a>
+            <a href="#">About</a>
+            <a href="#">Support</a>
+            <a href="#">Contact</a>
+            <a href="#" class="btn-register">Register</a>
+        </div>
+    </nav>
+
+    <!-- Parallax Container -->
+    <main class="parallax-container">
+        
+        <!-- Layer 1: Sky (Furthest) -->
+        <div class="parallax-layer layer-back">
+            <div class="image-layer sky-bg"></div>
+            <!-- Birds (CSS animated) -->
+            <div class="bird bird-1"></div>
+            <div class="bird bird-2"></div>
+        </div>
+
+        <!-- Layer 2: Background Mountains -->
+        <div class="parallax-layer layer-mid-back">
+            <div class="image-layer mountain-bg"></div>
+        </div>
+
+        <!-- Layer 3: Giant Text (Moves slightly faster than background) -->
+        <div class="parallax-layer layer-text">
+            <h1 class="giant-text">VISITE</h1>
+            <p class="subtitle">Journey to new frontiers of digital auctions.</p>
+        </div>
+
+        <!-- Layer 4: Closest Foreground (Grass and Glass Card) -->
+        <div class="parallax-layer layer-front">
+            <div class="image-layer grass-fg"></div>
+            
+            <!-- Glassmorphism Bidding Card -->
+            <div class="glass-card">
+                <span class="card-tag">02 / Experience</span>
+                <h2>Tranquility Artwork</h2>
+                <p>Discover the ancient hamlet of Noto. Surprising and captivating in equal measure, this piece represents the pinnacle of digital art.</p>
+                <div class="bid-info">
+                    <span>Current Bid: <strong id="currentBid">$1,250</strong></span>
+                    <span>Time left: <strong>02:14:30</strong></span>
+                </div>
+                <button class="btn-bid" onclick="placeBid()">Place Bid (+ $50)</button>
+            </div>
+        </div>
+    </main>
+
+    <!-- Content section below parallax -->
+    <section class="content-section">
+        <div class="content-container">
+            <h2>Explore Biodiversity & Culture</h2>
+            <p>Keep scrolling to explore more exclusive items available on BidHub. Our platform combines real-time bidding technology with immersive visual storytelling.</p>
+            <div class="item-grid">
+                <div class="grid-item"></div>
+                <div class="grid-item"></div>
+                <div class="grid-item"></div>
+            </div>
+        </div>
+    </section>
+
+    <script src="script.js"></script>
+</body>
+</html>

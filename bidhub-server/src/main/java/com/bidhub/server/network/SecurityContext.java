@@ -16,6 +16,8 @@ import java.util.Optional;
  */
 public final class SecurityContext {
 
+    private static final UserDao USER_DAO = new UserDao();
+
     private SecurityContext() {}
 
     /**
@@ -45,15 +47,15 @@ public final class SecurityContext {
     public static String requireRole(Session session, UserRole required) {
         String userId = requireAuthenticated(session);
 
-        UserDao userDao = new UserDao();
-        Optional<User> userOpt = userDao.findById(userId);
-
-        if (userOpt.isEmpty()) {
-            throw new AuthenticationException("Nguoi dung khong ton tai.");
+        if (session.getUserRole() == null) {
+            Optional<User> userOpt = USER_DAO.findById(userId);
+            if (userOpt.isEmpty()) {
+                throw new AuthenticationException("Nguoi dung khong ton tai.");
+            }
+            session.setUserRole(userOpt.get().getRole());
         }
 
-        User user = userOpt.get();
-        if (user.getRole() != required) {
+        if (session.getUserRole() != required) {
             throw new AuthenticationException(
                     "Khong du quyen. Yeu cau role: " + required.getDisplayName());
         }

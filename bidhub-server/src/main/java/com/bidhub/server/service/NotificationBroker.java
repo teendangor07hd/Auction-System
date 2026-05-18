@@ -7,6 +7,8 @@ import com.bidhub.server.network.Session;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Singleton Observer Pattern — quan ly subscribe/publish event realtime cho auction.
@@ -20,6 +22,8 @@ import java.util.concurrent.CopyOnWriteArrayList;
  * // 📌 [Tieu chi: Realtime update — push event qua socket]
  */
 public final class NotificationBroker {
+
+    private static final Logger logger = LoggerFactory.getLogger(NotificationBroker.class);
 
     private static volatile NotificationBroker instance;
 
@@ -58,13 +62,13 @@ public final class NotificationBroker {
         if (auctionId == null || session == null) {
             return;
         }
-        subscribers.computeIfAbsent(auctionId, k -> new CopyOnWriteArrayList<>());
-        CopyOnWriteArrayList<Session> list = subscribers.get(auctionId);
-        if (list != null && !list.contains(session)) {
+        // 📌 [Tieu chi: Ky thuat quan trong — computeIfAbsent atomic, tranh TOCTOU race]
+        CopyOnWriteArrayList<Session> list = subscribers.computeIfAbsent(
+                auctionId, k -> new CopyOnWriteArrayList<>());
+        if (!list.contains(session)) {
             list.add(session);
         }
-        System.out.println("[NotificationBroker] Session subscribe auction: " + auctionId
-                + " (total: " + (list != null ? list.size() : 0) + ")");
+        logger.debug("Session subscribe auction: {} (total: {})", auctionId, list.size());
     }
 
     /**
@@ -82,6 +86,10 @@ public final class NotificationBroker {
         CopyOnWriteArrayList<Session> list = subscribers.get(auctionId);
         if (list != null) {
             list.remove(session);
+            // 📌 [Tieu chi: Ky thuat quan trong — xoa key khi list rong de tranh memory leak]
+            if (list.isEmpty()) {
+                subscribers.remove(auctionId, list);
+            }
         }
     }
 
@@ -97,7 +105,7 @@ public final class NotificationBroker {
         for (CopyOnWriteArrayList<Session> list : subscribers.values()) {
             list.remove(session);
         }
-        System.out.println("[NotificationBroker] UnsubscribeAll session completed.");
+        logger.debug("UnsubscribeAll session completed.");
     }
 
     /**
@@ -125,18 +133,28 @@ public final class NotificationBroker {
         try {
             eventJson = MessageMapper.toJson(event);
         } catch (Exception e) {
-            System.err.println("[NotificationBroker] Serialize event loi: " + e.getMessage());
+            logger.error("Serialize event loi: {}", e.getMessage(), e);
             return;
         }
 
+        // 📌 [Tieu chi: Ky thuat quan trong — thu thap session loi, xoa sau vong lap
+        //    tranh O(n²) khi xoa truc tiep tu CopyOnWriteArrayList trong vong lap]
+        java.util.List<Session> failedSessions = new java.util.ArrayList<>();
         for (Session session : list) {
             try {
                 session.sendMessage(eventJson);
             } catch (Exception e) {
                 // 📌 [Tieu chi: Xu ly loi — 1 session loi khong block cac session khac]
-                System.err.println("[NotificationBroker] Gui event loi cho session: "
-                        + e.getMessage());
-                list.remove(session);
+                logger.error("Gui event loi cho session: {}", e.getMessage(), e);
+                failedSessions.add(session);
+            }
+        }
+        // Xoa batch session da mat ket noi — chi ghi 1 lan vao CopyOnWriteArrayList
+        if (!failedSessions.isEmpty()) {
+            list.removeAll(failedSessions);
+            // Xoa key neu khong con subscriber nao
+            if (list.isEmpty()) {
+                subscribers.remove(auctionId, list);
             }
         }
     }

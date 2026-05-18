@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<?import javafx.geometry.Insets?>
+
+<VBox xmlns:fx="http://javafx.com/fxml/1"
+      fx:controller="com.bidhub.client.controller.ItemCatalogController"
+      stylesheets="@/css/styles.css"
+      styleClass="root"
+      spacing="0">
+
+    <!-- Header -->
+    <HBox alignment="CENTER_LEFT" spacing="15" style="-fx-padding: 16 20; -fx-background-color: #161B22; -fx-border-color: rgba(255,255,255,0.06); -fx-border-width: 0 0 1 0;">
+        <Label text="📦" style="-fx-font-size: 22px;"/>
+        <VBox spacing="2">
+            <Label text="Kho Sản Phẩm" style="-fx-text-fill: white; -fx-font-size: 20px; -fx-font-weight: 900;"/>
+            <Label text="Tất cả sản phẩm trên sàn BidHub — đã và chưa đấu giá" style="-fx-text-fill: #64748B; -fx-font-size: 12px;"/>
+        </VBox>
+        <Region HBox.hgrow="ALWAYS"/>
+        <ProgressIndicator fx:id="loadingSpinner" visible="false" prefWidth="24" prefHeight="24"/>
+        <Button fx:id="btnRefresh" text="⟳ Làm mới" onAction="#handleRefresh"
+                style="-fx-background-color: #2B3139; -fx-text-fill: #E2E8F0; -fx-background-radius: 8; -fx-cursor: hand; -fx-padding: 8 16; -fx-border-color: #475569; -fx-border-radius: 8;"/>
+    </HBox>
+
+    <!-- Bộ lọc -->
+    <VBox spacing="12" style="-fx-padding: 14 20; -fx-background-color: #1A1F2E; -fx-border-color: rgba(255,255,255,0.05); -fx-border-width: 0 0 1 0;">
+        <!-- Hàng 1: Tìm kiếm + Loại sản phẩm -->
+        <HBox spacing="12" alignment="CENTER_LEFT">
+            <!-- Tìm kiếm theo tên -->
+            <StackPane HBox.hgrow="ALWAYS">
+                <TextField fx:id="tfSearch" promptText="🔍  Tìm theo tên sản phẩm, người bán..."
+                           style="-fx-background-color: #2B3139; -fx-border-color: #475569; -fx-border-radius: 8; -fx-background-radius: 8; -fx-text-fill: white; -fx-padding: 10 15; -fx-prompt-text-fill: #64748B;"/>
+            </StackPane>
+
+            <!-- Loại sản phẩm -->
+            <Label text="Loại:" style="-fx-text-fill: #B7BDC6; -fx-font-size: 13px;"/>
+            <ComboBox fx:id="cmbType" promptText="Tất cả loại" prefWidth="150"
+                      style="-fx-background-color: #2B3139; -fx-border-color: #475569; -fx-border-radius: 8; -fx-background-radius: 8;"/>
+
+            <!-- Người bán -->
+            <Label text="Người bán:" style="-fx-text-fill: #B7BDC6; -fx-font-size: 13px;"/>
+            <TextField fx:id="tfSeller" promptText="Tên người bán..." prefWidth="150"
+                       style="-fx-background-color: #2B3139; -fx-border-color: #475569; -fx-border-radius: 8; -fx-background-radius: 8; -fx-text-fill: white; -fx-padding: 8 12; -fx-prompt-text-fill: #64748B;"/>
+        </HBox>
+
+        <!-- Hàng 2: Trạng thái + Giá -->
+        <HBox spacing="12" alignment="CENTER_LEFT">
+            <Label text="Trạng thái:" style="-fx-text-fill: #B7BDC6; -fx-font-size: 12px;"/>
+            <ToggleButton fx:id="btnFilterAll" text="Tất cả" onAction="#handleFilterAll" selected="true"
+                          style="-fx-background-color: #4F46E5; -fx-text-fill: white; -fx-background-radius: 20; -fx-cursor: hand; -fx-padding: 5 16; -fx-font-size: 12px;"/>
+            <ToggleButton fx:id="btnFilterAvailable" text="🆕 Chưa đấu giá" onAction="#handleFilterAvailable"
+                          style="-fx-background-color: #2B3139; -fx-text-fill: #B7BDC6; -fx-background-radius: 20; -fx-cursor: hand; -fx-padding: 5 16; -fx-font-size: 12px;"/>
+            <ToggleButton fx:id="btnFilterAuctioning" text="🔥 Đang đấu giá" onAction="#handleFilterAuctioning"
+                          style="-fx-background-color: #2B3139; -fx-text-fill: #B7BDC6; -fx-background-radius: 20; -fx-cursor: hand; -fx-padding: 5 16; -fx-font-size: 12px;"/>
+            <ToggleButton fx:id="btnFilterSold" text="✅ Đã bán" onAction="#handleFilterSold"
+                          style="-fx-background-color: #2B3139; -fx-text-fill: #B7BDC6; -fx-background-radius: 20; -fx-cursor: hand; -fx-padding: 5 16; -fx-font-size: 12px;"/>
+
+            <Region HBox.hgrow="ALWAYS"/>
+
+            <!-- Giá khởi điểm dự kiến -->
+            <Label text="Giá (đ):" style="-fx-text-fill: #B7BDC6; -fx-font-size: 12px;"/>
+            <TextField fx:id="tfPriceMin" promptText="Từ..." prefWidth="90"
+                       style="-fx-background-color: #2B3139; -fx-border-color: #475569; -fx-border-radius: 8; -fx-background-radius: 8; -fx-text-fill: white; -fx-padding: 6 10; -fx-prompt-text-fill: #64748B;"/>
+            <Label text="—" style="-fx-text-fill: #475569;"/>
+            <TextField fx:id="tfPriceMax" promptText="Đến..." prefWidth="90"
+                       style="-fx-background-color: #2B3139; -fx-border-color: #475569; -fx-border-radius: 8; -fx-background-radius: 8; -fx-text-fill: white; -fx-padding: 6 10; -fx-prompt-text-fill: #64748B;"/>
+            <Button text="Lọc" onAction="#handleApplyFilter"
+                    style="-fx-background-color: #4F46E5; -fx-text-fill: white; -fx-background-radius: 8; -fx-cursor: hand; -fx-padding: 7 18; -fx-font-weight: bold;"/>
+            <Button text="Xóa lọc" onAction="#handleClearFilter"
+                    style="-fx-background-color: #2B3139; -fx-text-fill: #B7BDC6; -fx-background-radius: 8; -fx-cursor: hand; -fx-padding: 7 14;"/>
+        </HBox>
+
+        <!-- Kết quả đếm -->
+        <Label fx:id="lblResultCount" text="" style="-fx-text-fill: #64748B; -fx-font-size: 12px;"/>
+    </VBox>
+
+    <!-- Danh sách sản phẩm -->
+    <ScrollPane fitToWidth="true" VBox.vgrow="ALWAYS"
+                style="-fx-background-color: #0B0E11; -fx-background: #0B0E11;">
+        <FlowPane fx:id="itemContainer" hgap="20" vgap="20" alignment="TOP_CENTER"
+                  style="-fx-padding: 20; -fx-background-color: #0B0E11;"/>
+    </ScrollPane>
+
+</VBox>

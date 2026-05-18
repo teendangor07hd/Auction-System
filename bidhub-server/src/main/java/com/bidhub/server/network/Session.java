@@ -13,10 +13,13 @@ import java.util.UUID;
  */
 public final class Session {
 
+    private static final org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(Session.class);
+
     private final String sessionId;
     private final Socket socket;
     private final PrintWriter out;
-    private String authenticatedUserId;
+    private volatile String authenticatedUserId;
+    private volatile com.bidhub.server.model.UserRole userRole;
 
     /**
      * Tạo Session từ socket của ServerSocket.accept().
@@ -43,8 +46,15 @@ public final class Session {
     /** Đóng socket và dọn dẹp. Gọi từ finally của ClientConnectionThread. */
     public void disconnect() {
         try {
-            socket.close();
-        } catch (IOException ignored) {}
+            if (out != null) {
+                out.close();
+            }
+            if (socket != null && !socket.isClosed()) {
+                socket.close();
+            }
+        } catch (IOException e) {
+            logger.debug("Loi khi dong ket noi Session {}: {}", sessionId, e.getMessage());
+        }
     }
 
     public boolean isAuthenticated() {
@@ -61,6 +71,14 @@ public final class Session {
 
     public void setAuthenticatedUserId(String userId) {
         this.authenticatedUserId = userId;
+    }
+
+    public com.bidhub.server.model.UserRole getUserRole() {
+        return userRole;
+    }
+
+    public void setUserRole(com.bidhub.server.model.UserRole role) {
+        this.userRole = role;
     }
 
     public Socket getSocket() {

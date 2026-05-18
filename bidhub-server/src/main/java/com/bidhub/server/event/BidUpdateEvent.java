@@ -12,6 +12,7 @@ public final class BidUpdateEvent {
 
     private final String auctionId;
     private final String bidderId;
+    private final String bidderName;
     private final double bidAmount;
     private final LocalDateTime timestamp;
 
@@ -20,11 +21,13 @@ public final class BidUpdateEvent {
      *
      * @param auctionId id cua auction
      * @param bidderId  id cua nguoi dat gia
+     * @param bidderName ten cua nguoi dat gia
      * @param bidAmount so tien dat
      */
-    public BidUpdateEvent(String auctionId, String bidderId, double bidAmount) {
+    public BidUpdateEvent(String auctionId, String bidderId, String bidderName, double bidAmount) {
         this.auctionId = auctionId;
         this.bidderId = bidderId;
+        this.bidderName = bidderName;
         this.bidAmount = bidAmount;
         this.timestamp = LocalDateTime.now();
     }
@@ -34,6 +37,9 @@ public final class BidUpdateEvent {
 
     /** @return id nguoi dat gia */
     public String getBidderId() { return bidderId; }
+
+    /** @return ten nguoi dat gia */
+    public String getBidderName() { return bidderName; }
 
     /** @return so tien dat */
     public double getBidAmount() { return bidAmount; }

@@ -21,7 +21,7 @@ DELETE FROM users;
 INSERT INTO users (id, username, password_hash, email, role, extra_int, is_locked, created_at, updated_at)
 VALUES
 -- Mật khẩu: Admin@123
-('u-adm-01', 'admin01', 'e86f78a8a3caf0b60d8e74e5942aa6d86dc150cd3c03338aef25b7d2d7e3acc7', 'admin@bidhub.com', 'ADMIN', 10, 0, '2026-05-15T00:00:00', '2026-05-15T00:00:00'),
+('u-adm-01', 'admin01', 'e86f78a8a3caf0b60d8e74e5942aa6d86dc150cd3c03338aef25b7d2d7e3acc7', 'admin@bidhub.com', 'ADMIN', 1, 0, '2026-05-15T00:00:00', '2026-05-15T00:00:00'),
 
 -- Mật khẩu: Seller@123
 ('u-sel-01', 'seller01', 'bd28c94800c2be055b3329f8dd63a3d5a4137c0def2517bf4fce85eb11e62853', 'seller@bidhub.com', 'SELLER', 5, 0, '2026-05-15T00:00:00', '2026-05-15T00:00:00'),
@@ -63,8 +63,8 @@ INSERT INTO auctions (id, item_id, start_time, end_time, starting_price, current
 VALUES
     (
         'auc-001', 'i-mcbook-01', '2026-05-15T00:00:00', '2026-05-15T02:00:00',
-        60000000.0, 61500000.0, 'u-bid-02', 'RUNNING', 500000.0,
-        '2026-05-15T00:00:00', '2026-05-15T00:15:00'
+        60000000.0, 65000000.0, 'u-bid-01', 'RUNNING', 500000.0,
+        '2026-05-15T00:00:00', '2026-05-15T00:40:00'
     );
 
 -- =============================================================================
@@ -75,7 +75,12 @@ VALUES
 INSERT INTO bid_transactions (id, auction_id, bidder_id, bid_amount, bid_time)
 VALUES
     ('bid-tx-01', 'auc-001', 'u-bid-01', 60500000.0, '2026-05-15T00:10:00'),
-    ('bid-tx-02', 'auc-001', 'u-bid-02', 61500000.0, '2026-05-15T00:15:00');
+    ('bid-tx-02', 'auc-001', 'u-bid-02', 61500000.0, '2026-05-15T00:15:00'),
+    ('bid-tx-03', 'auc-001', 'u-bid-01', 62000000.0, '2026-05-15T00:20:00'),
+    ('bid-tx-04', 'auc-001', 'u-bid-02', 63000000.0, '2026-05-15T00:25:00'),
+    ('bid-tx-05', 'auc-001', 'u-bid-01', 63500000.0, '2026-05-15T00:30:00'),
+    ('bid-tx-06', 'auc-001', 'u-bid-02', 64500000.0, '2026-05-15T00:35:00'),
+    ('bid-tx-07', 'auc-001', 'u-bid-01', 65000000.0, '2026-05-15T00:40:00');
 
 -- =============================================================================
 -- 5. AUDIT LOGS (5 columns per AuditLogDao.save)
@@ -85,7 +90,12 @@ VALUES
 INSERT INTO audit_logs (id, user_id, action, details, created_at)
 VALUES
     ('log-01', 'u-adm-01', 'LOGIN', 'Admin login successful from 127.0.0.1', '2026-05-15T00:00:01'),
-    ('log-02', 'u-bid-02', 'PLACE_BID', 'Placed bid 61,500,000 on auction auc-001', '2026-05-15T00:15:00');
+    ('log-02', 'u-bid-02', 'PLACE_BID', 'Placed bid 61,500,000 on auction auc-001', '2026-05-15T00:15:00'),
+    ('log-03', 'u-bid-01', 'PLACE_BID', 'Placed bid 62,000,000 on auction auc-001', '2026-05-15T00:20:00'),
+    ('log-04', 'u-bid-02', 'PLACE_BID', 'Placed bid 63,000,000 on auction auc-001', '2026-05-15T00:25:00'),
+    ('log-05', 'u-bid-01', 'PLACE_BID', 'Placed bid 63,500,000 on auction auc-001', '2026-05-15T00:30:00'),
+    ('log-06', 'u-bid-02', 'PLACE_BID', 'Placed bid 64,500,000 on auction auc-001', '2026-05-15T00:35:00'),
+    ('log-07', 'u-bid-01', 'PLACE_BID', 'Placed bid 65,000,000 on auction auc-001', '2026-05-15T00:40:00');
 
 -- =============================================================================
 -- End of Script

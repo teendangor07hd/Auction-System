@@ -11,7 +11,10 @@ package com.bidhub.client.util;
  */
 public final class Views {
 
-    /** Màn hình đăng nhập — màn hình đầu tiên khi mở app */
+    /** Màn hình giới thiệu — màn hình đầu tiên khi mở app */
+    public static final String HOME = "HomeView";
+
+    /** Màn hình đăng nhập */
     public static final String LOGIN = "LoginView";
 
     /** Danh sách tất cả phiên đấu giá đang mở */
@@ -31,6 +34,15 @@ public final class Views {
 
     /** Admin panel — quản lý người dùng (ADMIN only) */
     public static final String ADMIN_VIEW = "AdminView";
+
+    /** Trang thông báo — xem thông báo hệ thống */
+    public static final String NOTIFICATION_VIEW = "NotificationView";
+
+    /** Kho sản phẩm — xem tất cả sản phẩm đang/chưa đấu giá */
+    public static final String ITEM_CATALOG = "ItemCatalogView";
+
+    /** Trang quản lý của người bán — xem/sửa/xóa sản phẩm và phiên của mình */
+    public static final String SELLER_DASHBOARD = "SellerDashboardView";
 
     /** Ngăn khởi tạo class này */
     private Views() {}

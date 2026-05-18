@@ -6,12 +6,16 @@ import java.nio.charset.StandardCharsets;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.sql.Statement;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Đọc {@code schema.sql} từ classpath và thực thi khi server khởi động.
  * Dùng {@code CREATE TABLE IF NOT EXISTS} nên an toàn khi gọi nhiều lần.
  */
 public final class MigrationRunner {
+
+    private static final Logger logger = LoggerFactory.getLogger(MigrationRunner.class);
 
     private MigrationRunner() {}
 
@@ -26,7 +30,7 @@ public final class MigrationRunner {
         try {
             conn = DbConnectionProvider.getInstance().getConnection();
             try (Statement stmt = conn.createStatement()) {
-                for (String statement : sql.split(";")) {
+                for (String statement : sql.split(";\n|;\r\n")) {
                     String trimmed = statement.trim();
                     if (!trimmed.isEmpty()) {
                         stmt.execute(trimmed);
@@ -36,17 +40,16 @@ public final class MigrationRunner {
             // 📌 [Tieu chi: Quan ly nguoi dung — migration is_locked cho DB cu]
             // Migration: them cot is_locked vao bang users (cho DB da tao tu Tuan 3)
             String alterTableSql =
-                    "ALTER TABLE users ADD COLUMN IF NOT EXISTS is_locked "
+                    "ALTER TABLE users ADD COLUMN is_locked "
                             + "INTEGER NOT NULL DEFAULT 0";
             try (Statement stmt = conn.createStatement()) {
                 stmt.execute(alterTableSql);
-                System.out.println("[MigrationRunner] Cot is_locked da san sang.");
+                logger.info("Cot is_locked da san sang.");
             } catch (SQLException e) {
                 // Cot da ton tai hoac loi khac — khong block server startup
-                System.err.println("[MigrationRunner] Canh bao migration is_locked: "
-                        + e.getMessage());
+                logger.warn("Canh bao migration is_locked: {}", e.getMessage());
             }
-            System.out.println("[MigrationRunner] Schema đã sẵn sàng.");
+            logger.info("Schema da san sang.");
         } catch (SQLException e) {
             throw new RuntimeException("Migration thất bại: " + e.getMessage(), e);
         } finally {

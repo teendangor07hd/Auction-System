@@ -1,7 +1,5 @@
 package com.bidhub.client.controller;
 
-import com.bidhub.client.navigation.Navigable;
-import com.bidhub.client.network.ClientSession;
 import com.bidhub.client.network.NetworkTask;
 import com.bidhub.client.network.ServerGateway;
 import com.bidhub.client.navigation.ViewRouter;
@@ -13,310 +11,293 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import javafx.application.Platform;
 import javafx.collections.FXCollections;
-import javafx.collections.ObservableList;
 import javafx.fxml.FXML;
+import javafx.geometry.Insets;
+import javafx.geometry.Pos;
 import javafx.scene.control.*;
-import javafx.scene.input.MouseButton;
-import javafx.scene.layout.GridPane;
-import javafx.scene.layout.Priority;
+import javafx.scene.image.Image;
+import javafx.scene.image.ImageView;
+import javafx.scene.layout.*;
+import javafx.scene.shape.Rectangle;
+import javafx.animation.Timeline;
+import javafx.animation.KeyFrame;
+import javafx.util.Duration;
 
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-/**
- * Controller danh sách phiên đấu giá — hiển thị lưới dữ liệu và Sidebar Menu.
- * Đồng bộ với màn hình AuctionListView.fxml.
- *
- * <p>// 📌 [B17] Implement {@link Navigable} → onNavigateAway() dừng tất cả timelines.
- * // 📌 [B18] Price filter dùng currentHighestBid nhất quán (trước dùng startingPrice).
- * // 📌 [B19] Lỗi parse price được xử lý rõ ràng thay vì silent exception.
- */
-public class AuctionListController implements Navigable {
+public class AuctionListController {
 
-    // ========================================================================
-    // CONSTANTS (Nguyên tắc tránh Magic Strings)
-    // ========================================================================
-    private static final String CMD_LOGOUT = "LOGOUT";
-    private static final String CMD_GET_AUCTION_LIST = "GET_AUCTION_LIST";
-    private static final String ROLE_ADMIN = "ADMIN";
-    private static final String STATUS_OK = "OK";
-
-    // ========================================================================
-    // FXML INJECTIONS
-    // ========================================================================
-    @FXML private TableView<JsonNode> auctionTable;
-    @FXML private TableColumn<JsonNode, String> colItemName;
-    @FXML private TableColumn<JsonNode, String> colPrice;
-    @FXML private TableColumn<JsonNode, String> colEndTime;
-    @FXML private TableColumn<JsonNode, String> colStatus;
-
-    // Sidebar & Navigation Buttons
-    @FXML private Button btnCreateAuction;
-    @FXML private Button btnCreateItem;
-    @FXML private Button btnAccount;
-    @FXML private Button btnLogout;
-    @FXML private Button adminBtn; // Nút dành riêng cho Admin
-
-    // UX Components
+    // --- FXML ---
+    @FXML private FlowPane cardContainer;
+    @FXML private ScrollPane scrollPane;
     @FXML private Button btnRefresh;
     @FXML private ProgressIndicator loadingSpinner;
     @FXML private Label lblEmptyMessage;
 
-    // ========================================================================
-    // INTERNAL STATE
-    // ========================================================================
+    // Bộ lọc
+    @FXML private TextField tfAucSearch;
+    @FXML private ComboBox<String> cmbAucType;
+    @FXML private TextField tfAucSeller;
+    @FXML private ToggleButton btnAucAll;
+    @FXML private ToggleButton btnAucRunning;
+    @FXML private ToggleButton btnAucPending;
+    @FXML private ToggleButton btnAucClosed;
+    @FXML private TextField tfAucPriceMin;
+    @FXML private TextField tfAucPriceMax;
+    @FXML private Label lblAucResultCount;
+
     private final ObjectMapper mapper = new ObjectMapper();
-    private final ObservableList<JsonNode> auctionData = FXCollections.observableArrayList();
+    private final List<JsonNode> allAuctions = new ArrayList<>();
+    private final List<Timeline> activeTimelines = new ArrayList<>();
+    private String currentStatusFilter = "ALL";
 
-    // [B17] Tập hợp tất cả timelines đang chạy — dừng hết khi navigate away
-    private final List<javafx.animation.Timeline> activeTimelines = new ArrayList<>();
-
-    /**
-     * Vòng đời JavaFX: Khởi tạo dữ liệu và sự kiện ngay sau khi load xong UI.
-     */
     @FXML
     public void initialize() {
-        setupTableColumns();
-        setupTableDoubleClickHandler();
-        setupNavigationAndSecurity();
-        setupActionHandlers();
+        if (cmbAucType != null) {
+            cmbAucType.setItems(FXCollections.observableArrayList("Tất cả", "ELECTRONICS", "ART", "VEHICLE"));
+            cmbAucType.getSelectionModel().selectFirst();
+        }
 
-        // Tải dữ liệu lần đầu tiên khi mở màn hình
+        if (btnRefresh != null) btnRefresh.setOnAction(e -> loadAuctionList());
+
+        // Live search
+        if (tfAucSearch != null) tfAucSearch.textProperty().addListener((o, a, b) -> applyFilters());
+        if (tfAucSeller != null) tfAucSeller.textProperty().addListener((o, a, b) -> applyFilters());
+
         loadAuctionList();
     }
 
-    /**
-     * [B17] Lifecycle hook — gọi bởi ViewRouter trước khi navigate sang màn hình khác.
-     * Dừng tất cả timelines để tránh resource leak.
-     */
-    @Override
-    public void onNavigateAway() {
-        stopAllTimelines();
+    // === Bộ lọc trạng thái ===
+    @FXML public void handleAucFilterAll()     { currentStatusFilter = "ALL";     updateStatusBtns(); applyFilters(); }
+    @FXML public void handleAucFilterRunning() { currentStatusFilter = "RUNNING"; updateStatusBtns(); applyFilters(); }
+    @FXML public void handleAucFilterPending() { currentStatusFilter = "PENDING"; updateStatusBtns(); applyFilters(); }
+    @FXML public void handleAucFilterClosed()  { currentStatusFilter = "CLOSED";  updateStatusBtns(); applyFilters(); }
+    @FXML public void handleAucApplyFilter()   { applyFilters(); }
+    @FXML public void handleAucClearFilter() {
+        if (tfAucSearch != null) tfAucSearch.clear();
+        if (tfAucSeller != null) tfAucSeller.clear();
+        if (tfAucPriceMin != null) tfAucPriceMin.clear();
+        if (tfAucPriceMax != null) tfAucPriceMax.clear();
+        if (cmbAucType != null) cmbAucType.getSelectionModel().selectFirst();
+        currentStatusFilter = "ALL";
+        updateStatusBtns();
+        applyFilters();
     }
 
-    /**
-     * [B17] Dừng tất cả timelines đang chạy và xóa danh sách.
-     */
-    private void stopAllTimelines() {
-        for (javafx.animation.Timeline tl : activeTimelines) {
-            tl.stop();
-        }
-        activeTimelines.clear();
+    private void updateStatusBtns() {
+        String active   = "-fx-background-color: #4F46E5; -fx-text-fill: white; -fx-background-radius: 20; -fx-cursor: hand; -fx-padding: 5 14; -fx-font-size: 12px;";
+        String inactive = "-fx-background-color: #2B3139; -fx-text-fill: #B7BDC6; -fx-background-radius: 20; -fx-cursor: hand; -fx-padding: 5 14; -fx-font-size: 12px;";
+        if (btnAucAll     != null) btnAucAll.setStyle("ALL".equals(currentStatusFilter)     ? active : inactive);
+        if (btnAucRunning != null) btnAucRunning.setStyle("RUNNING".equals(currentStatusFilter) ? active : inactive);
+        if (btnAucPending != null) btnAucPending.setStyle("PENDING".equals(currentStatusFilter) ? active : inactive);
+        if (btnAucClosed  != null) btnAucClosed.setStyle("CLOSED".equals(currentStatusFilter)  ? active : inactive);
     }
 
-    /**
-     * Ràng buộc (Bind) dữ liệu từ JsonNode vào các cột của TableView.
-     *
-     * <p>// 📌 [B18] colPrice dùng currentHighestBid — nhất quán với logic hiển thị.
-     */
-    private void setupTableColumns() {
-        colItemName.setCellValueFactory(cellData -> {
-            JsonNode node = cellData.getValue();
-            String name = node.has("itemName") ? node.get("itemName").asText("") : node.path("id").asText("");
-            return new javafx.beans.property.SimpleStringProperty(name);
-        });
+    private void applyFilters() {
+        String search = tfAucSearch != null ? tfAucSearch.getText().toLowerCase().trim() : "";
+        String seller = tfAucSeller != null ? tfAucSeller.getText().toLowerCase().trim() : "";
+        String type   = (cmbAucType != null && !"Tất cả".equals(cmbAucType.getValue())) ? cmbAucType.getValue() : null;
 
-        // [B18] Dùng currentHighestBid để hiển thị và filter — nhất quán
-        colPrice.setCellValueFactory(cellData -> {
-            double price = cellData.getValue().path("currentHighestBid").asDouble(0);
-            return new javafx.beans.property.SimpleStringProperty(UiUtils.formatCurrency(price));
-        });
+        double priceMin = 0, priceMax = Double.MAX_VALUE;
+        try { if (tfAucPriceMin != null && !tfAucPriceMin.getText().isBlank()) priceMin = Double.parseDouble(tfAucPriceMin.getText().replace(",", "")); } catch (Exception ignored) {}
+        try { if (tfAucPriceMax != null && !tfAucPriceMax.getText().isBlank()) priceMax = Double.parseDouble(tfAucPriceMax.getText().replace(",", "")); } catch (Exception ignored) {}
 
-        colEndTime.setCellValueFactory(cellData ->
-                new javafx.beans.property.SimpleStringProperty(
-                        cellData.getValue().path("endTime").asText("")));
+        final double fMin = priceMin, fMax = priceMax;
 
-        colStatus.setCellValueFactory(cellData ->
-                new javafx.beans.property.SimpleStringProperty(
-                        cellData.getValue().path("status").asText("")));
+        List<JsonNode> filtered = new ArrayList<>();
+        for (JsonNode node : allAuctions) {
+            String name   = node.path("itemName").asText("").toLowerCase();
+            String sname  = node.path("sellerName").asText("").toLowerCase();
+            if (!search.isEmpty() && !name.contains(search) && !sname.contains(search)) continue;
+            if (!seller.isEmpty() && !sname.contains(seller)) continue;
+            if (type != null && !type.equals(node.path("itemType").asText(""))) continue;
 
-        auctionTable.setItems(auctionData);
-    }
+            double price = node.path("startingPrice").asDouble(0);
+            if (price < fMin || price > fMax) continue;
 
-    /**
-     * Bắt sự kiện nhấp đúp (Double-click) vào một dòng trên bảng để xem chi tiết.
-     */
-    private void setupTableDoubleClickHandler() {
-        auctionTable.setRowFactory(tv -> {
-            TableRow<JsonNode> row = new TableRow<>();
-            row.setOnMouseClicked(event -> {
-                if (event.getClickCount() == 2 && !row.isEmpty() && event.getButton() == MouseButton.PRIMARY) {
-                    JsonNode selected = row.getItem();
-                    String auctionId = selected.path("id").asText("");
+            String status = node.path("status").asText("PENDING");
+            if (!"ALL".equals(currentStatusFilter) && !currentStatusFilter.equals(status)) continue;
 
-                    if (!auctionId.isEmpty()) {
-                        Map<String, Object> params = new HashMap<>();
-                        params.put("auctionId", auctionId);
-                        ViewRouter.getInstance().navigateTo(Views.AUCTION_DETAIL, params);
-                    }
-                }
-            });
-            return row;
-        });
-    }
-
-    /**
-     * Xử lý hiển thị các nút điều hướng dựa trên phân quyền (Role-based UI).
-     *
-     * <p>// 📌 [B4] getCurrentRole() giờ trả "" thay vì null → không cần String.valueOf().
-     */
-    private void setupNavigationAndSecurity() {
-        btnCreateAuction.setOnAction(e -> ViewRouter.getInstance().navigateTo(Views.CREATE_AUCTION));
-        btnCreateItem.setOnAction(e -> ViewRouter.getInstance().navigateTo(Views.CREATE_ITEM));
-
-        // Security Check: Hiển thị nút Admin Panel nếu user hiện tại là ADMIN
-        String currentRole = ClientSession.getInstance().getCurrentRole(); // "" thay vì null
-        boolean isAdmin = ROLE_ADMIN.equals(currentRole);
-
-        if (adminBtn != null) {
-            adminBtn.setVisible(isAdmin);
-            adminBtn.setManaged(isAdmin);
-        }
-    }
-
-    /**
-     * Cài đặt logic cho các nút hành động (Refresh, Account, Logout).
-     */
-    private void setupActionHandlers() {
-        if (btnRefresh != null) {
-            btnRefresh.setOnAction(e -> loadAuctionList());
+            filtered.add(node);
         }
 
-        btnAccount.setOnAction(e -> showAccountPopup());
-        btnLogout.setOnAction(e -> handleLogout());
+        populateCards(filtered);
+        if (lblAucResultCount != null) lblAucResultCount.setText("Tìm thấy " + filtered.size() + " phiên đấu giá");
     }
 
-    /**
-     * Luồng xử lý sự kiện bấm nút Admin Panel (chỉ ADMIN mới thấy nút này).
-     */
-    @FXML
-    public void handleAdminPanel() {
-        ViewRouter.getInstance().navigateTo(Views.ADMIN_VIEW);
-    }
-
-    /**
-     * Gọi API đăng xuất và xóa cache Session hiện tại.
-     */
-    private void handleLogout() {
-        NetworkTask<MessageResponse> task = new NetworkTask<>(() -> {
-            MessageRequest req = new MessageRequest();
-            req.setType(CMD_LOGOUT);
-            req.setToken(ClientSession.getInstance().getToken());
-            return ServerGateway.getInstance().sendRequest(req);
-        });
-
-        // Bất kể server trả về thành công hay thất bại, client vẫn phải clear session và văng ra màn Login
-        Runnable forceLogout = () -> {
-            ClientSession.getInstance().logout();
-            ViewRouter.getInstance().navigateTo(Views.LOGIN);
-        };
-
-        task.setOnSucceeded(ev -> forceLogout.run());
-        task.setOnFailed(ev -> forceLogout.run());
-        new Thread(task, "logout-thread").start();
-    }
-
-    /**
-     * Hiển thị popup thông tin tài khoản (Username, Role).
-     */
-    private void showAccountPopup() {
-        ClientSession session = ClientSession.getInstance();
-        String username = session.getCurrentUsername(); // "" nếu null (B4)
-        String role = session.getCurrentRole();         // "" nếu null (B4)
-
-        if (username.isEmpty()) {
-            username = "Chưa đăng nhập";
-        }
-
-        Alert alert = new Alert(Alert.AlertType.INFORMATION);
-        alert.setTitle("Thông tin tài khoản");
-        alert.setHeaderText(null);
-
-        GridPane grid = new GridPane();
-        grid.setHgap(10);
-        grid.setVgap(10);
-        grid.setMaxWidth(Double.MAX_VALUE);
-
-        Label lblUsernameTitle = new Label("Tên đăng nhập:");
-        Label lblUsernameValue = new Label(username);
-        lblUsernameValue.setStyle("-fx-font-weight: bold;");
-
-        Label lblRoleTitle = new Label("Vai trò:");
-        String roleDisplay = role.isEmpty() ? "Không xác định" : role; // [B4] không hiện "null"
-        Label lblRoleValue = new Label(roleDisplay);
-        lblRoleValue.setStyle("-fx-font-weight: bold;");
-
-        grid.add(lblUsernameTitle, 0, 0);
-        grid.add(lblUsernameValue, 1, 0);
-        grid.add(lblRoleTitle, 0, 1);
-        grid.add(lblRoleValue, 1, 1);
-
-        GridPane.setHgrow(lblUsernameValue, Priority.ALWAYS);
-        GridPane.setHgrow(lblRoleValue, Priority.ALWAYS);
-
-        alert.getDialogPane().setContent(grid);
-        alert.getDialogPane().setMinWidth(300);
-        alert.showAndWait();
-    }
-
-    /**
-     * Call API lấy danh sách phiên đấu giá kèm hiệu ứng UX (Loading Spinner & Empty State).
-     */
     private void loadAuctionList() {
-        // [Tiêu chí UX]: Disable nút refresh và hiện con xoay loading
         Runnable onComplete = (btnRefresh != null && loadingSpinner != null)
                 ? UiUtils.showLoading(btnRefresh, loadingSpinner)
                 : () -> { if (btnRefresh != null) btnRefresh.setDisable(false); };
 
         MessageRequest req = new MessageRequest();
-        req.setType(CMD_GET_AUCTION_LIST);
-        req.setToken(ClientSession.getInstance().getToken());
+        req.setType("GET_AUCTION_LIST");
 
-        NetworkTask<MessageResponse> task = new NetworkTask<>(() ->
-                ServerGateway.getInstance().sendRequest(req));
+        NetworkTask<MessageResponse> task = new NetworkTask<>(() -> ServerGateway.getInstance().sendRequest(req));
 
         task.setOnSucceeded(e -> {
             MessageResponse response = task.getValue();
-
-            if (STATUS_OK.equals(response.getStatus()) && response.getPayload() != null) {
-                JsonNode payload = mapper.valueToTree(response.getPayload());
-                if (payload.isArray()) {
-                    auctionData.clear();
-                    for (JsonNode node : payload) {
-                        auctionData.add(node);
+            Platform.runLater(() -> {
+                allAuctions.clear();
+                if ("OK".equals(response.getStatus()) && response.getPayload() != null) {
+                    JsonNode payload = mapper.valueToTree(response.getPayload());
+                    if (payload.isArray()) {
+                        for (JsonNode node : payload) allAuctions.add(node);
                     }
                 }
-            } else {
-                // [B19] Hiển thị lỗi thay vì silent fail
-                UiUtils.showError("Lỗi hệ thống", response.getMessage());
-            }
-
-            // [Tiêu chí UX]: Cập nhật UI hiển thị bảng data hoặc thông báo dữ liệu trống
-            updateEmptyStateUI();
-            onComplete.run();
+                applyFilters();
+                updateEmptyStateUI();
+                onComplete.run();
+            });
         });
 
         task.setOnFailed(e -> {
-            UiUtils.showError("Lỗi tải dữ liệu", "Không thể tải danh sách phiên đấu giá. Vui lòng thử lại.");
-            onComplete.run();
+            Platform.runLater(() -> {
+                UiUtils.showError("Lỗi tải dữ liệu", "Không thể tải danh sách phiên đấu giá.");
+                onComplete.run();
+            });
         });
 
         new Thread(task, "fetch-auctions-thread").start();
     }
 
-    /**
-     * Bật/tắt hiển thị TableView và Label dựa trên việc list data có rỗng hay không.
-     */
-    private void updateEmptyStateUI() {
-        boolean isEmpty = auctionData.isEmpty();
+    private void populateCards(List<JsonNode> auctions) {
+        for (Timeline t : activeTimelines) t.stop();
+        activeTimelines.clear();
+        if (cardContainer == null) return;
+        cardContainer.getChildren().clear();
 
-        if (lblEmptyMessage != null) {
-            lblEmptyMessage.setVisible(isEmpty);
+        for (JsonNode node : auctions) {
+            String auctionId   = node.path("id").asText("");
+            String itemName    = node.has("itemName") ? node.get("itemName").asText("") : auctionId;
+            String imageUrl    = node.has("imageUrl") ? node.get("imageUrl").asText("") : null;
+            double price       = node.path("currentHighestBid").asDouble(0);
+            if (price == 0) price = node.path("startingPrice").asDouble(0);
+            String startTimeRaw = node.path("startTime").asText("");
+            String endTimeRaw   = node.path("endTime").asText("");
+            String startTimeStr = startTimeRaw;
+            String sellerName   = node.path("sellerName").asText("Không xác định");
+            String status       = node.path("status").asText("PENDING");
+
+            String statusVN = switch (status) {
+                case "PENDING" -> "Chờ bắt đầu";
+                case "RUNNING" -> "Đang diễn ra";
+                case "CLOSED"  -> "Đã kết thúc";
+                default -> status;
+            };
+
+            try {
+                if (!startTimeStr.isEmpty()) {
+                    java.time.LocalDateTime time = java.time.LocalDateTime.parse(startTimeStr);
+                    startTimeStr = time.format(java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy"));
+                }
+            } catch (Exception ignored) {}
+
+            VBox card = new VBox();
+            card.setSpacing(10);
+            card.setPrefWidth(280);
+            String styleNormal = "-fx-background-color: #1E2329; -fx-background-radius: 12; -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.25), 10, 0, 0, 4); -fx-cursor: hand; -fx-border-color: rgba(255,255,255,0.06); -fx-border-radius: 12;";
+            String styleHover  = "-fx-background-color: #252D38; -fx-background-radius: 12; -fx-effect: dropshadow(three-pass-box, rgba(79,70,229,0.3), 14, 0, 0, 6); -fx-cursor: hand; -fx-border-color: #4F46E5; -fx-border-radius: 12;";
+            card.setStyle(styleNormal);
+            card.setOnMouseEntered(e -> card.setStyle(styleHover));
+            card.setOnMouseExited(e -> card.setStyle(styleNormal));
+            card.setOnMouseClicked(e -> {
+                Map<String, Object> params = new HashMap<>();
+                params.put("auctionId", auctionId);
+                ViewRouter.getInstance().navigateTo(Views.AUCTION_DETAIL, params);
+            });
+
+            // Image
+            ImageView imageView = new ImageView();
+            imageView.setFitWidth(280);
+            imageView.setFitHeight(175);
+            imageView.setPreserveRatio(false);
+            Rectangle clip = new Rectangle(280, 175);
+            clip.setArcWidth(24); clip.setArcHeight(24);
+            imageView.setClip(clip);
+            if (imageUrl != null && !imageUrl.isEmpty()) {
+                try { imageView.setImage(new Image(imageUrl, true)); }
+                catch (Exception e) {}
+            }
+
+            VBox content = new VBox();
+            content.setSpacing(10);
+            content.setPadding(new Insets(14));
+
+            Label lblTitle = new Label(itemName);
+            lblTitle.setStyle("-fx-font-weight: bold; -fx-font-size: 15px; -fx-text-fill: white;");
+            lblTitle.setMaxWidth(252);
+            lblTitle.setWrapText(true);
+
+            Label lblStatus = new Label(statusVN);
+            String statusStyle = switch (status) {
+                case "RUNNING" -> "-fx-background-color: rgba(16,185,129,0.15); -fx-text-fill: #10B981; -fx-padding: 3 10; -fx-background-radius: 12; -fx-font-size: 11px; -fx-font-weight: bold;";
+                case "PENDING" -> "-fx-background-color: rgba(245,158,11,0.15); -fx-text-fill: #F59E0B; -fx-padding: 3 10; -fx-background-radius: 12; -fx-font-size: 11px; -fx-font-weight: bold;";
+                default -> "-fx-background-color: rgba(100,116,139,0.15); -fx-text-fill: #94A3B8; -fx-padding: 3 10; -fx-background-radius: 12; -fx-font-size: 11px; -fx-font-weight: bold;";
+            };
+            lblStatus.setStyle(statusStyle);
+
+            HBox priceBox = makeInfoRow("💰", "Giá hiện tại", String.format("%,.0f đ", price), "#F59E0B");
+            HBox timeBox  = makeInfoRow("📅", "Thời gian bắt đầu", startTimeStr, "#E2E8F0");
+            HBox sellBox  = makeInfoRow("👤", "Người bán", sellerName, "#E2E8F0");
+
+            Label lblCountdown = new Label("");
+            lblCountdown.setStyle("-fx-font-weight: bold; -fx-font-size: 12px;");
+
+            java.time.LocalDateTime startDT = null, endDT = null;
+            try { if (!startTimeRaw.isEmpty()) startDT = java.time.LocalDateTime.parse(startTimeRaw); } catch (Exception ignored) {}
+            try { if (!endTimeRaw.isEmpty()) endDT = java.time.LocalDateTime.parse(endTimeRaw); } catch (Exception ignored) {}
+
+            if (startDT != null && endDT != null) {
+                final java.time.LocalDateTime fStart = startDT, fEnd = endDT;
+                final String fStatus = status;
+                Timeline timeline = new Timeline(new KeyFrame(Duration.seconds(1), e -> {
+                    java.time.LocalDateTime now = java.time.LocalDateTime.now();
+                    if ("PENDING".equals(fStatus) && now.isBefore(fStart)) {
+                        java.time.Duration d = java.time.Duration.between(now, fStart);
+                        lblCountdown.setText(String.format("⏳ Bắt đầu sau: %d ngày %02d:%02d:%02d", d.toDays(), d.toHoursPart(), d.toMinutesPart(), d.toSecondsPart()));
+                        lblCountdown.setStyle("-fx-text-fill: #F59E0B; -fx-font-weight: bold; -fx-font-size: 11px;");
+                    } else if ("RUNNING".equals(fStatus) && now.isBefore(fEnd)) {
+                        java.time.Duration d = java.time.Duration.between(now, fEnd);
+                        lblCountdown.setText(String.format("🔥 Kết thúc sau: %d ngày %02d:%02d:%02d", d.toDays(), d.toHoursPart(), d.toMinutesPart(), d.toSecondsPart()));
+                        lblCountdown.setStyle("-fx-text-fill: #EF4444; -fx-font-weight: bold; -fx-font-size: 11px;");
+                    } else {
+                        lblCountdown.setText("✅ Đã kết thúc");
+                        lblCountdown.setStyle("-fx-text-fill: #64748B; -fx-font-size: 11px;");
+                    }
+                }));
+                timeline.setCycleCount(javafx.animation.Animation.INDEFINITE);
+                timeline.play();
+                activeTimelines.add(timeline);
+            }
+
+            content.getChildren().addAll(lblStatus, lblTitle, priceBox, timeBox, sellBox, lblCountdown);
+            card.getChildren().addAll(imageView, content);
+            cardContainer.getChildren().add(card);
         }
-        if (auctionTable != null) {
-            auctionTable.setVisible(!isEmpty);
-        }
+    }
+
+    private HBox makeInfoRow(String icon, String title, String value, String valueColor) {
+        HBox row = new HBox(10);
+        row.setAlignment(Pos.CENTER_LEFT);
+        Label ico = new Label(icon);
+        ico.setStyle("-fx-background-color: rgba(255,255,255,0.05); -fx-padding: 5 8; -fx-background-radius: 50;");
+        VBox info = new VBox(2);
+        Label lTitle = new Label(title);
+        lTitle.setStyle("-fx-text-fill: #64748B; -fx-font-size: 10px;");
+        Label lValue = new Label(value);
+        lValue.setStyle("-fx-font-size: 12px; -fx-text-fill: " + valueColor + "; -fx-font-weight: bold;");
+        info.getChildren().addAll(lTitle, lValue);
+        row.getChildren().addAll(ico, info);
+        return row;
+    }
+
+    private void updateEmptyStateUI() {
+        boolean isEmpty = allAuctions.isEmpty();
+        if (lblEmptyMessage != null) lblEmptyMessage.setVisible(isEmpty);
+        if (scrollPane != null) scrollPane.setVisible(!isEmpty);
     }
 }

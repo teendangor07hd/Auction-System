@@ -57,31 +57,7 @@ public final class BidTransaction extends Entity {
             this.bidTime = LocalDateTime.now();
         }
 
-        /**
-         * Constructor load từ database.
-         *
-         * @param id        id từ DB
-         * @param createdAt thời điểm tạo từ DB
-         * @param updatedAt thời điểm cập nhật
-         * @param auctionId id phiên đấu giá
-         * @param bidderId  id người đặt giá
-         * @param bidAmount mức giá
-         * @param bidTime   thời điểm đặt giá từ DB
-         */
-        public BidTransaction(
-                String id,
-                LocalDateTime createdAt,
-                LocalDateTime updatedAt,
-                String auctionId,
-                String bidderId,
-                double bidAmount,
-                LocalDateTime bidTime) {
-            super(id, createdAt, updatedAt);
-            this.auctionId = auctionId;
-            this.bidderId = bidderId;
-            this.bidAmount = bidAmount;
-            this.bidTime = Objects.requireNonNull(bidTime, "bidTime không được null");
-        }
+
 
         // Getters — tất cả fields là final, không có setter (immutable record of bid)
         /** Trả về id phiên đấu giá. */
@@ -96,9 +72,9 @@ public final class BidTransaction extends Entity {
         /** {@inheritDoc} */
         @Override
         public String toString() {
-            return "BidTransaction[id=" + getId().substring(0, 7)
-                    + ", auctionId=" + auctionId.substring(0, 7)
-                    + ", bidderId=" + bidderId.substring(0, 7)
+            return "BidTransaction[id=" + (getId() != null ? getId().substring(0, Math.min(7, getId().length())) : "null")
+                    + ", auctionId=" + (auctionId != null ? auctionId.substring(0, Math.min(7, auctionId.length())) : "null")
+                    + ", bidderId=" + (bidderId != null ? bidderId.substring(0, Math.min(7, bidderId.length())) : "null")
                     + String.format(", amount=%,.0f VND", bidAmount)
                     + ", time=" + bidTime + "]";
         }

@@ -1,6 +1,7 @@
 package com.bidhub.server.model;
 
 import com.bidhub.common.model.Entity;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import java.time.LocalDateTime;
 import java.util.Objects;
 import java.util.concurrent.locks.ReentrantLock;
@@ -56,10 +57,11 @@ public class Auction extends Entity {
     public Auction() {
         // Constructor rỗng dành cho Testing và thư viện Jackson
         // Gán giá trị mặc định cho các biến final để trình biên dịch không báo lỗi
-        this.itemId = null;
-        this.startTime = null;
+        this.itemId = "";
+        this.startTime = LocalDateTime.now();
         this.startingPrice = 0.0;
         this.minimumIncrement = 0.0;
+        this.status = AuctionStatus.OPEN;
     }
 
     /**
@@ -117,9 +119,10 @@ public class Auction extends Entity {
     public void transitionTo(AuctionStatus newStatus) {
         Objects.requireNonNull(newStatus, "newStatus không được null");
         if (!status.canTransitionTo(newStatus)) {
+            String shortId = getId() != null ? getId().substring(0, Math.min(7, getId().length())) : "null";
             throw new IllegalStateException(
                     "Không thể chuyển từ " + status.name() + " sang " + newStatus.name()
-                            + " [auctionId=" + getId().substring(0, 7) + "]");
+                            + " [auctionId=" + shortId + "]");
         }
         this.status = newStatus;
         markUpdated();
@@ -138,7 +141,8 @@ public class Auction extends Entity {
      * @return {@code true} nếu hợp lệ để đặt
      */
     public boolean isValidBid(double bidAmount) {
-        return status.canBid() && bidAmount > currentHighestBid;
+        return status.canBid() && bidAmount > currentHighestBid 
+               && (bidAmount - currentHighestBid) >= minimumIncrement;
     }
 
     /**
@@ -215,13 +219,25 @@ public class Auction extends Entity {
             AuctionStatus status,
             double minimumIncrement) {
         super(id, createdAt, updatedAt);
-        this.itemId = itemId;
-        this.startTime = startTime;
-        this.endTime = endTime;
+        this.itemId = Objects.requireNonNull(itemId, "itemId không được null");
+        this.startTime = Objects.requireNonNull(startTime, "startTime không được null");
+        this.endTime = Objects.requireNonNull(endTime, "endTime không được null");
+        this.status = Objects.requireNonNull(status, "status không được null");
+        if (startingPrice <= 0) {
+            throw new IllegalArgumentException("startingPrice phải > 0: " + startingPrice);
+        }
+        if (!endTime.isAfter(startTime)) {
+            throw new IllegalArgumentException("endTime phải sau startTime");
+        }
+        if (minimumIncrement < 0) {
+            throw new IllegalArgumentException("minimumIncrement không được âm: " + minimumIncrement);
+        }
+        if (currentHighestBid < startingPrice) {
+            throw new IllegalArgumentException("currentHighestBid >= startingPrice");
+        }
         this.startingPrice = startingPrice;
         this.currentHighestBid = currentHighestBid;
         this.highestBidderId = highestBidderId;
-        this.status = status;
         this.minimumIncrement = minimumIncrement;
     }
 
@@ -234,6 +250,7 @@ public class Auction extends Entity {
      */
     public void setCurrentHighestBid(double amount) {
         this.currentHighestBid = amount;
+        markUpdated();
     }
 
     /**
@@ -243,6 +260,7 @@ public class Auction extends Entity {
      */
     public void setHighestBidderId(String bidderId) {
         this.highestBidderId = bidderId;
+        markUpdated();
     }
     // 📌 [Tieu chi: Ky thuat quan trọng — ReentrantLock granular locking]
     /** Lock cho tung auction — dam bao atomic khi bid hoac dong phien. */
@@ -255,6 +273,7 @@ public class Auction extends Entity {
      *
      * @return ReentrantLock instance
      */
+    @JsonIgnore
     public ReentrantLock getLock() {
         return lock;
     }

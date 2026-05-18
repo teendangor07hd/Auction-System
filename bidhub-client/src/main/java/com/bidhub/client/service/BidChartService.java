@@ -2,6 +2,7 @@ package com.bidhub.client.service;
 
 import javafx.collections.ObservableList;
 import javafx.scene.chart.XYChart;
+import javafx.scene.control.Tooltip;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 
@@ -48,15 +49,34 @@ public final class BidChartService {
 
     // 📌 [Tieu chi: Kỹ thuật quan trọng — DateTimeFormatter format LocalDateTime → String]
     public void addDataPoint(LocalDateTime time, double price) {
-        ObservableList<XYChart.Data<String, Number>> data = series.getData();
+        addDataPoint(time, price, "Khách");
+    }
 
-        // [B57] Xoa data point cu nhat khi vuot qua gioi han
-        if (data.size() >= MAX_DATA_POINTS) {
-            data.remove(0);
-        }
-
+    /**
+     * Them data point moi vao series — thoi gian, gia, va ten nguoi dat gia.
+     *
+     * @param time       thoi gian dat gia
+     * @param price      gia dat
+     * @param bidderName ten nguoi dat gia
+     */
+    public void addDataPoint(LocalDateTime time, double price, String bidderName) {
         String timeStr = time.format(TIME_FORMATTER);
-        data.add(new XYChart.Data<>(timeStr, price));
+        XYChart.Data<String, Number> data = new XYChart.Data<>(timeStr, price);
+        data.setExtraValue(bidderName);
+        
+        data.nodeProperty().addListener((obs, oldNode, newNode) -> {
+            if (newNode != null) {
+                Tooltip tooltip = new Tooltip("Người đặt: " + bidderName + "\nGiá: " + String.format("%,.0f VNĐ", price));
+                tooltip.setStyle("-fx-font-size: 14px; -fx-padding: 10px;");
+                Tooltip.install(newNode, tooltip);
+                
+                // Hover effect
+                newNode.setOnMouseEntered(e -> newNode.setStyle("-fx-background-color: #4F46E5; -fx-scale-x: 1.5; -fx-scale-y: 1.5; -fx-cursor: hand;"));
+                newNode.setOnMouseExited(e -> newNode.setStyle(""));
+            }
+        });
+        
+        series.getData().add(data);
     }
 
     /**

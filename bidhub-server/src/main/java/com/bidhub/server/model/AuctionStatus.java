@@ -66,7 +66,7 @@ public enum AuctionStatus {
 
         @Override
         public boolean isTerminal() {
-            return true;
+            return false;
         }
     },
 
@@ -113,7 +113,7 @@ public enum AuctionStatus {
     /**
      * Kiểm tra xem trạng thái này là trạng thái cuối cùng (không thể đổi tiếp).
      *
-     * <p>{@link #FINISHED}, {@link #PAID}, {@link #CANCELED} trả về {@code true}.
+     * <p>{@link #PAID}, {@link #CANCELED} trả về {@code true}.
      *
      * @return {@code true} nếu là terminal state
      */
@@ -136,7 +136,7 @@ public enum AuctionStatus {
      */
     public boolean canTransitionTo(AuctionStatus targetStatus) {
         return switch (this) {
-            case OPEN -> targetStatus == RUNNING;
+            case OPEN -> targetStatus == RUNNING || targetStatus == CANCELED;
             case RUNNING -> targetStatus == FINISHED;
             case FINISHED -> targetStatus == PAID || targetStatus == CANCELED;
             case PAID, CANCELED -> false; // terminal — không thể chuyển tiếp

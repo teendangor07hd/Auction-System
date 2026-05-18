@@ -24,9 +24,9 @@ public class BidHubApp extends Application {
     public void start(Stage primaryStage) throws IOException {
         ViewRouter.getInstance().initialize(primaryStage);
 
-        URL fxmlUrl = getClass().getResource("/fxml/LoginView.fxml");
+        URL fxmlUrl = getClass().getResource("/fxml/HomeView.fxml");
         if (fxmlUrl == null) {
-            throw new IllegalStateException("Không tìm thấy /fxml/LoginView.fxml trong resources.");
+            throw new IllegalStateException("Không tìm thấy /fxml/HomeView.fxml trong resources.");
         }
 
         Parent root = FXMLLoader.load(fxmlUrl);

@@ -132,7 +132,7 @@ public final class UiUtils {
      */
     public static boolean validateNotEmpty(TextField textField, String fieldName) {
         if (textField.getText() == null || textField.getText().isBlank()) {
-            showError("Validation Error", fieldName + " khong duoc de trong");
+            showError("Lỗi nhập liệu", fieldName + " không được để trống.");
             textField.requestFocus();
             return false;
         }
@@ -156,13 +156,13 @@ public final class UiUtils {
         try {
             double value = Double.parseDouble(textField.getText().trim());
             if (value <= 0) {
-                showError("Validation Error", fieldName + " phai lon hon 0");
+                showError("Lỗi nhập liệu", fieldName + " phải lớn hơn 0.");
                 textField.requestFocus();
                 return false;
             }
             return true;
         } catch (NumberFormatException e) {
-            showError("Validation Error", fieldName + " phai la so hop le");
+            showError("Lỗi nhập liệu", fieldName + " phải là số hợp lệ.");
             textField.requestFocus();
             return false;
         }
