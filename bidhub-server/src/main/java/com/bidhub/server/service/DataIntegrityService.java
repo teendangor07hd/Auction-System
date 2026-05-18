@@ -59,16 +59,13 @@ public final class DataIntegrityService {
   public List<String> checkBidConsistency() {
     List<String> errors = new ArrayList<>();
     try {
-      List<Map<String, Object>> auctions = auctionDao.findAllWithBidInfo();
-      Set<String> allUserIds = new HashSet<>();
-      userDao.findAll().forEach(u -> allUserIds.add(u.getId()));
+      List<AuctionDao.AuctionBidDto> auctions = auctionDao.findAllWithBidInfo();
 
-      for (Map<String, Object> row : auctions) {
-        String auctionId = (String) row.get("id");
-        String itemName = (String) row.get("itemName");
-        double dbHighestBid = row.get("currentHighestBid") != null
-            ? ((Number) row.get("currentHighestBid")).doubleValue() : 0.0;
-        String dbHighestBidder = (String) row.get("highestBidderId");
+      for (AuctionDao.AuctionBidDto row : auctions) {
+        String auctionId = row.id;
+        String itemName = row.itemName;
+        double dbHighestBid = row.currentHighestBid;
+        String dbHighestBidder = row.highestBidderId;
 
         Optional<com.bidhub.server.model.BidTransaction> maxBid =
             bidDao.getHighestBid(auctionId);

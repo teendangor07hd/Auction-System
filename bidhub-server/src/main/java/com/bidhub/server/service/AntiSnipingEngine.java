@@ -34,6 +34,7 @@ public final class AntiSnipingEngine {
     private final AuctionDao auctionDao;
     private final int thresholdSeconds;
     private final int extensionSeconds;
+    private final AuditLogService auditLogService;
 
     /**
      * Constructor production — doc config tu file properties.
@@ -42,8 +43,9 @@ public final class AntiSnipingEngine {
      */
     public AntiSnipingEngine() {
         this.auctionDao = new AuctionDao();
-        this.thresholdSeconds = ConfigLoader.getInt("snipe.threshold");
-        this.extensionSeconds = ConfigLoader.getInt("snipe.extension");
+        this.auditLogService = new AuditLogService();
+        this.thresholdSeconds = ConfigLoader.getIntOrDefault("snipe.threshold", 60);
+        this.extensionSeconds = ConfigLoader.getIntOrDefault("snipe.extension", 60);
     }
 
     /**
@@ -56,6 +58,7 @@ public final class AntiSnipingEngine {
     // 📌 [Tieu chi: Unit Test — constructor test cho inject dependency]
     public AntiSnipingEngine(AuctionDao auctionDao, int thresholdSeconds, int extensionSeconds) {
         this.auctionDao = auctionDao;
+        this.auditLogService = new AuditLogService();
         this.thresholdSeconds = thresholdSeconds;
         this.extensionSeconds = extensionSeconds;
     }
@@ -102,7 +105,6 @@ public final class AntiSnipingEngine {
 
             // 📌 [Tieu chi: Audit Log — log AUCTION_EXTENDED sau gia han thanh cong]
             // Chay trong handlePlaceBid lock block → thread-safe
-            AuditLogService auditLogService = new AuditLogService();
             auditLogService.log("SYSTEM", AuditActions.AUCTION_EXTENDED,
                     "{\"auctionId\":\"" + auction.getId()
                             + "\",\"oldEndTime\":\"" + oldEndTime.toString()

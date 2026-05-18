@@ -14,6 +14,9 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 @JsonIgnoreProperties(ignoreUnknown = true)   // ← thêm dòng này
 
 public class MessageResponse {
+    
+    public static final String STATUS_OK = "OK";
+    public static final String STATUS_ERROR = "ERROR";
 
     private String status;
     private String type;
@@ -31,7 +34,7 @@ public class MessageResponse {
      */
     public static MessageResponse ok(String type, Object payload) {
         MessageResponse r = new MessageResponse();
-        r.status = "OK";
+        r.status = STATUS_OK;
         r.type = type;
         r.payload = payload;
         return r;
@@ -45,14 +48,14 @@ public class MessageResponse {
      */
     public static MessageResponse error(String type, String message) {
         MessageResponse r = new MessageResponse();
-        r.status = "ERROR";
+        r.status = STATUS_ERROR;
         r.type = type;
         r.message = message;
         return r;
     }
 
     public boolean isOk() {
-        return "OK".equals(status);
+        return STATUS_OK.equals(status);
     }
 
     public String getStatus() {

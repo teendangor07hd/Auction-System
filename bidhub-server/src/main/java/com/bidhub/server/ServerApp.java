@@ -31,9 +31,9 @@ public class ServerApp {
     }
 
     /**
-     * Entry point chinh. Doc port tu config va in ra.
+     * Entry point chinh. Doc port tu config, khoi tao DB, AuctionManager, va socket server.
      *
-     * @param args tham so dong lenh (khong dung o tuan 1)
+     * @param args tham so dong lenh (khong dung)
      */
     public static void main(String[] args)  throws IOException {
         MigrationRunner.run();
@@ -41,13 +41,22 @@ public class ServerApp {
         int port = ConfigLoader.getInt("server.port");
         logger.info("Cong lang nghe: {}", port);
         logger.info("Database: {}", ConfigLoader.getString("db.path"));
-        logger.info("Server san sang. Socket server se implement tuan 4.");
-        SocketServerCore server = new SocketServerCore();
 
         // 📌 [Tieu chi: Singleton + Ky thuat quan trong — AuctionManager lifecycle]
         com.bidhub.server.service.AuctionManager.getInstance().start();
         logger.info("[ServerApp] AuctionManager da khoi dong.");
 
-        server.start(port); // dung bien port da lay o tren de nhat quan
+        // 📌 [Tieu chi: Ky thuat quan trong — shutdown hook dam bao AuctionManager.stop()
+        //    duoc goi khi JVM shutdown, giai phong ScheduledExecutorService]
+        Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+            logger.info("[ServerApp] Shutdown hook — dang dung AuctionManager...");
+            com.bidhub.server.service.AuctionManager.getInstance().stop();
+        }, "auction-manager-shutdown"));
+
+        // 📌 [Tieu chi: Ky thuat quan trong — server.start() la blocking call,
+        //    dat cuoi cung sau khi tat ca setup hoan thanh]
+        logger.info("Server san sang — bat dau lang nghe ket noi.");
+        SocketServerCore server = new SocketServerCore();
+        server.start(port);
     }
 }

@@ -62,12 +62,13 @@ public final class NotificationBroker {
         if (auctionId == null || session == null) {
             return;
         }
-        subscribers.computeIfAbsent(auctionId, k -> new CopyOnWriteArrayList<>());
-        CopyOnWriteArrayList<Session> list = subscribers.get(auctionId);
-        if (list != null && !list.contains(session)) {
+        // 📌 [Tieu chi: Ky thuat quan trong — computeIfAbsent atomic, tranh TOCTOU race]
+        CopyOnWriteArrayList<Session> list = subscribers.computeIfAbsent(
+                auctionId, k -> new CopyOnWriteArrayList<>());
+        if (!list.contains(session)) {
             list.add(session);
         }
-        logger.debug("Session subscribe auction: {} (total: {})", auctionId, (list != null ? list.size() : 0));
+        logger.debug("Session subscribe auction: {} (total: {})", auctionId, list.size());
     }
 
     /**
@@ -85,6 +86,10 @@ public final class NotificationBroker {
         CopyOnWriteArrayList<Session> list = subscribers.get(auctionId);
         if (list != null) {
             list.remove(session);
+            // 📌 [Tieu chi: Ky thuat quan trong — xoa key khi list rong de tranh memory leak]
+            if (list.isEmpty()) {
+                subscribers.remove(auctionId, list);
+            }
         }
     }
 
@@ -132,13 +137,24 @@ public final class NotificationBroker {
             return;
         }
 
+        // 📌 [Tieu chi: Ky thuat quan trong — thu thap session loi, xoa sau vong lap
+        //    tranh O(n²) khi xoa truc tiep tu CopyOnWriteArrayList trong vong lap]
+        java.util.List<Session> failedSessions = new java.util.ArrayList<>();
         for (Session session : list) {
             try {
                 session.sendMessage(eventJson);
             } catch (Exception e) {
                 // 📌 [Tieu chi: Xu ly loi — 1 session loi khong block cac session khac]
                 logger.error("Gui event loi cho session: {}", e.getMessage(), e);
-                list.remove(session);
+                failedSessions.add(session);
+            }
+        }
+        // Xoa batch session da mat ket noi — chi ghi 1 lan vao CopyOnWriteArrayList
+        if (!failedSessions.isEmpty()) {
+            list.removeAll(failedSessions);
+            // Xoa key neu khong con subscriber nao
+            if (list.isEmpty()) {
+                subscribers.remove(auctionId, list);
             }
         }
     }

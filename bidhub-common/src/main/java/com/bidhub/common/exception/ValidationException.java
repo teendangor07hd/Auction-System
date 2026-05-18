@@ -49,8 +49,7 @@ public class ValidationException extends BidHubException {
      * @param errorMessage mô tả lỗi, không null
      */
     public ValidationException(String errorMessage) {
-        super(errorMessage, ERROR_CODE);
-        Objects.requireNonNull(errorMessage, "errorMessage không được null");
+        super(Objects.requireNonNull(errorMessage, "errorMessage không được null"), ERROR_CODE);
         this.errors = List.of(errorMessage);
     }
 
@@ -61,13 +60,18 @@ public class ValidationException extends BidHubException {
      * @throws IllegalArgumentException nếu errors null hoặc rỗng
      */
     public ValidationException(List<String> errors) {
-        super(buildMessage(errors), ERROR_CODE);
+        super(validateErrors(errors), ERROR_CODE);
+        // Tạo defensive copy và wrap bằng unmodifiableList
+        this.errors = Collections.unmodifiableList(new ArrayList<>(errors));
+    }
+
+    /** Validate list errors trước khi gọi super() — tránh NPE từ buildMessage. */
+    private static String validateErrors(List<String> errors) {
         if (errors == null || errors.isEmpty()) {
             throw new IllegalArgumentException(
                     "ValidationException cần ít nhất 1 lỗi trong danh sách");
         }
-        // Tạo defensive copy và wrap bằng unmodifiableList
-        this.errors = Collections.unmodifiableList(new ArrayList<>(errors));
+        return errors.size() + " lỗi validation: " + String.join("; ", errors);
     }
 
     /**

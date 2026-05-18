@@ -71,13 +71,15 @@ public abstract class User extends Entity {
             String username,
             String passwordHash,
             String email,
-            UserRole role) {
+            UserRole role,
+            boolean locked) {
         super(id, createdAt, updatedAt);
         validateUsername(username);
         this.username = username;
         this.passwordHash = passwordHash;
         this.email = email;
         this.role = role;
+        this.locked = locked;
     }
 
     /**
@@ -171,8 +173,9 @@ public abstract class User extends Entity {
     /** {@inheritDoc} */
     @Override
     public String toString() {
+        String shortId = getId() != null ? getId().substring(0, Math.min(7, getId().length())) : "null";
         return getClass().getSimpleName()
-                + "[id=" + getId().substring(0, 7)
+                + "[id=" + shortId
                 + ", username=" + username
                 + ", role=" + role.name() + "]";
     }
@@ -196,5 +199,6 @@ public abstract class User extends Entity {
      */
     public void setLocked(boolean locked) {
         this.locked = locked;
+        markUpdated();
     }
 }

@@ -46,8 +46,9 @@ public final class Bidder extends User {
             String username,
             String passwordHash,
             String email,
-            int totalBidsPlaced) {
-        super(id, createdAt, updatedAt, username, passwordHash, email, UserRole.BIDDER);
+            int totalBidsPlaced,
+            boolean locked) {
+        super(id, createdAt, updatedAt, username, passwordHash, email, UserRole.BIDDER, locked);
         this.totalBidsPlaced = Math.max(0, totalBidsPlaced);
     }
 

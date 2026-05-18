@@ -73,7 +73,7 @@ public class AuditLogDao {
      * @return danh sách AuditLog, có thể rỗng
      */
     public List<AuditLog> findAll() {
-        return queryList("SELECT * FROM audit_logs ORDER BY created_at DESC", null);
+        return queryList("SELECT * FROM audit_logs ORDER BY created_at DESC");
     }
 
     /**
@@ -126,12 +126,20 @@ public class AuditLogDao {
         }
     }
 
-    private List<AuditLog> queryList(String sql, String param) {
+    private List<AuditLog> queryList(String sql, String... params) {
         Connection conn = null;
         try {
             conn = acquireConnection();
             try (PreparedStatement ps = conn.prepareStatement(sql)) {
-                if (param != null) ps.setString(1, param);
+                if (params != null) {
+                    for (int i = 0; i < params.length; i++) {
+                        if (params[i] == null) {
+                            ps.setNull(i + 1, Types.VARCHAR);
+                        } else {
+                            ps.setString(i + 1, params[i]);
+                        }
+                    }
+                }
                 ResultSet rs = ps.executeQuery();
                 List<AuditLog> result = new ArrayList<>();
                 while (rs.next()) result.add(mapRow(rs));

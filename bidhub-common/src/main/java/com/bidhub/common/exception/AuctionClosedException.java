@@ -22,6 +22,6 @@ public class AuctionClosedException extends BidHubException {
     }
 
     public AuctionClosedException(String message) {
-        super(message);
+        super(message, ERROR_CODE);
     }
 }

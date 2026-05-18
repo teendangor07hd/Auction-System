@@ -95,6 +95,13 @@ public abstract class Item extends Entity implements Displayable {
             String sellerId,
             ItemType itemType) {
         super(id, createdAt, updatedAt);
+        validateName(name);
+        Objects.requireNonNull(sellerId, "sellerId không được null");
+        Objects.requireNonNull(itemType, "itemType không được null");
+        if (startingPrice <= 0) {
+            throw new IllegalArgumentException(
+                    "Giá khởi điểm phải > 0, nhận được: " + startingPrice);
+        }
         this.name = name;
         this.description = (description == null) ? "" : description;
         this.startingPrice = startingPrice;
@@ -130,7 +137,7 @@ public abstract class Item extends Entity implements Displayable {
         logger.info("=== Thong tin san pham ===");
         logger.info("Ten     : {}", name);
         logger.info("Loai    : {}", itemType.getLabel());
-        logger.info("Gia KD  : {:,.0f} VND", startingPrice);
+        logger.info("Gia KD  : {}", String.format("%,.0f VND", startingPrice));
         logger.info("Chi tiet: {}", getCategoryDetails());
         logger.info("Mo ta   : {}", description);
     }
