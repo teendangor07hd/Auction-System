@@ -35,20 +35,8 @@ public class NotificationController {
     @FXML private Label lblSendStatus;
     @FXML private VBox notifListContainer;
     @FXML private Label lblStatus;
-    @FXML private Label lblUnreadCount;
-    @FXML private Button btnMarkAllRead;
-    @FXML private Button btnFilterAll;
-    @FXML private Button btnFilterUnread;
-    @FXML private Button btnFilterSystem;
-
     private final ObjectMapper mapper = new ObjectMapper();
     private final List<NotificationItem> allNotifications = new ArrayList<>();
-    private String currentFilter = "ALL";
-
-    private static final String BTN_ACTIVE =
-            "-fx-background-color: #4F46E5; -fx-text-fill: white; -fx-background-radius: 6; -fx-cursor: hand; -fx-padding: 6 14; -fx-font-size: 12px;";
-    private static final String BTN_INACTIVE =
-            "-fx-background-color: #2B3139; -fx-text-fill: #B7BDC6; -fx-background-radius: 6; -fx-cursor: hand; -fx-padding: 6 14; -fx-font-size: 12px;";
 
     @FXML
     public void initialize() {
@@ -86,8 +74,7 @@ public class NotificationController {
                                     n.path("title").asText("Thông báo"),
                                     n.path("message").asText(""),
                                     n.path("type").asText("SYSTEM"),
-                                    n.path("createdAt").asText(""),
-                                    n.path("isRead").asBoolean(false)
+                                    n.path("createdAt").asText("")
                             ));
                         }
                     }
@@ -97,7 +84,6 @@ public class NotificationController {
                     addDemoNotifications();
                 }
                 renderNotifications();
-                updateUnreadCount();
                 lblStatus.setText("Đã tải " + allNotifications.size() + " thông báo.");
             });
         });
@@ -106,7 +92,6 @@ public class NotificationController {
             // Khi server chưa hỗ trợ endpoint này, hiện thông báo demo
             addDemoNotifications();
             renderNotifications();
-            updateUnreadCount();
             lblStatus.setText("Hiển thị thông báo mẫu (server chưa hỗ trợ endpoint).");
         }));
 
@@ -121,25 +106,19 @@ public class NotificationController {
         allNotifications.add(new NotificationItem("1",
                 "Chào mừng đến BidHub!",
                 "Cảm ơn bạn đã đăng ký tài khoản. Hãy khám phá các phiên đấu giá đang diễn ra ngay hôm nay!",
-                "SYSTEM", now, false));
+                "SYSTEM", now));
 
         allNotifications.add(new NotificationItem("2",
                 "Hướng dẫn đặt giá",
                 "Để đặt giá, hãy vào trang chi tiết phiên đấu giá và nhập số tiền muốn trả. Hệ thống Anti-Sniping sẽ tự động gia hạn nếu có giá mới ở phút cuối.",
-                "SYSTEM", yesterday, true));
+                "SYSTEM", yesterday));
     }
 
     /** Render danh sách thông báo theo filter hiện tại */
     private void renderNotifications() {
         notifListContainer.getChildren().clear();
 
-        List<NotificationItem> filtered = allNotifications.stream()
-                .filter(n -> switch (currentFilter) {
-                    case "UNREAD" -> !n.isRead();
-                    case "SYSTEM" -> "SYSTEM".equals(n.getType());
-                    default -> true;
-                })
-                .toList();
+        List<NotificationItem> filtered = allNotifications;
 
         if (filtered.isEmpty()) {
             Label empty = new Label("Không có thông báo nào.");
@@ -159,8 +138,8 @@ public class NotificationController {
         card.setPadding(new Insets(16, 20, 16, 20));
         card.setAlignment(javafx.geometry.Pos.CENTER_LEFT);
 
-        String bg = item.isRead() ? "#1A1F26" : "#1E2329";
-        String borderLeft = item.isRead() ? "rgba(255,255,255,0.05)" : "#4F46E5";
+        String bg = "#1E2329";
+        String borderLeft = "#4F46E5";
 
         card.setStyle(String.format(
                 "-fx-background-color: %s; -fx-background-radius: 12; " +
@@ -170,8 +149,8 @@ public class NotificationController {
                 bg, borderLeft));
 
         // Icon thông báo
-        Label icon = new Label(item.isRead() ? "○" : "●");
-        icon.setStyle("-fx-font-size: 10px; -fx-text-fill: " + (item.isRead() ? "#475569" : "#4F46E5") + "; -fx-padding: 0 4 0 0;");
+        Label icon = new Label("●");
+        icon.setStyle("-fx-font-size: 10px; -fx-text-fill: #4F46E5; -fx-padding: 0 4 0 0;");
 
         // Nội dung thông báo
         VBox content = new VBox(5);
@@ -181,8 +160,7 @@ public class NotificationController {
         titleRow.setAlignment(javafx.geometry.Pos.CENTER_LEFT);
 
         Label title = new Label(item.getTitle());
-        title.setStyle("-fx-text-fill: " + (item.isRead() ? "#94A3B8" : "white") +
-                "; -fx-font-size: 14px; -fx-font-weight: " + (item.isRead() ? "normal" : "bold") + ";");
+        title.setStyle("-fx-text-fill: white; -fx-font-size: 14px; -fx-font-weight: bold;");
 
         Label typeTag = new Label(translateType(item.getType()));
         typeTag.setStyle("-fx-background-color: " + getTypeColor(item.getType()) +
@@ -201,13 +179,6 @@ public class NotificationController {
 
         card.getChildren().addAll(icon, content);
 
-        // Click để đánh dấu đã đọc
-        card.setOnMouseClicked(e -> {
-            item.setRead(true);
-            sendMarkReadRequest(item.getId());
-            renderNotifications();
-            updateUnreadCount();
-        });
         card.setOnMouseEntered(e -> card.setStyle(card.getStyle().replace(bg, "#252D38")));
         card.setOnMouseExited(e -> card.setStyle(card.getStyle().replace("#252D38", bg)));
 
@@ -248,14 +219,6 @@ public class NotificationController {
         }
     }
 
-    private void updateUnreadCount() {
-        long unread = allNotifications.stream().filter(n -> !n.isRead()).count();
-        if (unread > 0) {
-            lblUnreadCount.setText(unread + " thông báo chưa đọc");
-        } else {
-            lblUnreadCount.setText("Không có thông báo mới");
-        }
-    }
 
     /** Admin gửi thông báo toàn server */
     @FXML
@@ -303,9 +266,8 @@ public class NotificationController {
                     // Thêm vào danh sách local
                     allNotifications.add(0, new NotificationItem(
                             java.util.UUID.randomUUID().toString(), title, message, "SYSTEM",
-                            LocalDateTime.now().toString(), false));
+                            LocalDateTime.now().toString()));
                     renderNotifications();
-                    updateUnreadCount();
                 } else {
                     lblSendStatus.setText("✗ Lỗi: " + resp.getMessage());
                     lblSendStatus.setStyle("-fx-font-size: 12px; -fx-text-fill: #F6465D;");
@@ -318,9 +280,8 @@ public class NotificationController {
             // Thêm vào local kể cả khi server chưa hỗ trợ
             allNotifications.add(0, new NotificationItem(
                     java.util.UUID.randomUUID().toString(), title, message, "SYSTEM",
-                    LocalDateTime.now().toString(), false));
+                    LocalDateTime.now().toString()));
             renderNotifications();
-            updateUnreadCount();
             lblSendStatus.setText("✓ Đã thêm thông báo (server chưa hỗ trợ broadcast).");
             lblSendStatus.setStyle("-fx-font-size: 12px; -fx-text-fill: #F59E0B;");
             tfNotifTitle.clear();
@@ -331,60 +292,9 @@ public class NotificationController {
     }
 
     @FXML
-    public void handleMarkAllRead() {
-        allNotifications.forEach(n -> {
-            if (!n.isRead()) {
-                n.setRead(true);
-                sendMarkReadRequest(n.getId());
-            }
-        });
-        renderNotifications();
-        updateUnreadCount();
-    }
-
-    private void sendMarkReadRequest(String notifId) {
-        ObjectNode payload = mapper.createObjectNode();
-        payload.put("notificationId", notifId);
-        MessageRequest req = new MessageRequest();
-        req.setType("MARK_NOTIFICATION_READ");
-        req.setToken(ClientSession.getInstance().getToken());
-        req.setPayload(payload);
-        new Thread(() -> {
-            try { ServerGateway.getInstance().sendRequest(req); } catch (Exception ignored) {}
-        }).start();
-    }
-
-    @FXML
-    public void handleFilterAll() {
-        currentFilter = "ALL";
-        updateFilterButtons();
-        renderNotifications();
-    }
-
-    @FXML
-    public void handleFilterUnread() {
-        currentFilter = "UNREAD";
-        updateFilterButtons();
-        renderNotifications();
-    }
-
-    @FXML
-    public void handleFilterSystem() {
-        currentFilter = "SYSTEM";
-        updateFilterButtons();
-        renderNotifications();
-    }
-
-    @FXML
     public void handleRefresh() {
         allNotifications.clear();
         loadNotifications();
-    }
-
-    private void updateFilterButtons() {
-        btnFilterAll.setStyle("ALL".equals(currentFilter) ? BTN_ACTIVE : BTN_INACTIVE);
-        btnFilterUnread.setStyle("UNREAD".equals(currentFilter) ? BTN_ACTIVE : BTN_INACTIVE);
-        btnFilterSystem.setStyle("SYSTEM".equals(currentFilter) ? BTN_ACTIVE : BTN_INACTIVE);
     }
 
     // ===================== Inner DTO =====================
@@ -395,16 +305,14 @@ public class NotificationController {
         private final String message;
         private final String type;
         private final String createdAt;
-        private boolean read;
 
         public NotificationItem(String id, String title, String message,
-                                String type, String createdAt, boolean read) {
+                                String type, String createdAt) {
             this.id = id;
             this.title = title;
             this.message = message;
             this.type = type;
             this.createdAt = createdAt;
-            this.read = read;
         }
 
         public String getId() { return id; }
@@ -412,7 +320,5 @@ public class NotificationController {
         public String getMessage() { return message; }
         public String getType() { return type; }
         public String getCreatedAt() { return createdAt; }
-        public boolean isRead() { return read; }
-        public void setRead(boolean read) { this.read = read; }
     }
 }

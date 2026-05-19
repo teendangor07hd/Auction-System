@@ -106,6 +106,7 @@ public class BidderItemsController {
         String itemName = node.path("itemName").asText("Unknown");
         double price = node.path("currentHighestBid").asDouble(0);
         String seller = node.path("sellerName").asText("Unknown");
+        String sellerEmail = node.path("sellerEmail").asText("");
         String endTime = node.path("endTime").asText("");
 
         // Hieu ung hover
@@ -150,7 +151,7 @@ public class BidderItemsController {
         title.setWrapText(true);
 
         // Seller
-        Label lblSeller = new Label("Người bán: " + seller);
+        Label lblSeller = new Label("Người bán: " + seller + (sellerEmail.isBlank() ? "" : " (" + sellerEmail + ")"));
         lblSeller.setStyle("-fx-text-fill: #94A3B8; -fx-font-size: 12px;");
 
         // Price

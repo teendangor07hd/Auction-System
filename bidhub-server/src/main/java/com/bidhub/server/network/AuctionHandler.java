@@ -448,4 +448,74 @@ class AuctionHandler {
         }
         return MessageMapper.toJson(MessageResponse.ok("GET_WON_AUCTIONS", result));
     }
+
+    String handleMarkPaid(Session session, JsonNode payload) {
+        String userId = SecurityContext.requireAuthenticated(session);
+        String auctionId = payload.path("auctionId").asText("");
+        if (auctionId.isBlank()) {
+            throw new ValidationException("auctionId khong duoc de trong");
+        }
+
+        java.util.Optional<Auction> aucOpt = handler.auctionDao.findById(auctionId);
+        if (aucOpt.isEmpty()) {
+            return MessageMapper.toJson(MessageResponse.error("MARK_PAID", "Phien dau gia khong ton tai."));
+        }
+        Auction auction = aucOpt.get();
+
+        if (auction.getStatus() != AuctionStatus.FINISHED) {
+            return MessageMapper.toJson(MessageResponse.error("MARK_PAID",
+                    "Chi co the danh dau da thanh toan cho phien da ket thuc."));
+        }
+
+        java.util.Optional<Item> itemOpt = handler.itemDao.findById(auction.getItemId());
+        if (itemOpt.isEmpty() || !itemOpt.get().getSellerId().equals(userId)) {
+            return MessageMapper.toJson(MessageResponse.error("MARK_PAID",
+                    "Ban khong co quyen thuc hien thao tac nay."));
+        }
+
+        auction.transitionTo(AuctionStatus.PAID);
+        handler.auctionDao.updateStatus(auctionId, AuctionStatus.PAID);
+
+        handler.auditLogService.log(userId, "AUCTION_PAID",
+                "{\"auctionId\":\"" + auctionId + "\"}");
+
+        return MessageMapper.toJson(MessageResponse.ok("MARK_PAID",
+                Map.of("auctionId", auctionId, "message", "Da xac nhan thanh toan.")));
+    }
+
+    String handleSellerCancelFinished(Session session, JsonNode payload) {
+        String userId = SecurityContext.requireAuthenticated(session);
+        String auctionId = payload.path("auctionId").asText("");
+        if (auctionId.isBlank()) {
+            throw new ValidationException("auctionId khong duoc de trong");
+        }
+
+        java.util.Optional<Auction> aucOpt = handler.auctionDao.findById(auctionId);
+        if (aucOpt.isEmpty()) {
+            return MessageMapper.toJson(MessageResponse.error("SELLER_CANCEL_FINISHED",
+                    "Phien dau gia khong ton tai."));
+        }
+        Auction auction = aucOpt.get();
+
+        if (auction.getStatus() != AuctionStatus.FINISHED) {
+            return MessageMapper.toJson(MessageResponse.error("SELLER_CANCEL_FINISHED",
+                    "Chi co the huy phien o trang thai da ket thuc."));
+        }
+
+        java.util.Optional<Item> itemOpt = handler.itemDao.findById(auction.getItemId());
+        if (itemOpt.isEmpty() || !itemOpt.get().getSellerId().equals(userId)) {
+            return MessageMapper.toJson(MessageResponse.error("SELLER_CANCEL_FINISHED",
+                    "Ban khong co quyen huy phien nay."));
+        }
+
+        auction.transitionTo(AuctionStatus.CANCELED);
+        handler.auctionDao.updateStatus(auctionId, AuctionStatus.CANCELED);
+
+        handler.auditLogService.log(userId, "AUCTION_SELLER_CANCELLED",
+                "{\"auctionId\":\"" + auctionId + "\",\"reason\":\"Bidder khong thanh toan\"}");
+
+        return MessageMapper.toJson(MessageResponse.ok("SELLER_CANCEL_FINISHED",
+                Map.of("auctionId", auctionId,
+                        "message", "Da huy phien. San pham co the dua len dau gia lai.")));
+    }
 }

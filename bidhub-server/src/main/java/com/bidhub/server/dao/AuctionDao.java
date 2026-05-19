@@ -341,8 +341,13 @@ public class AuctionDao {
                     String existing = result.get(itemId);
                     if (existing == null) {
                         result.put(itemId, status);
-                    } else if ("RUNNING".equals(status)) {
-                        result.put(itemId, "RUNNING");
+                    } else {
+                        // Ưu tiên: RUNNING > OPEN > PAID > FINISHED > CANCELED
+                        int newPri = priority(status);
+                        int oldPri = priority(existing);
+                        if (newPri < oldPri) {
+                            result.put(itemId, status);
+                        }
                     }
                 }
             }
@@ -352,6 +357,17 @@ public class AuctionDao {
             releaseConnection(conn);
         }
         return result;
+    }
+
+    private int priority(String status) {
+        return switch (status) {
+            case "RUNNING"  -> 1;   // đang đấu giá — ưu tiên cao nhất
+            case "OPEN"     -> 2;   // sắp bắt đầu
+            case "PAID"     -> 3;   // đã bán
+            case "FINISHED" -> 4;   // chờ thanh toán
+            case "CANCELED" -> 5;   // đã hủy — ưu tiên thấp nhất
+            default         -> 6;
+        };
     }
 
     /**

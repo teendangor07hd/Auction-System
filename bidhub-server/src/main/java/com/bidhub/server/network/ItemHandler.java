@@ -231,11 +231,12 @@ class ItemHandler {
             String auctionStatus;
             if (rawStatus == null) {
                 auctionStatus = "AVAILABLE";
-            } else if ("RUNNING".equals(rawStatus)) {
+            } else if ("RUNNING".equals(rawStatus) || "OPEN".equals(rawStatus)) {
                 auctionStatus = "AUCTIONING";
-            } else if ("CLOSED".equals(rawStatus) || "FINISHED".equals(rawStatus)) {
+            } else if ("PAID".equals(rawStatus)) {
                 auctionStatus = "SOLD";
             } else {
+                // FINISHED, CANCELED → sản phẩm chưa bán, có thể đấu giá lại
                 auctionStatus = "AVAILABLE";
             }
             info.put("auctionStatus", auctionStatus);

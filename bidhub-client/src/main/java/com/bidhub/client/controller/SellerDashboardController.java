@@ -301,8 +301,22 @@ public class SellerDashboardController {
         Label lblName = new Label(itemName);
         lblName.setStyle("-fx-text-fill: white; -fx-font-weight: bold; -fx-font-size: 14px;");
 
-        String statusVN    = switch (status) { case "RUNNING" -> "🔥 Đang diễn ra"; case "PENDING" -> "⏳ Sắp bắt đầu"; case "CLOSED" -> "✅ Đã kết thúc"; default -> status; };
-        String statusColor = switch (status) { case "RUNNING" -> "#EF4444"; case "PENDING" -> "#F59E0B"; default -> "#64748B"; };
+        String statusVN = switch (status) { 
+            case "RUNNING" -> "🔥 Đang diễn ra"; 
+            case "OPEN" -> "⏳ Sắp bắt đầu"; 
+            case "FINISHED" -> "🏆 Đã kết thúc — chờ thanh toán"; 
+            case "PAID" -> "✅ Đã thanh toán"; 
+            case "CANCELED" -> "🚫 Đã hủy"; 
+            default -> status; 
+        };
+        String statusColor = switch (status) { 
+            case "RUNNING" -> "#EF4444"; 
+            case "OPEN" -> "#F59E0B"; 
+            case "FINISHED" -> "#3B82F6"; 
+            case "PAID" -> "#10B981"; 
+            case "CANCELED" -> "#64748B"; 
+            default -> "#64748B"; 
+        };
         Label lblStatus = new Label(statusVN);
         lblStatus.setStyle("-fx-text-fill: " + statusColor + "; -fx-font-size: 11px; -fx-font-weight: bold;");
 
@@ -336,13 +350,29 @@ public class SellerDashboardController {
         btnCancel.setStyle("-fx-background-color: rgba(239,68,68,0.1); -fx-text-fill: #EF4444; -fx-background-radius: 8; -fx-cursor: hand; -fx-padding: 7 16; -fx-border-color: rgba(239,68,68,0.3); -fx-border-radius: 8; -fx-font-size: 12px;");
         btnCancel.setOnAction(e -> confirmCancelAuction(aucId, itemName));
 
-        // Chỉ cho hủy khi đang PENDING (chưa bắt đầu)
-        if ("RUNNING".equals(status) || "CLOSED".equals(status)) {
+        // Nút xác nhận đã thanh toán (chỉ hiện khi FINISHED)
+        Button btnMarkPaid = new Button("💰 Đã thanh toán");
+        btnMarkPaid.setStyle("-fx-background-color: rgba(16,185,129,0.1); -fx-text-fill: #10B981; -fx-background-radius: 8; -fx-cursor: hand; -fx-padding: 7 16; -fx-border-color: rgba(16,185,129,0.3); -fx-border-radius: 8; -fx-font-size: 12px;");
+        btnMarkPaid.setOnAction(e -> confirmMarkPaid(aucId, itemName));
+
+        // Nút hủy vì bidder không mua (chỉ hiện khi FINISHED)
+        Button btnCancelWinner = new Button("❌ Bidder không mua");
+        btnCancelWinner.setStyle("-fx-background-color: rgba(239,68,68,0.1); -fx-text-fill: #EF4444; -fx-background-radius: 8; -fx-cursor: hand; -fx-padding: 7 16; -fx-border-color: rgba(239,68,68,0.3); -fx-border-radius: 8; -fx-font-size: 12px;");
+        btnCancelWinner.setOnAction(e -> confirmCancelWinner(aucId, itemName));
+
+        // Logic hiển thị nút theo trạng thái
+        if ("OPEN".equals(status)) {
+            // OPEN: chỉ cho hủy phiên (chưa bắt đầu)
+            actions.getChildren().addAll(btnView, btnCancel);
+        } else if ("FINISHED".equals(status)) {
+            // FINISHED: hiện nút thanh toán + hủy vì không mua, ẩn nút hủy phiên cũ
+            actions.getChildren().addAll(btnView, btnMarkPaid, btnCancelWinner);
+        } else {
+            // RUNNING / PAID / CANCELED: chỉ xem
             btnCancel.setDisable(true);
             btnCancel.setStyle(btnCancel.getStyle() + " -fx-opacity: 0.4;");
+            actions.getChildren().addAll(btnView, btnCancel);
         }
-
-        actions.getChildren().addAll(btnView, btnCancel);
         row.getChildren().addAll(thumb, info, actions);
         return row;
     }
@@ -520,5 +550,57 @@ public class SellerDashboardController {
                 iv.setImage(img);
             } catch (Exception ignored) {}
         }
+    }
+
+    private void confirmMarkPaid(String aucId, String itemName) {
+        Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
+        alert.setTitle("Xác nhận thanh toán");
+        alert.setHeaderText(null);
+        alert.setContentText("Xác nhận người thắng đã thanh toán cho \"" + itemName + "\"?");
+        alert.showAndWait().ifPresent(btn -> {
+            if (btn == ButtonType.OK) markPaid(aucId);
+        });
+    }
+
+    private void markPaid(String aucId) {
+        ObjectNode payload = mapper.createObjectNode();
+        payload.put("auctionId", aucId);
+        MessageRequest req = new MessageRequest("MARK_PAID", ClientSession.getInstance().getToken(), payload);
+        NetworkTask<MessageResponse> task = new NetworkTask<>(() -> ServerGateway.getInstance().sendRequest(req));
+        task.setOnSucceeded(e -> {
+            MessageResponse resp = task.getValue();
+            Platform.runLater(() -> {
+                if (resp.isOk()) { UiUtils.showInfo("Thành công", "Đã xác nhận thanh toán."); loadMyAuctions(); }
+                else UiUtils.showError("Lỗi", resp.getMessage());
+            });
+        });
+        task.setOnFailed(e -> Platform.runLater(() -> UiUtils.showError("Lỗi kết nối", "Không kết nối được máy chủ.")));
+        new Thread(task, "mark-paid").start();
+    }
+
+    private void confirmCancelWinner(String aucId, String itemName) {
+        Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
+        alert.setTitle("Hủy phiên — Bidder không mua");
+        alert.setHeaderText(null);
+        alert.setContentText("Xác nhận hủy phiên \"" + itemName + "\" vì người thắng không thanh toán?\nSản phẩm sẽ có thể đưa lên đấu giá lại.");
+        alert.showAndWait().ifPresent(btn -> {
+            if (btn == ButtonType.OK) cancelWinner(aucId);
+        });
+    }
+
+    private void cancelWinner(String aucId) {
+        ObjectNode payload = mapper.createObjectNode();
+        payload.put("auctionId", aucId);
+        MessageRequest req = new MessageRequest("SELLER_CANCEL_FINISHED", ClientSession.getInstance().getToken(), payload);
+        NetworkTask<MessageResponse> task = new NetworkTask<>(() -> ServerGateway.getInstance().sendRequest(req));
+        task.setOnSucceeded(e -> {
+            MessageResponse resp = task.getValue();
+            Platform.runLater(() -> {
+                if (resp.isOk()) { UiUtils.showInfo("Đã hủy", "Phiên đã hủy. Sản phẩm có thể đấu giá lại."); loadMyAuctions(); }
+                else UiUtils.showError("Lỗi", resp.getMessage());
+            });
+        });
+        task.setOnFailed(e -> Platform.runLater(() -> UiUtils.showError("Lỗi kết nối", "Không kết nối được máy chủ.")));
+        new Thread(task, "cancel-winner").start();
     }
 }
