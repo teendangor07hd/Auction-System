@@ -41,6 +41,20 @@ class AuctionHandler {
                             "Ban khong co quyen tao phien cho san pham nay."));
         }
 
+        // Kiểm tra: sản phẩm đã có phiên đấu giá đang hoạt động chưa?
+        boolean hasActiveAuction = AuctionManager.getInstance().getAllActive().stream()
+                .anyMatch(a -> a.getItemId().equals(itemId)
+                        && (a.getStatus() == AuctionStatus.OPEN
+                        || a.getStatus() == AuctionStatus.RUNNING));
+        if (!hasActiveAuction) {
+            hasActiveAuction = handler.auctionDao.findActiveAuctions().stream()
+                    .anyMatch(a -> a.getItemId().equals(itemId));
+        }
+        if (hasActiveAuction) {
+            return MessageMapper.toJson(
+                    MessageResponse.error("CREATE_AUCTION",
+                            "San pham nay dang co phien dau gia hoat dong. Khong the tao phien moi."));
+        }
         double startingPrice;
         if (payload.has("startingPrice") && payload.get("startingPrice").isNumber()) {
             startingPrice = payload.get("startingPrice").asDouble();
