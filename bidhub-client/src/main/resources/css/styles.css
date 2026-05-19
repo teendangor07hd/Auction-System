@@ -169,7 +169,6 @@
     -fx-background-radius: 8px;
 }
 
-/* 7. CHART (Biểu đồ) - Binance Dark Theme */
 .chart {
     -fx-padding: 10px;
     -fx-background-color: #1E2329;
@@ -221,4 +220,22 @@
 /* Ẩn bớt border bao quanh plot area nếu cần */
 .chart-content {
     -fx-padding: 15px;
+}
+
+/* 8. SPLIT PANE (Thanh kéo giãn TradingView) */
+.split-pane {
+    -fx-background-color: transparent;
+    -fx-box-border: transparent;
+    -fx-padding: 0;
+}
+
+.split-pane .split-pane-divider {
+    -fx-background-color: #2B3139; /* Đường viền xám tối ăn khớp với viền bảng xếp hạng */
+    -fx-padding: 0 2px 0 2px;
+    -fx-background-insets: 0;
+    -fx-cursor: h-resize;
+}
+
+.split-pane .split-pane-divider:hover {
+    -fx-background-color: #4F46E5; /* Phát sáng màu xanh Indigo khi rê chuột vào */
 }

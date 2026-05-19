@@ -28,12 +28,12 @@ public final class RequestHandler {
 
     private static final Set<String> AUTH_REQUIRED = Set.of(
             "LOGOUT", "CREATE_ITEM", "DELETE_ITEM",
-            "LIST_MY_ITEMS", "CREATE_AUCTION", "PLACE_BID", "GET_AUCTION_DETAIL",
+            "LIST_MY_ITEMS", "CREATE_AUCTION", "PLACE_BID",
             "GET_USER_LIST", "LOCK_USER", "UNLOCK_USER",
             "GET_BID_HISTORY_REPORT", "GET_AUDIT_LOG", "RUN_INTEGRITY_CHECK",
             "SEND_NOTIFICATION", "GET_NOTIFICATIONS",
             "GET_MY_AUCTIONS", "UPDATE_ITEM", "CANCEL_AUCTION",
-            "SUBSCRIBE_AUCTION", "MARK_NOTIFICATION_READ",
+            "MARK_NOTIFICATION_READ",
             "ADMIN_STOP_AUCTION", "ADMIN_DELETE_AUCTION",
             "GET_WON_AUCTIONS"
     );

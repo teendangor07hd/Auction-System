@@ -20,6 +20,8 @@ import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.fxml.FXML;
 import javafx.scene.chart.LineChart;
+import javafx.scene.chart.NumberAxis;
+import javafx.scene.chart.XYChart;
 import javafx.scene.control.*;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
@@ -42,6 +44,7 @@ public class AuctionDetailController implements ContextAware {
     @FXML private Label lblDescription;
     @FXML private ImageView imgProduct;
     @FXML private Label lblStartingPrice;
+    @FXML private Label lblMinIncrement;
     @FXML private Label lblCurrentPrice;
     @FXML private Label lblHighestBidder;
     @FXML private Label lblCountdown;
@@ -63,9 +66,12 @@ public class AuctionDetailController implements ContextAware {
     @FXML
     private LineChart<String, Number> bidChart;
 
+
+
     @FXML private TableView<JsonNode> bidTable;
     @FXML private TableColumn<JsonNode, String> colBidderName;
     @FXML private TableColumn<JsonNode, String> colBidAmount;
+    @FXML private TableColumn<JsonNode, String> colBidTime;
 
     // --- Logic Fields ---
     private final ObservableList<JsonNode> bidData = FXCollections.observableArrayList();
@@ -109,6 +115,16 @@ public class AuctionDetailController implements ContextAware {
                 new javafx.beans.property.SimpleStringProperty(cellData.getValue().path("bidderName").asText("Unknown")));
         colBidAmount.setCellValueFactory(cellData ->
                 new javafx.beans.property.SimpleStringProperty(String.format("%,.0f VND", cellData.getValue().path("bidAmount").asDouble(0))));
+        colBidTime.setCellValueFactory(cellData -> {
+            String rawTime = cellData.getValue().path("bidTime").asText("");
+            if (rawTime.isEmpty()) return new javafx.beans.property.SimpleStringProperty("—");
+            try {
+                LocalDateTime ldt = LocalDateTime.parse(rawTime);
+                return new javafx.beans.property.SimpleStringProperty(ldt.format(java.time.format.DateTimeFormatter.ofPattern("HH:mm:ss dd/MM")));
+            } catch (Exception e) {
+                return new javafx.beans.property.SimpleStringProperty(rawTime);
+            }
+        });
         bidTable.setItems(bidData);
 
         // 📌 [Tieu chi: UX — TextField chi nhan so]
@@ -121,6 +137,12 @@ public class AuctionDetailController implements ContextAware {
             bidChart.getData().add(bidChartService.getSeries());
             bidChart.setAnimated(false); // Tắt animation để realtime update nhanh hơn
             bidChart.setCreateSymbols(true);
+            if (bidChart.getYAxis() instanceof javafx.scene.chart.NumberAxis yAxis) {
+                yAxis.setForceZeroInRange(false);
+            }
+            if (bidChart.getXAxis() instanceof javafx.scene.chart.CategoryAxis xAxis) {
+                xAxis.setTickLabelRotation(0);
+            }
         }
 
         // Nút zoom đồ thị
@@ -194,6 +216,7 @@ public class AuctionDetailController implements ContextAware {
         }
 
         lblStartingPrice.setText(String.format("%,.0f VND", auction.path("startingPrice").asDouble(0)));
+        lblMinIncrement.setText(String.format("%,.0f VND", auction.path("minimumIncrement").asDouble(0)));
         lblCurrentPrice.setText(String.format("%,.0f VND", auction.path("currentHighestBid").asDouble(0)));
         lblHighestBidder.setText(auction.path("highestBidderName").asText(auction.path("highestBidderId").asText("Chưa có")));
 
@@ -229,6 +252,9 @@ public class AuctionDetailController implements ContextAware {
             bids.sort((b1, b2) -> Double.compare(b2.path("bidAmount").asDouble(0), b1.path("bidAmount").asDouble(0)));
             bidData.addAll(bids);
         }
+
+        // Cập nhật kích thước biểu đồ tối ưu
+        updateChartWidth();
 
         String status = auction.path("status").asText("");
         String statusVN = switch (status) {
@@ -317,8 +343,20 @@ public class AuctionDetailController implements ContextAware {
                             lblCurrentPrice.setStyle("-fx-background-color: #FEF08A; -fx-text-fill: #B45309; -fx-padding: 2 8; -fx-background-radius: 4;");
                             new Timeline(new KeyFrame(Duration.millis(600), k -> lblCurrentPrice.setStyle(""))).play();
 
+                            // Đảm bảo eventNode có bidTime để hiển thị cột thời gian đồng nhất trên bảng xếp hạng
+                            if (eventNode instanceof com.fasterxml.jackson.databind.node.ObjectNode objNode) {
+                                String ts = eventNode.path("timestamp").asText("");
+                                if (ts.isEmpty()) {
+                                    ts = LocalDateTime.now().toString();
+                                }
+                                objNode.put("bidTime", ts);
+                            }
+
                             // 📌 [Tieu chi: Price Chart — realtime addDataPoint khi nhan BID_UPDATE]
                             bidChartService.addDataPoint(LocalDateTime.now(), newPrice, bidder);
+
+                            // Cập nhật kích thước biểu đồ khi có điểm mới
+                            updateChartWidth();
 
                             // Them vao bang xep hang va sap xep
                             bidData.add(eventNode);
@@ -358,6 +396,11 @@ public class AuctionDetailController implements ContextAware {
      * Xử lý gửi yêu cầu đặt giá lên Server.
      */
     private void placeBid() {
+        if (!ClientSession.getInstance().isLoggedIn()) {
+            UiUtils.showError("Yêu cầu đăng nhập", "Bạn cần đăng nhập để thực hiện đặt giá.");
+            return;
+        }
+
         // Client-side validation
         if (!UiUtils.validateNotEmpty(tfBidAmount, "Số tiền đặt giá")) {
             return;
@@ -668,6 +711,22 @@ public class AuctionDetailController implements ContextAware {
             pt.setDelay(Duration.millis(idx * 60));
             pt.setOnFinished(e2 -> finalOverlay.getChildren().remove(lbl));
             pt.play();
+        }
+    }
+
+    private void updateChartWidth() {
+        if (bidChart != null && bidChartService != null) {
+            int numPoints = bidChartService.getSeries().getData().size();
+            double computedWidth = Math.max(700, numPoints * 80);
+            bidChart.setPrefWidth(computedWidth);
+            bidChart.setMinWidth(computedWidth);
+            
+            // Auto scroll to the newest bids on the right
+            Platform.runLater(() -> {
+                if (chartScrollPane != null) {
+                    chartScrollPane.setHvalue(1.0);
+                }
+            });
         }
     }
 }
