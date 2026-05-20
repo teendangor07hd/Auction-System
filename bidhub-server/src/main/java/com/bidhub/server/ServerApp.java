@@ -3,47 +3,60 @@ package com.bidhub.server;
 import com.bidhub.server.config.ConfigLoader;
 import com.bidhub.server.config.MigrationRunner;
 import com.bidhub.server.network.SocketServerCore;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 
 /**
- * Entry point của BidHub Server.
+ * Entry point cua BidHub Server.
  *
- * <p>Tuần 1: Chỉ in thông tin khởi động, kiểm tra ConfigLoader hoạt động.
- * Socket server sẽ được implement ở Tuần 4.
+ * <p>Tuan 1: Chi in thong tin khoi dong, kiem tra ConfigLoader hoat dong.
+ * Socket server se duoc implement o Tuan 4.
  */
 public class ServerApp {
+
+    private static final Logger logger = LoggerFactory.getLogger(ServerApp.class);
 
     public static final String APP_NAME = "BidHub Server";
     public static final String VERSION = "1.0-SNAPSHOT";
 
     /**
-     * Trả về welcome message — dùng trong test để không cần chạy main().
+     * Tra ve welcome message — dung trong test de khong can chay main().
      *
-     * @return chuỗi thông báo khởi động
+     * @return chuoi thong bao khoi dong
      */
     public static String getWelcomeMessage() {
-        return APP_NAME + " v" + VERSION + " — Hệ thống đấu giá trực tuyến";
+        return APP_NAME + " v" + VERSION + " — He thong dau gia truc tuyen";
     }
 
     /**
-     * Entry point chính. Đọc port từ config và in ra.
+     * Entry point chinh. Doc port tu config, khoi tao DB, AuctionManager, va socket server.
      *
-     * @param args tham số dòng lệnh (không dùng ở tuần 1)
+     * @param args tham so dong lenh (khong dung)
      */
     public static void main(String[] args)  throws IOException {
         MigrationRunner.run();
-        System.out.println(getWelcomeMessage());
+        logger.info(getWelcomeMessage());
         int port = ConfigLoader.getInt("server.port");
-        System.out.println("Cổng lắng nghe: " + port);
-        System.out.println("Database: " + ConfigLoader.getString("db.path"));
-        System.out.println("Server sẵn sàng. Socket server sẽ implement tuần 4.");
-        SocketServerCore server = new SocketServerCore();
-        server.start(port); // dùng biến port đã lấy ở trên để nhất quán
-        // === THÊM VÀO ServerApp.main() — sau SocketServerCore.start() ===
+        logger.info("Cong lang nghe: {}", port);
+        logger.info("Database: {}", ConfigLoader.getString("db.path"));
 
         // 📌 [Tieu chi: Singleton + Ky thuat quan trong — AuctionManager lifecycle]
         com.bidhub.server.service.AuctionManager.getInstance().start();
-        System.out.println("[ServerApp] AuctionManager da khoi dong.");
+        logger.info("[ServerApp] AuctionManager da khoi dong.");
+
+        // 📌 [Tieu chi: Ky thuat quan trong — shutdown hook dam bao AuctionManager.stop()
+        //    duoc goi khi JVM shutdown, giai phong ScheduledExecutorService]
+        Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+            logger.info("[ServerApp] Shutdown hook — dang dung AuctionManager...");
+            com.bidhub.server.service.AuctionManager.getInstance().stop();
+        }, "auction-manager-shutdown"));
+
+        // 📌 [Tieu chi: Ky thuat quan trong — server.start() la blocking call,
+        //    dat cuoi cung sau khi tat ca setup hoan thanh]
+        logger.info("Server san sang — bat dau lang nghe ket noi.");
+        SocketServerCore server = new SocketServerCore();
+        server.start(port);
     }
 }

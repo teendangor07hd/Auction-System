@@ -53,7 +53,7 @@ public final class Vehicle extends Item {
                    String manufacturer, int year, int mileageKm) {
         super(id, createdAt, updatedAt, name, description, startingPrice, sellerId,
                 com.bidhub.server.model.ItemType.VEHICLE);
-        if (manufacturer == null) throw new IllegalArgumentException("manufacturer không được null");
+        Objects.requireNonNull(manufacturer, "manufacturer không được null");
         if (mileageKm < 0) throw new IllegalArgumentException("mileageKm không được âm");
         this.manufacturer = manufacturer;
         this.year = year;

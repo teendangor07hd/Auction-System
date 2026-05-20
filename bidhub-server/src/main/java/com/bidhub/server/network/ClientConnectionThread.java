@@ -4,47 +4,51 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import com.bidhub.server.service.NotificationBroker;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 
 /**
- * Runnable xử lý 1 client: đọc JSON → RequestHandler → sendMessage.
+ * Runnable xu ly 1 client: doc JSON → RequestHandler → sendMessage.
  *
- * <p>Cleanup session trong finally — socket luôn được đóng dù có exception.
+ * <p>Cleanup session trong finally — socket luon duoc dong du co exception.
  */
 public final class ClientConnectionThread implements Runnable {
+
+    private static final Logger logger = LoggerFactory.getLogger(ClientConnectionThread.class);
 
     private final Session session;
     private final RequestHandler handler;
 
-    public ClientConnectionThread(Session session) {
+    public ClientConnectionThread(Session session, RequestHandler handler) {
         this.session = session;
-        this.handler = new RequestHandler();
+        this.handler = handler;
     }
 
     @Override
     public void run() {
-        System.out.println("[ClientThread] Session bắt đầu: " + session.getSessionId());
+        logger.info("Session bat dau: {}", session.getSessionId());
         try (BufferedReader reader = new BufferedReader(
                 new InputStreamReader(session.getSocket().getInputStream()))) {
 
             String line;
-            // readLine() → null khi client đóng connection (EOF) → thoát vòng lặp sạch
+            // readLine() → null khi client dong connection (EOF) → thoat vong lap sach
             while ((line = reader.readLine()) != null) {
                 String response = handler.handle(line, session);
                 session.sendMessage(response);
             }
 
         } catch (IOException e) {
-            // Client ngắt đột ngột (Ctrl+C, kill process...) — không phải lỗi server
-            System.out.println("[ClientThread] Client ngắt: " + session.getSessionId());
+            // Client ngat dot ngot (Ctrl+C, kill process...) — khong phai loi server
+            logger.info("Client ngat: {}", session.getSessionId());
         } finally {
             session.disconnect();
             try {
                 NotificationBroker.getInstance().unsubscribeAll(session);
             } catch (Exception e) {
-                System.err.println("[ClientConnectionThread] unsubscribeAll loi: " + e.getMessage());
+                logger.error("unsubscribeAll loi: {}", e.getMessage(), e);
             }
-            System.out.println("[ClientThread] Cleanup xong: " + session.getSessionId());
+            logger.info("Cleanup xong: {}", session.getSessionId());
         }
     }
 }

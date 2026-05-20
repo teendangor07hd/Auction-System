@@ -6,35 +6,127 @@
 
 <VBox xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1"
       fx:controller="com.bidhub.client.controller.AdminController"
-      spacing="15" styleClass="container" prefWidth="800" prefHeight="600">
+      spacing="10" styleClass="container" prefWidth="1000" prefHeight="700">
 
-    <HBox styleClass="header" alignment="CENTER">
-        <Label text="Admin Panel — Quản lý người dùng" styleClass="title-label" />
-    </HBox>
-
-    <HBox spacing="10" alignment="CENTER_LEFT">
-        <Button text="Khóa tài khoản" fx:id="lockBtn" disable="true"
-                styleClass="btn-danger" onAction="#handleLockUser" />
-        <Button text="Mở khóa tài khoản" fx:id="unlockBtn" disable="true"
-                styleClass="btn-success" onAction="#handleUnlockUser" />
-        <Button text="Làm mới" onAction="#handleRefresh"
-                styleClass="btn-secondary" />
+    <HBox styleClass="header" alignment="CENTER" spacing="15">
+        <Label text="Admin Panel — Quản lý &amp; Báo cáo" styleClass="title-label" />
         <Region HBox.hgrow="ALWAYS" />
-        <Button text="Quay lại" onAction="#handleBack"
-                styleClass="btn-secondary" />
+        <Button text="Quay lại" onAction="#handleBack" styleClass="btn-secondary" />
     </HBox>
 
-    <TableView fx:id="userTable" VBox.vgrow="ALWAYS" styleClass="table-view">
-        <columns>
-            <TableColumn fx:id="colUsername" text="Username" prefWidth="150" />
-            <TableColumn fx:id="colEmail" text="Email" prefWidth="250" />
-            <TableColumn fx:id="colRole" text="Role" prefWidth="120" />
-            <TableColumn fx:id="colStatus" text="Status" prefWidth="120" />
-        </columns>
-        <columnResizePolicy>
-            <TableView fx:constant="CONSTRAINED_RESIZE_POLICY" />
-        </columnResizePolicy>
-    </TableView>
+    <TabPane VBox.vgrow="ALWAYS" tabClosingPolicy="UNAVAILABLE" fx:id="adminTabPane">
+        <tabs>
+            <!-- Tab 1: Người dùng -->
+            <Tab text="Người dùng">
+                <VBox spacing="10" style="-fx-padding: 10;">
+                    <HBox spacing="10" alignment="CENTER_LEFT">
+                        <Button text="Khóa tài khoản" fx:id="lockBtn" disable="true"
+                                styleClass="btn-danger" onAction="#handleLockUser" />
+                        <Button text="Mở khóa tài khoản" fx:id="unlockBtn" disable="true"
+                                styleClass="btn-success" onAction="#handleUnlockUser" />
+                        <Button text="Làm mới" onAction="#handleRefresh"
+                                styleClass="btn-secondary" />
+                        <Button text="Kiểm tra Toàn vẹn" onAction="#handleRunIntegrityCheck"
+                                styleClass="btn-warning" style="-fx-background-color: #F59E0B; -fx-text-fill: white;" />
+                        <Region HBox.hgrow="ALWAYS" />
+                        <ComboBox fx:id="cbUserRoleFilter" promptText="Lọc Vai trò" prefWidth="130" onAction="#filterUsers"/>
+                        <ComboBox fx:id="cbUserStatusFilter" promptText="Lọc Trạng thái" prefWidth="140" onAction="#filterUsers"/>
+                        <TextField fx:id="tfUserSearch" promptText="🔍 Tìm Username/Email..." prefWidth="200" onKeyReleased="#filterUsers"/>
+                    </HBox>
+                    <TableView fx:id="userTable" VBox.vgrow="ALWAYS" styleClass="table-view">
+                        <columns>
+                            <TableColumn fx:id="colUsername" text="Username" prefWidth="150" />
+                            <TableColumn fx:id="colEmail" text="Email" prefWidth="250" />
+                            <TableColumn fx:id="colRole" text="Role" prefWidth="120" />
+                            <TableColumn fx:id="colStatus" text="Status" prefWidth="120" />
+                        </columns>
+                        <columnResizePolicy>
+                            <TableView fx:constant="CONSTRAINED_RESIZE_POLICY" />
+                        </columnResizePolicy>
+                    </TableView>
+                </VBox>
+            </Tab>
+
+            <!-- Tab 2: Báo cáo Auction -->
+            <Tab text="Báo cáo Auction" onSelectionChanged="#handleAuctionReportTab">
+                <VBox spacing="10" style="-fx-padding: 10;">
+                    <HBox spacing="10" alignment="CENTER_LEFT">
+                        <Button text="Làm mới" onAction="#loadAuctionReport" styleClass="btn-secondary" />
+                        <Button fx:id="stopAuctionBtn" text="Dừng phiên" onAction="#stopAuction" styleClass="btn-danger" disable="true" />
+                        <Button fx:id="deleteAuctionBtn" text="Xóa phiên" onAction="#deleteAuction" styleClass="btn-danger" disable="true" />
+                        <Region HBox.hgrow="ALWAYS" />
+                        <ComboBox fx:id="cbAuctionStatusFilter" promptText="Lọc Trạng thái" prefWidth="150" onAction="#filterAuctions"/>
+                        <TextField fx:id="tfAuctionSearch" promptText="🔍 Tìm Tên sản phẩm/Người thắng..." prefWidth="250" onKeyReleased="#filterAuctions"/>
+                    </HBox>
+                    <TableView fx:id="auctionReportTable" VBox.vgrow="ALWAYS" styleClass="table-view">
+                        <columns>
+                            <TableColumn fx:id="colAuctionItemName" text="Tên sản phẩm" prefWidth="250" />
+                            <TableColumn fx:id="colAuctionStatus" text="Trạng thái" prefWidth="120" />
+                            <TableColumn fx:id="colAuctionStartPrice" text="Giá khởi điểm" prefWidth="140" />
+                            <TableColumn fx:id="colAuctionHighestBid" text="Giá cao nhất" prefWidth="140" />
+                            <TableColumn fx:id="colAuctionWinnerName" text="Người thắng" prefWidth="180" />
+                            <TableColumn fx:id="colAuctionId" text="Auction ID" prefWidth="80" />
+                            <TableColumn fx:id="colAuctionItem" text="Item ID" prefWidth="80" />
+                            <TableColumn fx:id="colAuctionWinner" text="Winner ID" prefWidth="80" />
+                        </columns>
+                        <columnResizePolicy>
+                            <TableView fx:constant="UNCONSTRAINED_RESIZE_POLICY" />
+                        </columnResizePolicy>
+                    </TableView>
+                </VBox>
+            </Tab>
+
+            <!-- Tab 3: Lịch sử Bid -->
+            <Tab text="Lịch sử Bid" onSelectionChanged="#handleBidHistoryTab">
+                <VBox spacing="10" style="-fx-padding: 10;">
+                    <HBox spacing="10" alignment="CENTER_LEFT">
+                        <Button text="Làm mới" onAction="#loadBidHistory" styleClass="btn-secondary" />
+                        <Region HBox.hgrow="ALWAYS" />
+                        <TextField fx:id="tfBidSearch" promptText="🔍 Tìm theo Người đặt giá..." prefWidth="250" onKeyReleased="#filterBids"/>
+                    </HBox>
+                    <TableView fx:id="bidHistoryTable" VBox.vgrow="ALWAYS" styleClass="table-view">
+                        <columns>
+                            <TableColumn fx:id="colBidItemName" text="Tên sản phẩm" prefWidth="250" />
+                            <TableColumn fx:id="colBidderName" text="Người đặt giá" prefWidth="200" />
+                            <TableColumn fx:id="colBidAmount" text="Số tiền Bid" prefWidth="150" />
+                            <TableColumn fx:id="colBidTime" text="Thời gian Bid" prefWidth="200" />
+                            <TableColumn fx:id="colBidId" text="Bid ID" prefWidth="80" />
+                            <TableColumn fx:id="colBidAuctionId" text="Auction ID" prefWidth="80" />
+                            <TableColumn fx:id="colBidderId" text="Bidder ID" prefWidth="80" />
+                        </columns>
+                        <columnResizePolicy>
+                            <TableView fx:constant="UNCONSTRAINED_RESIZE_POLICY" />
+                        </columnResizePolicy>
+                    </TableView>
+                </VBox>
+            </Tab>
+
+            <!-- Tab 4: Nhật ký Hệ thống -->
+            <Tab text="Nhật ký Hệ thống" onSelectionChanged="#handleAuditLogTab">
+                <VBox spacing="10" style="-fx-padding: 10;">
+                    <HBox spacing="10" alignment="CENTER_LEFT">
+                        <Button text="Làm mới" onAction="#loadAuditLog" styleClass="btn-secondary" />
+                        <Region HBox.hgrow="ALWAYS" />
+                        <ComboBox fx:id="cbAuditActionFilter" promptText="Lọc Hành động" prefWidth="160" onAction="#filterAuditLogs"/>
+                        <TextField fx:id="tfAuditSearch" promptText="🔍 Tìm Người dùng hoặc Chi tiết..." prefWidth="250" onKeyReleased="#filterAuditLogs"/>
+                    </HBox>
+                    <TableView fx:id="auditLogTable" VBox.vgrow="ALWAYS" styleClass="table-view">
+                        <columns>
+                            <TableColumn fx:id="colAuditTime" text="Thời gian" prefWidth="180" />
+                            <TableColumn fx:id="colAuditUserName" text="Người dùng" prefWidth="180" />
+                            <TableColumn fx:id="colAuditAction" text="Hành động" prefWidth="180" />
+                            <TableColumn fx:id="colAuditDetails" text="Chi tiết" prefWidth="350" />
+                            <TableColumn fx:id="colAuditId" text="Log ID" prefWidth="80" />
+                            <TableColumn fx:id="colAuditUser" text="User ID" prefWidth="80" />
+                        </columns>
+                        <columnResizePolicy>
+                            <TableView fx:constant="UNCONSTRAINED_RESIZE_POLICY" />
+                        </columnResizePolicy>
+                    </TableView>
+                </VBox>
+            </Tab>
+        </tabs>
+    </TabPane>
 
     <Label fx:id="statusLabel" styleClass="status-label" />
 

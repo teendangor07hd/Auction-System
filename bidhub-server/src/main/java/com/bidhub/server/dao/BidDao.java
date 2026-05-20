@@ -99,7 +99,7 @@ public class BidDao {
         String sql = """
         SELECT * FROM bid_transactions
         WHERE auction_id = ?
-        ORDER BY bid_amount DESC
+        ORDER BY bid_amount DESC, bid_time ASC
         LIMIT 1
         """;
         Connection conn = null;
@@ -113,6 +113,41 @@ public class BidDao {
             }
         } catch (SQLException e) {
             throw new RuntimeException("BidDao.getHighestBid thất bại: " + e.getMessage(), e);
+        } finally {
+            releaseConnection(conn);
+        }
+    }
+
+    public List<BidTransaction> findAll() {
+        String sql = "SELECT * FROM bid_transactions ORDER BY bid_time DESC";
+        Connection conn = null;
+        try {
+            conn = acquireConnection();
+            try (PreparedStatement ps = conn.prepareStatement(sql);
+                 ResultSet rs = ps.executeQuery()) {
+                List<BidTransaction> result = new ArrayList<>();
+                while (rs.next()) result.add(mapRow(rs));
+                return result;
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException("BidDao.findAll thất bại: " + e.getMessage(), e);
+        } finally {
+            releaseConnection(conn);
+        }
+    }
+
+    public int countDistinctBidders() {
+        String sql = "SELECT COUNT(DISTINCT bidder_id) FROM bid_transactions";
+        Connection conn = null;
+        try {
+            conn = acquireConnection();
+            try (PreparedStatement ps = conn.prepareStatement(sql);
+                 ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) return rs.getInt(1);
+                return 0;
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException("BidDao.countDistinctBidders that bai: " + e.getMessage(), e);
         } finally {
             releaseConnection(conn);
         }

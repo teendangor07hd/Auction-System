@@ -2,6 +2,7 @@ package com.bidhub.client.service;
 
 import javafx.collections.ObservableList;
 import javafx.scene.chart.XYChart;
+import javafx.scene.control.Tooltip;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 
@@ -22,6 +23,8 @@ public final class BidChartService {
     // 📌 [Tieu chi: Price Chart — XYChart.Series cho du lieu bieu do gia]
     private final XYChart.Series<String, Number> series;
     private static final DateTimeFormatter TIME_FORMATTER = DateTimeFormatter.ofPattern("HH:mm:ss");
+
+    private int pointIndex = 0;
 
     /**
      * Tao BidChartService — khoi tao series voi ten "Lịch sử giá".
@@ -45,8 +48,55 @@ public final class BidChartService {
      */
     // 📌 [Tieu chi: Kỹ thuật quan trọng — DateTimeFormatter format LocalDateTime → String]
     public void addDataPoint(LocalDateTime time, double price) {
+        addDataPoint(time, price, "Khách");
+    }
+
+    /**
+     * Them data point moi vao series — thoi gian, gia, va ten nguoi dat gia.
+     *
+     * @param time       thoi gian dat gia
+     * @param price      gia dat
+     * @param bidderName ten nguoi dat gia
+     */
+    public void addDataPoint(LocalDateTime time, double price, String bidderName) {
         String timeStr = time.format(TIME_FORMATTER);
-        series.getData().add(new XYChart.Data<>(timeStr, price));
+        String labelStr;
+
+        // Tránh chồng chéo bằng cách chỉ hiển thị nhãn chữ cho mỗi 7 điểm dữ liệu,
+        // các điểm khác dùng số lượng ký tự zero-width space duy nhất để JavaFX không gộp nhóm coordinate.
+        if (pointIndex == 0 || bidderName.equals("Giá khởi điểm") || pointIndex % 7 == 0) {
+            StringBuilder sb = new StringBuilder(timeStr);
+            for (int i = 0; i < pointIndex; i++) {
+                sb.append("\u200B");
+            }
+            labelStr = sb.toString();
+        } else {
+            StringBuilder sb = new StringBuilder();
+            for (int i = 0; i < pointIndex; i++) {
+                sb.append("\u200B");
+            }
+            labelStr = sb.toString();
+        }
+
+        pointIndex++;
+
+        XYChart.Data<String, Number> data = new XYChart.Data<>(labelStr, price);
+        data.setExtraValue(bidderName);
+        
+        data.nodeProperty().addListener((obs, oldNode, newNode) -> {
+            if (newNode != null) {
+                String fullTimeStr = time.format(DateTimeFormatter.ofPattern("HH:mm:ss dd/MM/yyyy"));
+                Tooltip tooltip = new Tooltip("Thời gian: " + fullTimeStr + "\nNgười đặt: " + bidderName + "\nGiá: " + String.format("%,.0f VNĐ", price));
+                tooltip.setStyle("-fx-font-size: 14px; -fx-padding: 10px;");
+                Tooltip.install(newNode, tooltip);
+                
+                // Hover effect
+                newNode.setOnMouseEntered(e -> newNode.setStyle("-fx-background-color: #4F46E5; -fx-scale-x: 1.5; -fx-scale-y: 1.5; -fx-cursor: hand;"));
+                newNode.setOnMouseExited(e -> newNode.setStyle(""));
+            }
+        });
+        
+        series.getData().add(data);
     }
 
     /**
@@ -56,6 +106,7 @@ public final class BidChartService {
      */
     public void clearData() {
         series.getData().clear();
+        pointIndex = 0;
     }
 
     /**

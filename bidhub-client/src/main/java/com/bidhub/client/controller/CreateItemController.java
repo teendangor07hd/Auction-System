@@ -15,6 +15,8 @@ import javafx.collections.FXCollections;
 import javafx.fxml.FXML;
 import javafx.scene.control.*;
 import javafx.scene.layout.VBox;
+import javafx.stage.FileChooser;
+import java.io.File;
 
 /**
  * Controller cho man hinh tao san pham — chi cho SELLER.
@@ -23,9 +25,15 @@ public class CreateItemController {
 
     @FXML private TextField nameField;
     @FXML private TextArea descriptionArea;
-    @FXML private TextField startingPriceField;
+    @FXML private TextField startingPriceField; // Giá khởi điểm dự kiến
     @FXML private ComboBox<String> itemTypeComboBox;
     @FXML private Label lblMessage;
+    
+    // Image selection
+    @FXML private Button btnSelectImage;
+    @FXML private Label lblImageName;
+    @FXML private TextField tfImageUrl;
+    private String selectedImagePath = "";
 
     // Dynamic fields
     @FXML private VBox electronicsFields;
@@ -76,7 +84,8 @@ public class CreateItemController {
         lblMessage.getStyleClass().add("error-message");
 
         // 📌 [Tieu chi: UX — TextField chi nhan so]
-        UiUtils.applyNumericFilter(startingPriceField);
+        // Chỉ apply numeric filter cho các trường số
+        if (startingPriceField != null) UiUtils.applyNumericFilter(startingPriceField);
         UiUtils.applyNumericFilter(warrantyMonthsField);
         UiUtils.applyNumericFilter(yearCreatedField);
         UiUtils.applyNumericFilter(yearField);
@@ -87,6 +96,22 @@ public class CreateItemController {
         if (!"SELLER".equals(role)) {
             UiUtils.showError("Lỗi phân quyền", "Chỉ người bán (SELLER) mới được tạo sản phẩm.");
             if (btnSubmit != null) btnSubmit.setDisable(true);
+        }
+        
+        // Setup chon anh
+        if (btnSelectImage != null) {
+            btnSelectImage.setOnAction(e -> {
+                FileChooser fileChooser = new FileChooser();
+                fileChooser.setTitle("Chọn ảnh sản phẩm");
+                fileChooser.getExtensionFilters().addAll(
+                        new FileChooser.ExtensionFilter("Image Files", "*.png", "*.jpg", "*.jpeg", "*.gif")
+                );
+                File file = fileChooser.showOpenDialog(btnSelectImage.getScene().getWindow());
+                if (file != null) {
+                    selectedImagePath = file.toURI().toString();
+                    if (lblImageName != null) lblImageName.setText(file.getName());
+                }
+            });
         }
     }
 
@@ -103,7 +128,7 @@ public class CreateItemController {
 
         // 📌 [Tieu chi: UX — Form validation client-side]
         if (!UiUtils.validateNotEmpty(nameField, "Tên sản phẩm")) return;
-        if (!UiUtils.validatePositiveNumber(startingPriceField, "Giá khởi điểm")) return;
+        // Giá dự kiến là tuỳ chọn, mặc định 0 = chưa định giá
 
         String itemType = itemTypeComboBox.getValue();
         if (itemType == null) {
@@ -113,7 +138,10 @@ public class CreateItemController {
 
         String name = nameField.getText().trim();
         String description = descriptionArea.getText().trim();
-        double startingPrice = Double.parseDouble(startingPriceField.getText().trim());
+        double startingPrice = 0.0; // Mặc định 0 = chưa định giá
+        if (startingPriceField != null && !startingPriceField.getText().trim().isEmpty()) {
+            try { startingPrice = Double.parseDouble(startingPriceField.getText().trim()); } catch (NumberFormatException ignored) {}
+        }
         ObjectNode extras = JsonNodeFactory.instance.objectNode();
 
         // Kiểm tra và gán dữ liệu (assign data) tùy theo itemType
@@ -146,10 +174,15 @@ public class CreateItemController {
                 : () -> { if (btnSubmit != null) btnSubmit.setDisable(false); };
 
         ObjectNode payload = JsonNodeFactory.instance.objectNode();
+        // URL field takes priority, then file path
+        String finalImageUrl = (tfImageUrl != null && !tfImageUrl.getText().trim().isEmpty())
+                ? tfImageUrl.getText().trim()
+                : selectedImagePath;
         payload.put("name", name);
         payload.put("description", description);
         payload.put("startingPrice", startingPrice);
         payload.put("itemType", itemType);
+        payload.put("imageUrl", finalImageUrl);
         payload.set("extras", extras);
 
         MessageRequest request = new MessageRequest(

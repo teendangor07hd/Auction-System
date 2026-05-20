@@ -33,6 +33,7 @@ public class LoginController {
         if (passwordTextField != null) {
             passwordTextField.setManaged(false);
             passwordTextField.setVisible(false);
+            passwordTextField.textProperty().bindBidirectional(passwordField.textProperty());
         }
     }
 
@@ -40,7 +41,6 @@ public class LoginController {
     private void handleTogglePassword() {
         isPasswordVisible = !isPasswordVisible;
         if (isPasswordVisible) {
-            passwordTextField.setText(passwordField.getText());
             passwordTextField.setVisible(true);
             passwordTextField.setManaged(true);
             passwordField.setVisible(false);
@@ -49,7 +49,6 @@ public class LoginController {
             passwordTextField.requestFocus();
             passwordTextField.selectEnd();
         } else {
-            passwordField.setText(passwordTextField.getText());
             passwordField.setVisible(true);
             passwordField.setManaged(true);
             passwordTextField.setVisible(false);
@@ -62,23 +61,25 @@ public class LoginController {
 
     @FXML
     public void handleLogin() {
-        // 1. Lấy password từ ô đang hiển thị
-        String password = isPasswordVisible ? passwordTextField.getText() : passwordField.getText();
-
-        // 2. Validate thủ công để chắc chắn không bị lỗi do ô nhập bị ẩn
-        if (usernameField.getText().trim().isEmpty()) {
-            errorLabel.setText("Vui lòng nhập tên đăng nhập.");
-            errorLabel.setVisible(true);
-            return;
-        }
-
-        if (password == null || password.isEmpty()) {
-            errorLabel.setText("Vui lòng nhập mật khẩu.");
-            errorLabel.setVisible(true);
-            return;
-        }
+        // Lấy password (do đã bindBidirectional nên lấy từ passwordField luôn đúng)
+        String password = passwordField.getText();
 
         String username = usernameField.getText().trim();
+        // 2. Gom lỗi chung vào ValidationException như yêu cầu
+        try {
+            java.util.List<String> errors = new java.util.ArrayList<>();
+            if (username.isEmpty()) errors.add("Vui lòng nhập tên đăng nhập.");
+            if (password == null || password.isEmpty()) errors.add("Vui lòng nhập mật khẩu.");
+            
+            if (!errors.isEmpty()) {
+                throw new com.bidhub.common.exception.ValidationException(errors);
+            }
+        } catch (com.bidhub.common.exception.ValidationException e) {
+            errorLabel.setText(String.join("\n", e.getErrors()));
+            errorLabel.setVisible(true);
+            return;
+        }
+
         errorLabel.setVisible(false);
 
         Runnable onComplete = (loginButton != null && loadingSpinner != null)
@@ -135,5 +136,10 @@ public class LoginController {
     @FXML
     public void handleRegister() {
         ViewRouter.getInstance().navigateTo(Views.REGISTER);
+    }
+
+    @FXML
+    public void handleBackToHome() {
+        ViewRouter.getInstance().navigateTo(Views.HOME);
     }
 }

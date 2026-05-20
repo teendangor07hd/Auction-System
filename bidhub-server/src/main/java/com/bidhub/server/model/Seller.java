@@ -43,8 +43,9 @@ public final class Seller extends User {
             String username,
             String passwordHash,
             String email,
-            int totalItemsListed) {
-        super(id, createdAt, updatedAt, username, passwordHash, email, UserRole.SELLER);
+            int totalItemsListed,
+            boolean locked) {
+        super(id, createdAt, updatedAt, username, passwordHash, email, UserRole.SELLER, locked);
         this.totalItemsListed = Math.max(0, totalItemsListed);
     }
 

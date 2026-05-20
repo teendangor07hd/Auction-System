@@ -38,7 +38,7 @@ public abstract class Entity {
     private final LocalDateTime createdAt;
 
     /** Thời điểm cập nhật gần nhất. Thay đổi khi gọi {@link #markUpdated()}. */
-    private LocalDateTime updatedAt;
+    private volatile LocalDateTime updatedAt;
 
     /**
      * Constructor duy nhất — tự động gán UUID và timestamp khi tạo entity mới.
@@ -120,9 +120,10 @@ public abstract class Entity {
         if (this == o) {
             return true;
         }
-        if (!(o instanceof Entity other)) {
+        if (o == null || getClass() != o.getClass()) {
             return false;
         }
+        Entity other = (Entity) o;
         return Objects.equals(id, other.id);
     }
 
@@ -141,6 +142,6 @@ public abstract class Entity {
      */
     @Override
     public String toString() {
-        return getClass().getSimpleName() + "[" + id.substring(0, 7) + "]";
+        return getClass().getSimpleName() + "[" + id.substring(0, Math.min(7, id.length())) + "]";
     }
 }

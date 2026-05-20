@@ -35,13 +35,27 @@
             <Label text="Mô tả chi tiết:" GridPane.rowIndex="1" GridPane.valignment="TOP" />
             <TextArea fx:id="descriptionArea" prefRowCount="3" promptText="Tình trạng, ngoại hình, phụ kiện đi kèm..." styleClass="text-input-field" wrapText="true" GridPane.columnIndex="1" GridPane.rowIndex="1" />
 
-            <Label text="Giá khởi điểm:" GridPane.rowIndex="2" />
-            <TextField fx:id="startingPriceField" promptText="Nhập số tiền (VND)" styleClass="text-input-field" GridPane.columnIndex="1" GridPane.rowIndex="2" />
+            <Label text="Giá khởi điểm d.kiến:" GridPane.rowIndex="2" />
+            <TextField fx:id="startingPriceField" promptText="0 = chưa định giá (VND)" styleClass="text-input-field" GridPane.columnIndex="1" GridPane.rowIndex="2" />
 
             <Label text="Loại sản phẩm:" GridPane.rowIndex="3" />
             <ComboBox fx:id="itemTypeComboBox" maxWidth="Infinity" promptText="-- Chọn danh mục --" styleClass="text-input-field" GridPane.columnIndex="1" GridPane.rowIndex="3" />
+
+            <Label text="Hình ảnh:" GridPane.rowIndex="4" />
+            <VBox spacing="6" GridPane.columnIndex="1" GridPane.rowIndex="4">
+                <HBox spacing="10" alignment="CENTER_LEFT">
+                    <Button fx:id="btnSelectImage" text="📁 Chọn ảnh từ máy" styleClass="button, btn-outline" />
+                    <Label fx:id="lblImageName" text="Chưa chọn ảnh nào" style="-fx-text-fill: #7f8c8d;" />
+                </HBox>
+                <HBox spacing="8" alignment="CENTER_LEFT">
+                    <Label text="Hoặc URL:" style="-fx-text-fill: #7f8c8d; -fx-font-size: 11px;"/>
+                    <TextField fx:id="tfImageUrl" promptText="https://... (tuỳ chọn)"
+                               styleClass="text-input-field" HBox.hgrow="ALWAYS"/>
+                </HBox>
+            </VBox>
         </children>
         <rowConstraints>
+            <RowConstraints />
             <RowConstraints />
             <RowConstraints />
             <RowConstraints />

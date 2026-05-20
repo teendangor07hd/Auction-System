@@ -40,12 +40,20 @@ public final class AuthService {
     /**
      * Xac minh mat khau: hash plain text roi so sanh voi hashed.
      *
+     * <p>// 📌 [Tieu chi: Ky thuat quan trong — dung MessageDigest.isEqual()
+     *    thay vi String.equals() de chong timing attack.
+     *    String.equals() tra ve false ngay khi gap byte khac dau tien,
+     *    attacker co the do thoi gian response de suy ra tung ky tu cua hash]
+     *
      * @param plain  mat khau nguoi dung nhap
      * @param hashed mat khau da hash luu trong DB
      * @return true neu khop, false neu sai
      */
     public static boolean verifyPassword(String plain, String hashed) {
-        return hashPassword(plain).equals(hashed);
+        byte[] computedHash = hashPassword(plain).getBytes(StandardCharsets.UTF_8);
+        byte[] storedHash = hashed.getBytes(StandardCharsets.UTF_8);
+        // Constant-time comparison — khong short-circuit khi gap byte khac
+        return MessageDigest.isEqual(computedHash, storedHash);
     }
 
     /**

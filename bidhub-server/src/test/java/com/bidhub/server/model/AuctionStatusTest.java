@@ -23,7 +23,7 @@ class AuctionStatusTest {
     void testIsTerminal_CorrectStatuses() {
         assertFalse(AuctionStatus.OPEN.isTerminal());
         assertFalse(AuctionStatus.RUNNING.isTerminal());
-        assertTrue(AuctionStatus.FINISHED.isTerminal());
+        assertFalse(AuctionStatus.FINISHED.isTerminal());
         assertTrue(AuctionStatus.PAID.isTerminal());
         assertTrue(AuctionStatus.CANCELED.isTerminal());
     }
@@ -36,9 +36,9 @@ class AuctionStatusTest {
 
         // Các luồng sai (Negative paths)
         assertFalse(AuctionStatus.OPEN.canTransitionTo(AuctionStatus.OPEN), "Không tự chuyển sang chính nó");
+        assertTrue(AuctionStatus.OPEN.canTransitionTo(AuctionStatus.CANCELED), "Được phép chuyển sang CANCELED (theo A22)");
         assertFalse(AuctionStatus.OPEN.canTransitionTo(AuctionStatus.FINISHED), "Cấm nhảy cóc sang FINISHED");
         assertFalse(AuctionStatus.OPEN.canTransitionTo(AuctionStatus.PAID), "Cấm nhảy cóc sang PAID");
-        assertFalse(AuctionStatus.OPEN.canTransitionTo(AuctionStatus.CANCELED), "Cấm nhảy cóc sang CANCELED");
     }
 
     @Test

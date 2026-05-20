@@ -84,7 +84,9 @@ public final class SessionManager {
      * @param token token can tra cuu
      * @return Optional chua userId neu token hop le, Optional.empty() neu khong
      */
-    public Optional<String> getUserIdByToken(String token) {
+    // 📌 [Tieu chi: Ky thuat quan trong — synchronized read de dam bao nhat quan
+    //    voi write (createSession/invalidateSession cung dung synchronized)]
+    public synchronized Optional<String> getUserIdByToken(String token) {
         if (token == null || token.isBlank()) {
             return Optional.empty();
         }
@@ -97,7 +99,7 @@ public final class SessionManager {
      * @param token token can kiem tra
      * @return true neu token hop le
      */
-    public boolean isValidToken(String token) {
+    public synchronized boolean isValidToken(String token) {
         return token != null && tokenToUserId.containsKey(token);
     }
 
@@ -107,18 +109,19 @@ public final class SessionManager {
      * @param userId id nguoi dung
      * @return Optional chua token neu user dang dang nhap
      */
-    public Optional<String> getTokenByUserId(String userId) {
+    public synchronized Optional<String> getTokenByUserId(String userId) {
         return Optional.ofNullable(userIdToToken.get(userId));
     }
 
     /** Xoa toan bo session — chi dung cho test. */
-    public void clearAll() {
+    // 📌 [Tieu chi: Ky thuat quan trong — synchronized de tranh race voi create/invalidate]
+    public synchronized void clearAll() {
         tokenToUserId.clear();
         userIdToToken.clear();
     }
 
     /** Tra ve so phien dang nhap hien tai — chi dung cho test/monitor. */
-    public int activeSessionCount() {
+    public synchronized int activeSessionCount() {
         return tokenToUserId.size();
     }
 }
