@@ -122,7 +122,7 @@ public class AdminController implements com.bidhub.client.navigation.ContextAwar
             cbUserStatusFilter.getSelectionModel().selectFirst();
         }
         if (cbAuctionStatusFilter != null) {
-            cbAuctionStatusFilter.setItems(FXCollections.observableArrayList("Tất cả Trạng thái", "RUNNING", "PENDING", "FINISHED", "CLOSED"));
+            cbAuctionStatusFilter.setItems(FXCollections.observableArrayList("Tất cả Trạng thái", "RUNNING", "OPEN", "FINISHED", "CLOSED"));
             cbAuctionStatusFilter.getSelectionModel().selectFirst();
         }
         if (cbAuditActionFilter != null) {

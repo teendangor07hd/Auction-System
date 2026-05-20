@@ -258,7 +258,7 @@ public class AuctionDetailController implements ContextAware {
 
         String status = auction.path("status").asText("");
         String statusVN = switch (status) {
-            case "PENDING" -> { lblStatus.setStyle("-fx-text-fill: #F59E0B; -fx-font-weight: bold;"); yield "Chờ bắt đầu"; }
+            case "OPEN" -> { lblStatus.setStyle("-fx-text-fill: #F59E0B; -fx-font-weight: bold;"); yield "Chờ bắt đầu"; }
             case "RUNNING" -> { lblStatus.setStyle("-fx-text-fill: #10B981; -fx-font-weight: bold;"); yield "Đang diễn ra"; }
             case "FINISHED", "CLOSED" -> { lblStatus.setStyle("-fx-text-fill: #64748B; -fx-font-weight: bold;"); yield "Đã kết thúc"; }
             default -> { lblStatus.setStyle("-fx-text-fill: #334155; -fx-font-weight: bold;"); yield status; }

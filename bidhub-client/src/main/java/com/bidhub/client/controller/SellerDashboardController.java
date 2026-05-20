@@ -268,7 +268,7 @@ public class SellerDashboardController {
     private HBox createAucRow(JsonNode auc) {
         String aucId     = auc.path("id").asText("");
         String itemName  = auc.path("itemName").asText("Sản phẩm");
-        String status    = auc.path("status").asText("PENDING");
+        String status    = auc.path("status").asText("OPEN");
         double startPrice = auc.path("startingPrice").asDouble(0);
         double curBid    = auc.path("currentHighestBid").asDouble(0);
         String startTime = auc.path("startTime").asText("");

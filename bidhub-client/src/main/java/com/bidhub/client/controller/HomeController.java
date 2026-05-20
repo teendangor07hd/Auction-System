@@ -151,7 +151,7 @@ public class HomeController {
         String imageUrl = node.path("imageUrl").asText("");
         double price = node.path("currentHighestBid").asDouble(0);
         if (price == 0) price = node.path("startingPrice").asDouble(0);
-        String status = node.path("status").asText("PENDING");
+        String status = node.path("status").asText("OPEN");
         final double finalPrice = price;
 
         VBox card = new VBox(10);
