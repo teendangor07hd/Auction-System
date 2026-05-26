@@ -3,6 +3,8 @@ package com.bidhub.server.model;
 import com.bidhub.common.model.Entity;
 import java.time.LocalDateTime;
 import java.util.Objects;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Lớp trừu tượng đại diện cho sản phẩm đấu giá trong BidHub.
@@ -16,7 +18,9 @@ import java.util.Objects;
  */
 public abstract class Item extends Entity implements Displayable {
 
-    /** Tên sản phẩm — bắt buộc, không rỗng. */
+    private static final Logger logger = LoggerFactory.getLogger(Item.class);
+
+    /** Ten san pham — bat buoc, khong rong. */
     private String name;
 
     /** Mô tả chi tiết sản phẩm. */
@@ -34,6 +38,9 @@ public abstract class Item extends Entity implements Displayable {
 
     /** Loại sản phẩm — xác định subclass cụ thể. */
     private final ItemType itemType;
+
+    /** Đường dẫn hoặc URL ảnh của sản phẩm. */
+    private String imageUrl;
 
     /**
      * Constructor tạo Item mới.
@@ -88,6 +95,13 @@ public abstract class Item extends Entity implements Displayable {
             String sellerId,
             ItemType itemType) {
         super(id, createdAt, updatedAt);
+        validateName(name);
+        Objects.requireNonNull(sellerId, "sellerId không được null");
+        Objects.requireNonNull(itemType, "itemType không được null");
+        if (startingPrice <= 0) {
+            throw new IllegalArgumentException(
+                    "Giá khởi điểm phải > 0, nhận được: " + startingPrice);
+        }
         this.name = name;
         this.description = (description == null) ? "" : description;
         this.startingPrice = startingPrice;
@@ -120,12 +134,12 @@ public abstract class Item extends Entity implements Displayable {
      */
     @Override
     public void printInfo() {
-        System.out.println("=== Thông tin sản phẩm ===");
-        System.out.println("Tên     : " + name);
-        System.out.println("Loại    : " + itemType.getLabel());
-        System.out.printf("Giá KĐ  : %,.0f VND%n", startingPrice);
-        System.out.println("Chi tiết: " + getCategoryDetails());
-        System.out.println("Mô tả   : " + description);
+        logger.info("=== Thong tin san pham ===");
+        logger.info("Ten     : {}", name);
+        logger.info("Loai    : {}", itemType.getLabel());
+        logger.info("Gia KD  : {}", String.format("%,.0f VND", startingPrice));
+        logger.info("Chi tiet: {}", getCategoryDetails());
+        logger.info("Mo ta   : {}", description);
     }
 
     // Getters
@@ -150,6 +164,15 @@ public abstract class Item extends Entity implements Displayable {
     /** Cập nhật mô tả sản phẩm. */
     public void setDescription(String description) {
         this.description = (description == null) ? "" : description;
+        markUpdated();
+    }
+
+    /** Trả về đường dẫn ảnh sản phẩm. */
+    public String getImageUrl() { return imageUrl; }
+
+    /** Cập nhật đường dẫn ảnh sản phẩm. */
+    public void setImageUrl(String imageUrl) {
+        this.imageUrl = imageUrl;
         markUpdated();
     }
 }

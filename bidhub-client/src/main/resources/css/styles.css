@@ -80,10 +80,20 @@
 
 .table-row-cell:odd {
     -fx-background-color: #F8FAFC;
+    -fx-text-fill: #334155;
 }
 
 .table-row-cell:hover {
     -fx-background-color: #EEF2FF;
+    -fx-text-fill: #334155;
+}
+
+.table-row-cell:selected, .table-row-cell:selected:hover, .table-row-cell:selected:odd {
+    -fx-background-color: #4F46E5;
+}
+
+.table-row-cell:selected .table-cell {
+    -fx-text-fill: white;
 }
 
 /* 6. FORM & LOGIN ELEMENTS (Thành phần biểu mẫu) */
@@ -152,10 +162,80 @@
     -fx-underline: true;
 }
 
-/* Tùy chỉnh ChoiceBox */
 .choice-box {
     -fx-background-color: #F8FAFC;
     -fx-border-color: #CBD5E1;
     -fx-border-radius: 8px;
     -fx-background-radius: 8px;
+}
+
+.chart {
+    -fx-padding: 10px;
+    -fx-background-color: #1E2329;
+    -fx-background-radius: 8px;
+}
+
+.chart-plot-background {
+    -fx-background-color: #0B0E11;
+}
+
+.chart-vertical-grid-lines, .chart-horizontal-grid-lines {
+    -fx-stroke: #2B3139;
+    -fx-stroke-width: 1px;
+}
+
+.axis {
+    -fx-tick-label-fill: #B7BDC6;
+    -fx-font-size: 11px;
+    -fx-font-family: "Segoe UI", sans-serif;
+}
+
+.axis-label {
+    -fx-text-fill: #B7BDC6;
+}
+
+.axis-tick-mark, .axis-minor-tick-mark {
+    -fx-stroke: #B7BDC6;
+}
+
+.chart-series-line {
+    -fx-stroke: #F6465D; /* Màu đỏ Binance */
+    -fx-stroke-width: 2px;
+}
+
+.chart-line-symbol {
+    -fx-background-color: #F6465D, #0B0E11;
+    -fx-background-radius: 5px;
+    -fx-padding: 3px;
+}
+
+.chart-legend {
+    -fx-background-color: transparent;
+}
+
+.chart-legend-item {
+    -fx-text-fill: #B7BDC6;
+}
+
+/* Ẩn bớt border bao quanh plot area nếu cần */
+.chart-content {
+    -fx-padding: 15px;
+}
+
+/* 8. SPLIT PANE (Thanh kéo giãn TradingView) */
+.split-pane {
+    -fx-background-color: transparent;
+    -fx-box-border: transparent;
+    -fx-padding: 0;
+}
+
+.split-pane .split-pane-divider {
+    -fx-background-color: #2B3139; /* Đường viền xám tối ăn khớp với viền bảng xếp hạng */
+    -fx-padding: 0 2px 0 2px;
+    -fx-background-insets: 0;
+    -fx-cursor: h-resize;
+}
+
+.split-pane .split-pane-divider:hover {
+    -fx-background-color: #4F46E5; /* Phát sáng màu xanh Indigo khi rê chuột vào */
 }

@@ -32,8 +32,16 @@ public final class MessageMapper {
         try {
             return MAPPER.writeValueAsString(obj);
         } catch (Exception e) {
-            return "{\"status\":\"ERROR\",\"type\":\"SYSTEM\","
-                    + "\"message\":\"Serialization error: " + e.getMessage() + "\"}";
+            try {
+                java.util.Map<String, String> errMap = java.util.Map.of(
+                        "status", com.bidhub.common.network.MessageResponse.STATUS_ERROR,
+                        "type", "SYSTEM",
+                        "message", "Serialization error: " + e.getMessage()
+                );
+                return MAPPER.writeValueAsString(errMap);
+            } catch (com.fasterxml.jackson.core.JsonProcessingException ignored) {
+                return "{\"status\":\"ERROR\",\"type\":\"SYSTEM\",\"message\":\"Fatal serialization error\"}";
+            }
         }
     }
 
@@ -43,15 +51,14 @@ public final class MessageMapper {
      * @param json  chuỗi JSON từ socket
      * @param clazz class đích
      * @param <T>   kiểu kết quả
-     * @return object đã parse
-     * @throws Exception nếu JSON malformed
+     * @throws com.fasterxml.jackson.core.JsonProcessingException nếu JSON malformed
      */
-    public static <T> T fromJson(String json, Class<T> clazz) throws Exception {
+    public static <T> T fromJson(String json, Class<T> clazz) throws com.fasterxml.jackson.core.JsonProcessingException {
         return MAPPER.readValue(json, clazz);
     }
 
-    /** Trả về ObjectMapper gốc — dùng khi cần register module (ví dụ JavaTimeModule Tuần 7). */
+    /** Trả về ObjectMapper gốc — dùng cho các thao tác nội bộ package (hoặc clone ra nếu cần cho bên thứ 3). */
     public static ObjectMapper getMapper() {
-        return MAPPER;
+        return MAPPER.copy();
     }
 }

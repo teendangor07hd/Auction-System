@@ -49,4 +49,13 @@ public class MessageRequest {
     public void setPayload(JsonNode payload) {
         this.payload = payload;
     }
+
+    /**
+     * Kiểm tra request hợp lệ sau khi Jackson deserialize.
+     *
+     * @return true nếu type không null
+     */
+    public boolean isValid() {
+        return type != null && !type.isBlank();
+    }
 }

@@ -92,4 +92,23 @@ public final class ConfigLoader {
         String value = PROPS.getProperty(key);
         return (value != null) ? value.trim() : defaultValue;
     }
+
+    /**
+     * Đọc giá trị int từ config, trả về giá trị mặc định nếu key không tồn tại.
+     *
+     * @param key          khóa trong file .properties
+     * @param defaultValue giá trị mặc định nếu key không có
+     * @return giá trị int từ config hoặc defaultValue
+     */
+    public static int getIntOrDefault(String key, int defaultValue) {
+        String value = PROPS.getProperty(key);
+        if (value == null) {
+            return defaultValue;
+        }
+        try {
+            return Integer.parseInt(value.trim());
+        } catch (NumberFormatException e) {
+            return defaultValue;
+        }
+    }
 }

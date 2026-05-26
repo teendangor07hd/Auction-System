@@ -15,8 +15,14 @@ class BidValidatorTest {
 
     @BeforeEach
     void setUp() {
-        // Validator voi null ItemDao — chi test nhung case khong can ItemDao
-        validator = new BidValidator(null);
+        // Validator voi mock ItemDao thay vi null de tranh NPE khi itemId khac null
+        com.bidhub.server.dao.ItemDao mockItemDao = new com.bidhub.server.dao.ItemDao() {
+            @Override
+            public java.util.Optional<com.bidhub.server.model.Item> findById(String id) {
+                return java.util.Optional.empty();
+            }
+        };
+        validator = new BidValidator(mockItemDao);
     }
 
     private Auction createRunningAuction(double currentBid,

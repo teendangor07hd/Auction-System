@@ -167,6 +167,17 @@ public class UserDao {
         }
     }
 
+    private boolean hasColumn(ResultSet rs, String columnName) throws SQLException {
+        ResultSetMetaData rsmd = rs.getMetaData();
+        int columns = rsmd.getColumnCount();
+        for (int x = 1; x <= columns; x++) {
+            if (columnName.equals(rsmd.getColumnName(x))) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     // Tạo đúng subclass dựa vào cột role — cốt lõi của polymorphism trong DAO
     private User mapRow(ResultSet rs) throws SQLException {
         String id = rs.getString("id");
@@ -177,18 +188,21 @@ public class UserDao {
         String email = rs.getString("email");
         UserRole role = UserRole.valueOf(rs.getString("role"));
         int extraInt = 0;
-        try { extraInt = rs.getInt("extra_int"); } catch (SQLException ignored) {}
-
-        // Tạo đúng subclass dựa trên role
-        User user = switch (role) {
-            case BIDDER -> new Bidder(id, createdAt, updatedAt, username, passwordHash, email, extraInt);
-            case SELLER -> new Seller(id, createdAt, updatedAt, username, passwordHash, email, extraInt);
-            case ADMIN  -> new Admin(id, createdAt, updatedAt, username, passwordHash, email, extraInt);
-        };
+        if (hasColumn(rs, "extra_int")) {
+            extraInt = rs.getInt("extra_int");
+        }
 
         // Đọc cột is_locked từ DB
         boolean locked = rs.getInt("is_locked") == 1;
-        user.setLocked(locked);
+
+        // Tạo đúng subclass dựa trên role
+        User user = switch (role) {
+            case BIDDER -> new Bidder(id, createdAt, updatedAt, username, passwordHash, email, extraInt, locked);
+            case SELLER -> new Seller(id, createdAt, updatedAt, username, passwordHash, email, extraInt, locked);
+            case ADMIN  -> new Admin(id, createdAt, updatedAt, username, passwordHash, email, extraInt < 1 ? 1 : extraInt, locked);
+        };
+
+
 
         return user;
     }
@@ -232,4 +246,6 @@ public class UserDao {
             releaseConnection(conn);
         }
     }
+
+
 }

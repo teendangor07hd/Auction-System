@@ -3,7 +3,7 @@ package com.bidhub.client.controller;
 import com.bidhub.client.network.ClientSession;
 import com.bidhub.client.network.NetworkTask;
 import com.bidhub.client.network.ServerGateway;
-import com.bidhub.client.util.UiUtils; // THÊM IMPORT UiUtils
+import com.bidhub.client.util.UiUtils;
 import com.bidhub.common.network.MessageRequest;
 import com.bidhub.common.network.MessageResponse;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -23,8 +23,12 @@ public class CreateAuctionController {
     @FXML private TextField tfMinIncrement;
     @FXML private DatePicker dpStartTime;
     @FXML private Spinner<Integer> spStartHour;
+    @FXML private Spinner<Integer> spStartMinute;
+    @FXML private Spinner<Integer> spStartSecond;
     @FXML private DatePicker dpEndTime;
     @FXML private Spinner<Integer> spEndHour;
+    @FXML private Spinner<Integer> spEndMinute;
+    @FXML private Spinner<Integer> spEndSecond;
     @FXML private Button btnSubmit;
     @FXML private Button btnBack;
 
@@ -42,11 +46,27 @@ public class CreateAuctionController {
                 new SpinnerValueFactory.IntegerSpinnerValueFactory(0, 23, 12);
         spStartHour.setValueFactory(startHourFactory);
         spStartHour.setEditable(true);
+        SpinnerValueFactory<Integer> startMinuteFactory =
+                new SpinnerValueFactory.IntegerSpinnerValueFactory(0, 59, 0);
+        spStartMinute.setValueFactory(startMinuteFactory);
+        spStartMinute.setEditable(true);
+        SpinnerValueFactory<Integer> startSecondFactory =
+                new SpinnerValueFactory.IntegerSpinnerValueFactory(0, 59, 0);
+        spStartSecond.setValueFactory(startSecondFactory);
+        spStartSecond.setEditable(true);
 
         SpinnerValueFactory<Integer> endHourFactory =
                 new SpinnerValueFactory.IntegerSpinnerValueFactory(0, 23, 12);
         spEndHour.setValueFactory(endHourFactory);
         spEndHour.setEditable(true);
+        SpinnerValueFactory<Integer> endMinuteFactory =
+                new SpinnerValueFactory.IntegerSpinnerValueFactory(0, 59, 0);
+        spEndMinute.setValueFactory(endMinuteFactory);
+        spEndMinute.setEditable(true);
+        SpinnerValueFactory<Integer> endSecondFactory =
+                new SpinnerValueFactory.IntegerSpinnerValueFactory(0, 59, 0);
+        spEndSecond.setValueFactory(endSecondFactory);
+        spEndSecond.setEditable(true);
 
         btnSubmit.setOnAction(e -> createAuction());
         btnBack.setOnAction(e ->
@@ -77,7 +97,7 @@ public class CreateAuctionController {
         task.setOnSucceeded(e -> {
             MessageResponse response = task.getValue();
             if ("OK".equals(response.getStatus())) {
-                javafx.application.Platform.runLater(() -> {
+                Platform.runLater(() -> {
                     cbItemId.getItems().clear();
                     itemDisplayToId.clear();
                     try {
@@ -98,14 +118,14 @@ public class CreateAuctionController {
                     }
                 });
             } else {
-                javafx.application.Platform.runLater(() ->
+                Platform.runLater(() ->
                         UiUtils.showError("Lỗi", "Không thể tải danh sách sản phẩm: " + response.getMessage()));
             }
         });
 
         task.setOnFailed(e ->
-                javafx.application.Platform.runLater(() ->
-                        UiUtils.showError("Lỗi", "Lỗi tải danh sách sản phẩm: " + task.getException().getMessage())));
+                Platform.runLater(() ->
+                        UiUtils.showError("Lỗi kết nối", "Lỗi tải danh sách sản phẩm: " + task.getException().getMessage())));
 
         new Thread(task).start();
     }
@@ -117,9 +137,7 @@ public class CreateAuctionController {
         String selectedDisplay = cbItemId.getValue();
         // Tra cuu itemId thuc tu map
         String itemId = (selectedDisplay != null) ? itemDisplayToId.get(selectedDisplay) : null;
-        if (itemId == null) {
-            itemId = cbItemId.getValue(); // fallback in case manual entry
-        }
+
         if (itemId == null || itemId.isBlank()) {
             UiUtils.showError("Lỗi nhập liệu", "Vui lòng chọn sản phẩm.");
             return;
@@ -139,9 +157,9 @@ public class CreateAuctionController {
         double minIncrement = incStr.isEmpty() ? 1.0 : Double.parseDouble(incStr);
 
         String startTime = dpStartTime.getValue().toString() + "T"
-                + String.format("%02d:00:00", spStartHour.getValue());
+                + String.format("%02d:%02d:%02d", spStartHour.getValue(), spStartMinute.getValue(), spStartSecond.getValue());
         String endTime = dpEndTime.getValue().toString() + "T"
-                + String.format("%02d:00:00", spEndHour.getValue());
+                + String.format("%02d:%02d:%02d", spEndHour.getValue(), spEndMinute.getValue(), spEndSecond.getValue());
 
         // 📌 [Tieu chi: UX — Loading state]
         Runnable onComplete = (btnSubmit != null && loadingSpinner != null)

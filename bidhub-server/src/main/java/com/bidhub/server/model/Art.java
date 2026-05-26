@@ -44,7 +44,7 @@ public final class Art extends Item {
                String artist, int yearCreated) {
         super(id, createdAt, updatedAt, name, description, startingPrice, sellerId,
                 com.bidhub.server.model.ItemType.ART);
-        if (artist == null) throw new IllegalArgumentException("artist không được null");
+        Objects.requireNonNull(artist, "artist không được null");
         this.artist = artist;
         this.yearCreated = yearCreated;
     }

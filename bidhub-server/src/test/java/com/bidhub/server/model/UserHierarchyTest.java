@@ -52,7 +52,7 @@ class UserHierarchyTest {
             // Tạo Bidder với cùng id (load từ DB)
             Bidder b2 = new Bidder(
                     b1.getId(), b1.getCreatedAt(), b1.getUpdatedAt(),
-                    "alice", "hash", "a@mail.com", 0);
+                    "alice", "hash", "a@mail.com", 0, false);
 
             // Assert — cùng id → equals và hashCode phải khớp
             assertEquals(b1, b2, "Entity cùng id phải equals()");

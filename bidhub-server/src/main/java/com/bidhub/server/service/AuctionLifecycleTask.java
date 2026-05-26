@@ -12,6 +12,8 @@ import com.bidhub.server.event.AuctionClosedEvent;
 import com.bidhub.server.service.NotificationBroker;
 import com.bidhub.server.model.AuditActions;
 import com.bidhub.server.service.AuditLogService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Task chay dinh ky — kiem tra va dong cac phien dau gia het han.
@@ -20,9 +22,15 @@ import com.bidhub.server.service.AuditLogService;
  * kiem tra tung auction: neu {@code endTime} da qua → goi {@link #closeAuction(Auction)}.
  *
  * <p>// 📌 [Tieu chi: Chuc nang dau gia — lifecycle tu dong dong phien]
- * // 📌 [Tieu chi: Ky thuat quan trọng — Runnable duoc ScheduledExecutorService goi dinh ky]
+ * // 📌 [Tieu chi: Ky thuat quan trong — Runnable duoc ScheduledExecutorService goi dinh ky]
  */
 public final class AuctionLifecycleTask implements Runnable {
+
+    private static final Logger logger = LoggerFactory.getLogger(AuctionLifecycleTask.class);
+
+    private final AuctionDao auctionDao = new AuctionDao();
+    private final BidDao bidDao = new BidDao();
+    private final AuditLogService auditLogService = new AuditLogService();
 
     @Override
     public void run() {
@@ -47,12 +55,11 @@ public final class AuctionLifecycleTask implements Runnable {
                     }
                 } catch (Exception e) {
                     // 📌 [Tieu chi: Xu ly loi — khong de 1 auction loi block cac auction khac]
-                    System.err.println("[LifecycleTask] Loi xu ly auction "
-                            + auction.getId() + ": " + e.getMessage());
+                    logger.error("Loi xu ly auction {}: {}", auction.getId(), e.getMessage(), e);
                 }
             }
         } catch (Exception e) {
-            System.err.println("[LifecycleTask] Loi chung: " + e.getMessage());
+            logger.error("Loi chung AuctionLifecycleTask: {}", e.getMessage(), e);
         }
     }
 
@@ -65,7 +72,7 @@ public final class AuctionLifecycleTask implements Runnable {
      */
     private void activateAuction(Auction auction) {
         String auctionId = auction.getId();
-        System.out.println("[LifecycleTask] Kich hoat phien: " + auctionId);
+        logger.info("[LifecycleTask] Kich hoat phien: {}", auctionId);
 
         auction.getLock().lock();
         try {
@@ -73,10 +80,9 @@ public final class AuctionLifecycleTask implements Runnable {
             auction.transitionTo(AuctionStatus.RUNNING);
 
             // Cap nhat status trong DB
-            AuctionDao auctionDao = new AuctionDao();
             auctionDao.updateStatus(auctionId, AuctionStatus.RUNNING);
 
-            System.out.println("[LifecycleTask] Da kich hoat phien: " + auctionId);
+            logger.info("[LifecycleTask] Da kich hoat phien: {}", auctionId);
         } finally {
             auction.getLock().unlock();
         }
@@ -84,33 +90,30 @@ public final class AuctionLifecycleTask implements Runnable {
 
     private void closeAuction(Auction auction) {
         String auctionId = auction.getId();
-        System.out.println("[LifecycleTask] Dang dong phien: " + auctionId);
+        logger.info("Dang dong phien: {}", auctionId);
 
-        // 📌 [Tieu chi: Ky thuat quan trọng — lock khi dong phien de chong race voi bid]
+        String winnerId = null;
+        double winningBid = 0.0;
+
+        // 📌 [Tieu chi: Ky thuat quan trong — lock khi dong phien de chong race voi bid]
         auction.getLock().lock();
         try {
             // 1. Chuyen trang thai
             auction.transitionTo(AuctionStatus.FINISHED);
 
             // 2. Cap nhat status trong DB
-            AuctionDao auctionDao = new AuctionDao();
             auctionDao.updateStatus(auctionId, AuctionStatus.FINISHED);
 
             // 3. Tim winner
-            BidDao bidDao = new BidDao();
             Optional<BidTransaction> highestBidOpt = bidDao.getHighestBid(auctionId);
 
-            String winnerId = null;
-            double winningBid = 0.0;
             if (highestBidOpt.isPresent()) {
                 BidTransaction winner = highestBidOpt.get();
                 winnerId = winner.getBidderId();
                 winningBid = winner.getBidAmount();
-                System.out.println("[LifecycleTask] Winner: " + winnerId
-                        + " voi gia " + winningBid);
+                logger.info("Winner: {} voi gia {}.", winnerId, winningBid);
             } else {
-                System.out.println("[LifecycleTask] Khong co bid nao — phien "
-                        + auctionId + " ket thuc khong co nguoi thang.");
+                logger.info("Khong co bid nao — phien {} ket thuc khong co nguoi thang.", auctionId);
             }
 
             // 4. Xoa khoi RAM
@@ -118,7 +121,6 @@ public final class AuctionLifecycleTask implements Runnable {
 
             // 📌 [Tieu chi: Audit Log — log AUCTION_CLOSED sau FINISHED transition]
             // Log trong lock → dam bao khong race voi bid handler
-            AuditLogService auditLogService = new AuditLogService();
             auditLogService.log("SYSTEM", AuditActions.AUCTION_CLOSED,
                     "{\"auctionId\":\"" + auctionId
                             + "\",\"winnerId\":\"" + (winnerId != null ? winnerId : "none")
@@ -127,24 +129,11 @@ public final class AuctionLifecycleTask implements Runnable {
             auction.getLock().unlock();
         }
 
-        // Lay winner info de publish event
-        BidDao bidDao = new BidDao();
-        Optional<BidTransaction> highestBidOpt = bidDao.getHighestBid(auctionId);
-        String winnerId = null;
-        double winningBid = 0.0;
-        if (highestBidOpt.isPresent()) {
-            winnerId = highestBidOpt.get().getBidderId();
-            winningBid = highestBidOpt.get().getBidAmount();
-        }
-
         // 📌 [Tieu chi: Realtime update — publish AUCTION_CLOSED sau unlock]
+        // Goi ngoai khoi lock block de tranh block thread khi gui socket
         NotificationBroker.getInstance().publish(auctionId,
                 new AuctionClosedEvent(auctionId, winnerId, winningBid));
 
-        // NotificationBroker publish (sau khi unlock — Week 7, Quốc Minh them)
-        // NotificationBroker.getInstance().publish(auctionId,
-        //     new AuctionClosedEvent(auctionId, winnerId, winningBid));
-
-        System.out.println("[LifecycleTask] Da dong phien: " + auctionId);
+        logger.info("Da dong phien: {}", auctionId);
     }
 }

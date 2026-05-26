@@ -82,7 +82,7 @@ class DomainIntegrationTest {
         AuctionClosedException ex = assertThrows(
                 AuctionClosedException.class,
                 () -> {
-                    if (auction.getStatus().isTerminal()) {
+                    if (!auction.getStatus().canBid()) {
                         throw new AuctionClosedException(auction.getId(), auction.getStatus().name());
                     }
                 });

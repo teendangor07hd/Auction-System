@@ -46,8 +46,9 @@ public final class Admin extends User {
             String username,
             String passwordHash,
             String email,
-            int adminLevel) {
-        super(id, createdAt, updatedAt, username, passwordHash, email, UserRole.ADMIN);
+            int adminLevel,
+            boolean locked) {
+        super(id, createdAt, updatedAt, username, passwordHash, email, UserRole.ADMIN, locked);
         this.adminLevel = validateAdminLevel(adminLevel);
     }
 

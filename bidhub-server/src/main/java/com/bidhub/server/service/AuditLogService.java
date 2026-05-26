@@ -2,6 +2,8 @@ package com.bidhub.server.service;
 
 import com.bidhub.server.dao.AuditLogDao;
 import com.bidhub.server.model.AuditLog;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Dich vu ghi nhat ky audit — wrap AuditLogDao voi try-catch, khong bao gio nem exception.
@@ -13,6 +15,8 @@ import com.bidhub.server.model.AuditLog;
  * <p>2 constructor: production (tao AuditLogDao moi) va test (inject AuditLogDao tu ngoai).
  */
 public class AuditLogService {
+
+    private static final Logger logger = LoggerFactory.getLogger(AuditLogService.class);
 
     private final AuditLogDao auditLogDao;
 
@@ -49,10 +53,8 @@ public class AuditLogService {
             auditLogDao.save(entry);
         } catch (Exception e) {
             // 📌 [Tieu chi: Xu ly loi — audit log khong duoc lam phanh handler]
-            System.err.println("[AuditLogService] Khong the ghi log: "
-                    + "action=" + action + ", userId=" + userId
-                    + ", error=" + e.getMessage());
+            logger.error("Khong the ghi log: action={}, userId={}, error={}",
+                    action, userId, e.getMessage(), e);
         }
     }
 }
-
