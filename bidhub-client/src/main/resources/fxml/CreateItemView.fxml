@@ -5,7 +5,7 @@
 <?import javafx.scene.control.*?>
 <?import javafx.scene.layout.*?>
 
-<VBox alignment="TOP_CENTER" prefHeight="700.0" prefWidth="600.0" spacing="20.0" styleClass="root" stylesheets="@/css/styles.css" xmlns="http://javafx.com/javafx/17.0.12" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.bidhub.client.controller.CreateItemController">
+<VBox alignment="TOP_CENTER" prefHeight="700.0" prefWidth="600.0" spacing="20.0" styleClass="root, create-item-view" stylesheets="@/css/styles.css" xmlns="http://javafx.com/javafx/17.0.12" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.bidhub.client.controller.CreateItemController">
 
     <padding>
         <Insets bottom="30.0" left="50.0" right="50.0" top="30.0" />

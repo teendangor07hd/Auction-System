@@ -239,3 +239,23 @@
 .split-pane .split-pane-divider:hover {
     -fx-background-color: #4F46E5; /* Phát sáng màu xanh Indigo khi rê chuột vào */
 }
+
+/* ==============================================
+   9. CREATE ITEM VIEW CUSTOM STYLES (Đảm bảo chữ màu đen dễ nhìn)
+   ============================================== */
+.create-item-view .label {
+    -fx-text-fill: #1E293B; /* Đổi màu chữ nhãn thành màu đen/xám đậm */
+}
+
+.create-item-view .text-input {
+    -fx-text-fill: #1E293B; /* Đổi chữ gõ vào ô nhập thành màu đen */
+    -fx-prompt-text-fill: #94A3B8; /* Màu gợi ý placeholder xám nhạt */
+}
+
+.create-item-view .combo-box .label {
+    -fx-text-fill: #1E293B; /* Đổi chữ trong ComboBox thành màu đen */
+}
+
+.create-item-view .combo-box .list-cell {
+    -fx-text-fill: #1E293B; /* Đổi chữ trong danh sách ComboBox thành màu đen */
+}
