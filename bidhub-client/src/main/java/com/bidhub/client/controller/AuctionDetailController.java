@@ -729,4 +729,4 @@ public class AuctionDetailController implements ContextAware {
             });
         }
     }
-}
+}
