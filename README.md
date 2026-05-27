@@ -119,7 +119,7 @@ Sau khi build thành công, các file fat-jar (đã đóng gói đầy đủ dep
 ### Bước 1 — Clone repository
 
 ```bash
-git clone https://github.com/<your-org>/Auction-System.git
+git clone https://github.com/teendangor07hd/Auction-System.git
 cd Auction-System
 ```
 
