@@ -23,7 +23,7 @@
 - **Người dùng** có thể đăng ký, đăng nhập theo ba vai trò: **Bidder** (người đặt giá), **Seller** (người bán), **Admin** (quản trị viên).
 - **Seller** đăng sản phẩm (Electronics, Art, Vehicle) và tạo phiên đấu giá.
 - **Bidder** tham gia đặt giá realtime; phiên đấu giá cập nhật tức thì cho tất cả người dùng đang theo dõi.
-- **Admin** quản lý người dùng, sản phẩm, phiên đấu giá và xem báo cáo thống kê.
+- **Admin** quản lý người dùng (xem, khóa tài khoản), quản lý phiên đấu giá (dừng, xóa phiên) và xem báo cáo thống kê.
 - Server tự động kết thúc phiên đấu giá, áp dụng cơ chế **Anti-Sniping** (gia hạn thời gian khi có bid vào phút cuối).
 
 ---
@@ -201,8 +201,8 @@ Có thể mở nhiều cửa sổ Client cùng lúc để mô phỏng nhiều ng
 - [x] Audit log toàn bộ hành động quan trọng
 
 ### 🛡️ Quản trị (Admin)
-- [x] Quản lý người dùng (xem, vô hiệu hóa, đặt lại mật khẩu)
-- [x] Quản lý sản phẩm & phiên đấu giá
+- [x] Quản lý người dùng (xem danh sách, khóa/mở khóa tài khoản)
+- [x] Quản lý phiên đấu giá (dừng/hủy, xóa phiên)
 - [x] Kiểm tra toàn vẹn dữ liệu (DataIntegrityService)
 - [x] Xem audit log hệ thống
 
