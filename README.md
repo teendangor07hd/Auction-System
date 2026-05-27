@@ -220,6 +220,17 @@ Có thể mở nhiều cửa sổ Client cùng lúc để mô phỏng nhiều ng
 - [x] JUnit 5 — bộ test tự động (≥ 40 test cases)
 
 ---
+## 🎨 Giao diện ứng dụng
+
+Dưới đây là một số hình ảnh thực tế của hệ thống BidHub Client được xây dựng bằng JavaFX:
+
+### Trang chủ (Home Dashboard)
+Giao diện tổng quan thống kê các phiên đấu giá nổi bật, số lượng người tham gia và tổng giá trị giao dịch.
+![Trang chủ BidHub](docs/images/home_dashboard.jpg)
+
+### Danh sách Phiên đấu giá
+Màn hình hiển thị danh sách các sản phẩm đang được đấu giá với bộ lọc đa dạng (theo trạng thái, loại sản phẩm, khoảng giá).
+![Danh sách Phiên đấu giá](docs/images/auction_list.jpg)
 
 ## Tài liệu & Báo cáo
 
