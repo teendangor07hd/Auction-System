@@ -22,3 +22,5 @@ data/
 # Log files
 *.log
 logs/
+/bidhub-client/dependency-reduced-pom.xml
+/bidhub-server/dependency-reduced-pom.xml
