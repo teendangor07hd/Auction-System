@@ -60,8 +60,6 @@
 
 ```
 Auction-System/
-├── bidhub-parent/              ← Root Maven project (pom.xml tổng)
-│
 ├── bidhub-common/              ← Module dùng chung giữa Server và Client
 │   └── src/main/java/com/bidhub/common/
 │       ├── model/              ← Entity.java (abstract base class)
