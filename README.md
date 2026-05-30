@@ -215,7 +215,7 @@ Có thể mở nhiều cửa sổ Client cùng lúc để mô phỏng nhiều ng
 - [x] Logging với SLF4J + Logback
 - [x] CI/CD tự động với GitHub Actions
 - [x] Cây exception riêng: `BidHubException` + 7 subclass
-- [x] JUnit 5 — bộ test tự động (≥ 40 test cases)
+- [x] JUnit 5 — bộ test tự động (≥ 300 test cases)
 
 ---
 ## 🎨 Giao diện ứng dụng
@@ -238,7 +238,7 @@ Giao diện theo dõi diễn biến phiên đấu giá với biểu đồ giá t
 
 | Tài liệu | Liên kết |
 |----------|----------|
-| 📄 Báo cáo PDF | *(chèn link tại đây)* |
+| 📄 Báo cáo PDF | *(https://drive.google.com/file/d/13Ky7pArR6mi7Kjv8WdgR7uD3qJoJxzLh/view?usp=drive_link)* |
 | 🎬 Video Demo | *(chèn link tại đây)* |
 | 📋 API Protocol | [docs/API_PROTOCOL.md](docs/API_PROTOCOL.md) |
 | 🎨 Style Guide | [docs/STYLE_GUIDE.md](docs/STYLE_GUIDE.md) |
