@@ -19,6 +19,10 @@ class ItemHandler {
 
     String handleCreateItem(Session session, JsonNode payload) {
         String sellerId = SecurityContext.requireRole(session, UserRole.SELLER);
+        java.util.Optional<User> uOpt = handler.userDao.findById(sellerId);
+        if (uOpt.isPresent() && uOpt.get().isLocked()) {
+            throw new com.bidhub.common.exception.ValidationException("TAI KHOAN BI KHOA");
+        }
 
         String name = RequestHandler.getTextSafe(payload, "name");
         String description = RequestHandler.getTextSafe(payload, "description");

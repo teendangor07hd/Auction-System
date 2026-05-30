@@ -312,6 +312,54 @@ class AuthIntegrationTest {
         assertFalse(res.isOk());
     }
 
+    @Test
+    @DisplayName("Nguoi dung bi khoa (locked) khi dang hoat dong thi khong the PLACE_BID nhung van LOGOUT thanh cong")
+    void lockedUser_cannotPlaceBid_butCanLogout() throws Exception {
+        handler.handle(buildRegisterJson("bidderLocked", "password123", "blocked@test.com", "BIDDER"), mockSession);
+        String loginResponse = handler.handle(buildLoginJson("bidderLocked", "password123"), mockSession);
+        MessageResponse loginRes = parseResponse(loginResponse);
+        String token = null;
+        if (loginRes.getPayload() instanceof java.util.Map<?, ?> map) {
+            token = (String) map.get("token");
+        }
+
+        String userId = mockSession.getAuthenticatedUserId();
+        userDao.updateLocked(userId, true);
+
+        String bidJson = "{\"type\":\"PLACE_BID\",\"token\":\"" + token + "\",\"payload\":{\"auctionId\":\"auc-01\",\"bidAmount\":500.0}}";
+        String bidResponse = handler.handle(bidJson, mockSession);
+        MessageResponse bidRes = parseResponse(bidResponse);
+        assertFalse(bidRes.isOk());
+        assertEquals("TAI KHOAN BI KHOA", bidRes.getMessage());
+
+        String logoutJson = "{\"type\":\"LOGOUT\",\"token\":\"" + token + "\",\"payload\":{}}";
+        String logoutResponse = handler.handle(logoutJson, mockSession);
+        MessageResponse logoutRes = parseResponse(logoutResponse);
+        assertTrue(logoutRes.isOk());
+        assertNull(mockSession.getAuthenticatedUserId());
+    }
+
+    @Test
+    @DisplayName("Seller bi khoa (locked) khi dang hoat dong thi khong the CREATE_ITEM")
+    void lockedSeller_cannotCreateItem() throws Exception {
+        handler.handle(buildRegisterJson("sellerLocked", "password123", "slocked@test.com", "SELLER"), mockSession);
+        String loginResponse = handler.handle(buildLoginJson("sellerLocked", "password123"), mockSession);
+        MessageResponse loginRes = parseResponse(loginResponse);
+        String token = null;
+        if (loginRes.getPayload() instanceof java.util.Map<?, ?> map) {
+            token = (String) map.get("token");
+        }
+
+        String userId = mockSession.getAuthenticatedUserId();
+        userDao.updateLocked(userId, true);
+
+        String itemJson = buildCreateItemJson("Locked Item", "Desc", "100.0", "ELECTRONICS");
+        String itemResponse = handler.handle(itemJson, mockSession);
+        MessageResponse itemRes = parseResponse(itemResponse);
+        assertFalse(itemRes.isOk());
+        assertEquals("TAI KHOAN BI KHOA", itemRes.getMessage());
+    }
+
     // === HELPER METHODS ===
 
     private String buildRegisterJson(String username, String password, String email, String role) {
