@@ -22,6 +22,10 @@ class AuctionHandler {
 
     String handleCreateAuction(Session session, JsonNode payload) {
         String sellerId = SecurityContext.requireRole(session, UserRole.SELLER);
+        java.util.Optional<User> uOpt = handler.userDao.findById(sellerId);
+        if (uOpt.isPresent() && uOpt.get().isLocked()) {
+            throw new com.bidhub.common.exception.ValidationException("TAI KHOAN BI KHOA");
+        }
 
         String itemId = RequestHandler.getTextSafe(payload, "itemId");
         if (itemId == null || itemId.isBlank()) {
@@ -145,6 +149,10 @@ class AuctionHandler {
 
     String handlePlaceBid(Session session, JsonNode payload) {
         String userId = SecurityContext.requireAuthenticated(session);
+        java.util.Optional<User> uOpt = handler.userDao.findById(userId);
+        if (uOpt.isPresent() && uOpt.get().isLocked()) {
+            throw new com.bidhub.common.exception.ValidationException("TAI KHOAN BI KHOA");
+        }
 
         String auctionId = payload.path("auctionId").asText("");
         double bidAmount = payload.path("bidAmount").asDouble(0.0);
