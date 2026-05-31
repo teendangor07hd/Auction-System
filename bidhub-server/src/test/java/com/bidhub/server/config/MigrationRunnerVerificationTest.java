@@ -12,13 +12,11 @@ import java.util.Set;
 import static org.junit.jupiter.api.Assertions.*;
 
 /**
- * Verify MigrationRunner xu ly dung 5 bang: users, items, auctions,
+ * Verify MigrationRunner xử lý đúng 5 bang: users, items, auctions,
  * bid_transactions, audit_logs.
  *
- * <p>Tao file DB moi → chay MigrationRunner → kiem tra 5 bang ton tai.
+ * <p>Tạo file DB moi → chay MigrationRunner → kiem tra 5 bang ton tai.
  *
- * <p>// 📌 [Tieu chi: Clean Code — verify MigrationRunner xu ly 5 tables]
- * // 📌 [Tieu chi: Unit Test — MigrationRunnerVerificationTest]
  */
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 class MigrationRunnerVerificationTest {
@@ -28,16 +26,16 @@ class MigrationRunnerVerificationTest {
 
     @BeforeAll
     static void setUp() throws Exception {
-        // Xoa DB cu neu ton tai
+        // Xóa DB cu nếu ton tai
         File dbFile = new File(TEST_DB_PATH);
         if (dbFile.exists()) {
             dbFile.delete();
         }
-        // Tao thu muc target neu chua co
+        // Tạo thu muc target nếu chua có
         dbFile.getParentFile().mkdirs();
 
-        // Override DbConnectionProvider voi test DB
-        // Dung system property de ConfigLoader dung test DB
+        // Override DbConnectionProvider với test DB
+        // Đúng system property để ConfigLoader đúng test DB
         System.setProperty("db.path.override", TEST_DB_PATH);
     }
 
@@ -51,17 +49,16 @@ class MigrationRunnerVerificationTest {
     }
 
     /**
-     * Test 1: Tao schema tu /db/schema.sql truc tiep vao DB test.
+     * Test 1: Tạo schema từ /db/schema.sql truc tiep vao DB test.
      * Verify 5 bang ton tai sau khi chay schema.
      *
-     * <p>// 📌 [Tieu chi: Clean Code — verify 5 tables: users, items,
      *     auctions, bid_transactions, audit_logs]
      */
     @Test
     @Order(1)
     @DisplayName("T1: Schema tao dung 5 bang can thiet")
     void testSchemaCreates5Tables() throws Exception {
-        // Doc schema.sql tu classpath
+        // Đọc schema.sql từ classpath
         String sql = new String(
                 MigrationRunnerVerificationTest.class
                         .getResourceAsStream("/db/schema.sql")
@@ -83,7 +80,6 @@ class MigrationRunnerVerificationTest {
             Set<String> expected = Set.of("users", "items", "auctions",
                     "bid_transactions", "audit_logs");
 
-            // 📌 [Tieu chi: Clean Code — kiem tra tung bang ton tai]
             for (String table : expected) {
                 assertTrue(tables.contains(table),
                         "Bang '" + table + "' khong duoc tao boi schema.sql");
@@ -94,9 +90,8 @@ class MigrationRunnerVerificationTest {
     }
 
     /**
-     * Test 2: Verify bang users co cot is_locked (migration T6).
+     * Test 2: Verify bang users có cot is_locked (migration T6).
      *
-     * <p>// 📌 [Tieu chi: Clean Code — kiem tra cot is_locked ton tai]
      */
     @Test
     @Order(2)
@@ -115,7 +110,7 @@ class MigrationRunnerVerificationTest {
     }
 
     /**
-     * Test 3: Verify bang auctions co minimum_increment (T6).
+     * Test 3: Verify bang auctions có minimum_increment (T6).
      */
     @Test
     @Order(3)
@@ -134,7 +129,7 @@ class MigrationRunnerVerificationTest {
     }
 
     /**
-     * Test 4: Verify bang bid_transactions co auction_id va bidder_id.
+     * Test 4: Verify bang bid_transactions có auction_id và bidder_id.
      */
     @Test
     @Order(4)
@@ -155,7 +150,7 @@ class MigrationRunnerVerificationTest {
     }
 
     /**
-     * Test 5: Verify bang audit_logs co cot action va user_id.
+     * Test 5: Verify bang audit_logs có cot action và user_id.
      */
     @Test
     @Order(5)

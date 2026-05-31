@@ -12,8 +12,6 @@ import java.util.Objects;
  * {@link Seller}, {@link Admin}) thêm các field riêng của từng loại.
  *
  * <p><b>Tại sao passwordHash thay vì password?</b> Mật khẩu KHÔNG BAO GIỜ
- * được lưu dưới dạng plaintext. Tuần 5 sẽ implement SHA-256 hashing.
- * Ở tuần 2, truyền vào chuỗi bất kỳ (stub) để test.
  *
  * <p><b>Encapsulation:</b> Tất cả field đều {@code private}, chỉ expose qua
  * getter. Setter chỉ cung cấp cho field thực sự cần thay đổi.
@@ -180,21 +178,21 @@ public abstract class User extends Entity {
                 + ", role=" + role.name() + "]";
     }
 
-    /** Trang thai khoa tai khoan — true la bi khoa, false la binh thuong. */
+    /** Trạng thái khoa tài khoản — true là bi khoa, false là binh thuong. */
     private boolean locked = false;
     /**
-     * Kiem tra tai khoan co bi khoa khong.
+     * Kiem tra tài khoản có bi khoa không.
      *
-     * @return true neu tai khoan bi khoa
+     * @return true nếu tài khoản bi khoa
      */
     public boolean isLocked() {
         return locked;
     }
 
     /**
-     * Dat trang thai khoa/mo khoa tai khoan.
+     * Dat trạng thái khoa/mo khoa tài khoản.
      *
-     * @param locked true de khoa, false de mo
+     * @param locked true để khoa, false để mo
      */
     public void setLocked(boolean locked) {
         this.locked = locked;

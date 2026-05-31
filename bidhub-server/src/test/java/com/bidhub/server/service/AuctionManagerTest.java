@@ -95,7 +95,7 @@ class AuctionManagerTest {
         var list = auctionManager.getAllActive();
         assertEquals(2, list.size());
         list.clear();
-        assertEquals(2, auctionManager.activeCount()); // map khong bi anh huong
+        assertEquals(2, auctionManager.activeCount()); // map không bi anh huong
     }
 
     @Test

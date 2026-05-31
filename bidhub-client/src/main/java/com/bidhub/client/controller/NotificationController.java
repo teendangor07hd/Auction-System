@@ -152,7 +152,7 @@ public class NotificationController {
         Label icon = new Label("●");
         icon.setStyle("-fx-font-size: 10px; -fx-text-fill: #4F46E5; -fx-padding: 0 4 0 0;");
 
-        // Nội dung thông báo
+        // Nội đúng thông báo
         VBox content = new VBox(5);
         HBox.setHgrow(content, Priority.ALWAYS);
 

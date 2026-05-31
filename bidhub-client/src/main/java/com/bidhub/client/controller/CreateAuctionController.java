@@ -14,7 +14,8 @@ import javafx.fxml.FXML;
 import javafx.scene.control.*;
 
 /**
- * Controller tao phien dau gia — chi cho SELLER.
+ * Controller tạo phiên đấu giá — chỉ dành cho SELLER.
+ * Cho phép chọn sản phẩm, thiết lập giá và khoảng thời gian đấu giá.
  */
 public class CreateAuctionController {
 
@@ -32,14 +33,16 @@ public class CreateAuctionController {
     @FXML private Button btnSubmit;
     @FXML private Button btnBack;
 
-    // 📌 [Tieu chi: UX — Loading state component]
     @FXML private ProgressIndicator loadingSpinner;
 
     private final ObjectMapper mapper = new ObjectMapper();
 
-    /** Map luu itemId theo display name de tra cuu khi submit */
+    /** Map lưu itemId theo tên hiển thị, dùng để tra cứu khi submit. */
     private final java.util.Map<String, String> itemDisplayToId = new java.util.LinkedHashMap<>();
 
+    /**
+     * Khởi tạo Spinner giờ/phút/giây cho thời điểm bắt đầu và kết thúc, tải danh sách sản phẩm của seller.
+     */
     @FXML
     public void initialize() {
         SpinnerValueFactory<Integer> startHourFactory =
@@ -73,17 +76,15 @@ public class CreateAuctionController {
                 com.bidhub.client.navigation.ViewRouter.getInstance()
                         .navigateTo(com.bidhub.client.util.Views.AUCTION_LIST));
 
-        // 📌 [Tieu chi: UX — TextField chi nhan so]
         UiUtils.applyNumericFilter(tfStartingPrice);
         UiUtils.applyNumericFilter(tfMinIncrement);
 
-        // 📌 [Tieu chi: Chuc nang dau gia — load danh sach item cua seller vao ComboBox]
         loadMyItems();
     }
 
     /**
-     * Gui request LIST_MY_ITEMS den server de lay danh sach san pham cua seller.
-     * Populate ComboBox voi ket qua tra ve.
+     * Gửi request LIST_MY_ITEMS đến server để lấy danh sách sản phẩm của seller,
+     * sau đó điền vào ComboBox.
      */
     private void loadMyItems() {
         MessageRequest req = new MessageRequest();
@@ -101,7 +102,7 @@ public class CreateAuctionController {
                     cbItemId.getItems().clear();
                     itemDisplayToId.clear();
                     try {
-                        // payload la List<Map> — parse tung item
+                        // Payload là List<Map> — parse từng item thành display name
                         JsonNode payloadNode = mapper.valueToTree(response.getPayload());
                         if (payloadNode.isArray()) {
                             for (JsonNode itemNode : payloadNode) {
@@ -131,11 +132,11 @@ public class CreateAuctionController {
     }
 
     /**
-     * Gui request CREATE_AUCTION den server.
+     * Gửi request CREATE_AUCTION lên server sau khi đã xác thực dữ liệu form.
      */
     private void createAuction() {
         String selectedDisplay = cbItemId.getValue();
-        // Tra cuu itemId thuc tu map
+        // Tra cứu itemId thực từ map theo tên hiển thị được chọn
         String itemId = (selectedDisplay != null) ? itemDisplayToId.get(selectedDisplay) : null;
 
         if (itemId == null || itemId.isBlank()) {
@@ -143,7 +144,6 @@ public class CreateAuctionController {
             return;
         }
 
-        // 📌 [Tieu chi: UX — Form validation client-side]
         if (!UiUtils.validateNotEmpty(tfStartingPrice, "Giá khởi điểm")) return;
         if (!UiUtils.validatePositiveNumber(tfStartingPrice, "Giá khởi điểm")) return;
 
@@ -161,7 +161,6 @@ public class CreateAuctionController {
         String endTime = dpEndTime.getValue().toString() + "T"
                 + String.format("%02d:%02d:%02d", spEndHour.getValue(), spEndMinute.getValue(), spEndSecond.getValue());
 
-        // 📌 [Tieu chi: UX — Loading state]
         Runnable onComplete = (btnSubmit != null && loadingSpinner != null)
                 ? UiUtils.showLoading(btnSubmit, loadingSpinner)
                 : () -> { if (btnSubmit != null) btnSubmit.setDisable(false); };

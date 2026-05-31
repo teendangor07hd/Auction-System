@@ -15,7 +15,7 @@ class BidValidatorTest {
 
     @BeforeEach
     void setUp() {
-        // Validator voi mock ItemDao thay vi null de tranh NPE khi itemId khac null
+        // Validator với mock ItemDao thay vi null để tranh NPE khi itemId khac null
         com.bidhub.server.dao.ItemDao mockItemDao = new com.bidhub.server.dao.ItemDao() {
             @Override
             public java.util.Optional<com.bidhub.server.model.Item> findById(String id) {

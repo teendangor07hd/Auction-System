@@ -11,15 +11,12 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Singleton Observer Pattern — quan ly subscribe/publish event realtime cho auction.
+ * Singleton Observer Pattern — quản lý subscribe/publish event realtime cho auction.
  *
- * <p>Dung {@link ConcurrentHashMap} key=auctionId,
+ * <p>Dùng {@link ConcurrentHashMap} key=auctionId,
  * value={@link CopyOnWriteArrayList} session.
- * CopyOnWriteArrayList cho phep safe iteration khi concurrently modify.
+ * CopyOnWriteArrayList cho phép safe iteration khi concurrently modify.
  *
- * <p>// 📌 [Tieu chi: Design Pattern Observer — Subject (GoF)]
- * // 📌 [Tieu chi: Singleton — volatile + double-checked locking]
- * // 📌 [Tieu chi: Realtime update — push event qua socket]
  */
 public final class NotificationBroker {
 
@@ -27,7 +24,6 @@ public final class NotificationBroker {
 
     private static volatile NotificationBroker instance;
 
-    // 📌 [Tieu chi: Ky thuat quan trong — ConcurrentHashMap + CopyOnWriteArrayList]
     private final ConcurrentHashMap<String, CopyOnWriteArrayList<Session>> subscribers;
 
     private NotificationBroker() {
@@ -35,7 +31,7 @@ public final class NotificationBroker {
     }
 
     /**
-     * Tra ve instance duy nhat (thread-safe, double-checked locking).
+     * Trả về instance duy nhất (thread-safe, double-checked locking).
      *
      * @return NotificationBroker instance
      */
@@ -51,18 +47,16 @@ public final class NotificationBroker {
     }
 
     /**
-     * Subscribe session vao auction — nhan tat ca event cua auction nay.
+     * Thêm session vào danh sách lắng nghe của auction — nhận tất cả event của auction này.
      *
-     * <p>// 📌 [Tieu chi: Observer Pattern — attach()]
      *
-     * @param auctionId id auction can theo doi
-     * @param session   session cua client
+     * @param auctionId id auction cần theo dõi
+     * @param session   session của client
      */
     public void subscribe(String auctionId, Session session) {
         if (auctionId == null || session == null) {
             return;
         }
-        // 📌 [Tieu chi: Ky thuat quan trong — computeIfAbsent atomic, tranh TOCTOU race]
         CopyOnWriteArrayList<Session> list = subscribers.computeIfAbsent(
                 auctionId, k -> new CopyOnWriteArrayList<>());
         if (!list.contains(session)) {
@@ -72,12 +66,11 @@ public final class NotificationBroker {
     }
 
     /**
-     * Unsubscribe session khoi auction.
+     * Xóa session khỏi danh sách lắng nghe của auction.
      *
-     * <p>// 📌 [Tieu chi: Observer Pattern — detach()]
      *
      * @param auctionId id auction
-     * @param session   session can xoa
+     * @param session   session cần xóa
      */
     public void unsubscribe(String auctionId, Session session) {
         if (auctionId == null || session == null) {
@@ -86,7 +79,6 @@ public final class NotificationBroker {
         CopyOnWriteArrayList<Session> list = subscribers.get(auctionId);
         if (list != null) {
             list.remove(session);
-            // 📌 [Tieu chi: Ky thuat quan trong — xoa key khi list rong de tranh memory leak]
             if (list.isEmpty()) {
                 subscribers.remove(auctionId, list);
             }
@@ -94,9 +86,9 @@ public final class NotificationBroker {
     }
 
     /**
-     * Unsubscribe session khoi tat ca auction — goi khi session ngat ket noi.
+     * Xóa session khỏi tất cả auction — gọi khi session ngắt kết nối.
      *
-     * @param session session can xoa
+     * @param session session cần xóa
      */
     public void unsubscribeAll(Session session) {
         if (session == null) {
@@ -109,16 +101,14 @@ public final class NotificationBroker {
     }
 
     /**
-     * Publish event den tat ca session subscribe auction — Observer notify().
+     * Publish event đến tất cả session subscribe auction — Observer notify().
      *
-     * <p>Serialize event thanh JSON, gui qua session.sendMessage(). Bat IOException
-     * de khong 1 session loi block tat ca session khac.
+     * <p>Serialize event thành JSON, gửi qua session.sendMessage(). Bắt IOException
+     * để không 1 session lỗi block tất cả session khác.
      *
-     * <p>// 📌 [Tieu chi: Observer Pattern — notify()]
-     * // 📌 [Tieu chi: Realtime update — push event qua socket]
      *
      * @param auctionId id auction
-     * @param event     event object (BidUpdateEvent hoac AuctionClosedEvent)
+     * @param event     event object (BidUpdateEvent hoặc AuctionClosedEvent)
      */
     public void publish(String auctionId, Object event) {
         if (auctionId == null || event == null) {
@@ -133,39 +123,37 @@ public final class NotificationBroker {
         try {
             eventJson = MessageMapper.toJson(event);
         } catch (Exception e) {
-            logger.error("Serialize event loi: {}", e.getMessage(), e);
+            logger.error("Lỗi serialize event thành JSON: {}", e.getMessage(), e);
             return;
         }
 
-        // 📌 [Tieu chi: Ky thuat quan trong — thu thap session loi, xoa sau vong lap
-        //    tranh O(n²) khi xoa truc tiep tu CopyOnWriteArrayList trong vong lap]
+        // Thu thập các session lỗi để xóa batch sau vòng lặp, tránh cải biến CopyOnWriteArrayList ngay trong quá trình duyệt
         java.util.List<Session> failedSessions = new java.util.ArrayList<>();
         for (Session session : list) {
             try {
                 session.sendMessage(eventJson);
             } catch (Exception e) {
-                // 📌 [Tieu chi: Xu ly loi — 1 session loi khong block cac session khac]
-                logger.error("Gui event loi cho session: {}", e.getMessage(), e);
+                logger.error("Lỗi gửi event cho session: {}", e.getMessage(), e);
                 failedSessions.add(session);
             }
         }
-        // Xoa batch session da mat ket noi — chi ghi 1 lan vao CopyOnWriteArrayList
+        // Xóa batch session da mat kết nối — chỉ ghi 1 lan vao CopyOnWriteArrayList
         if (!failedSessions.isEmpty()) {
             list.removeAll(failedSessions);
-            // Xoa key neu khong con subscriber nao
+            // Xóa key nếu không con subscriber nao
             if (list.isEmpty()) {
                 subscribers.remove(auctionId, list);
             }
         }
     }
 
-    /** Lay so subscriber cua auction — chi dung cho test. */
+    /** Trả về số subscriber hiện tại của auction — chỉ dùng cho mục đích test. */
     public int getSubscriberCount(String auctionId) {
         CopyOnWriteArrayList<Session> list = subscribers.get(auctionId);
         return list != null ? list.size() : 0;
     }
 
-    /** Xoa toan bo subscriber — chi dung cho test. */
+    /** Xóa toàn bộ subscriber — chỉ dùng cho mục đích test. */
     public void clearAll() {
         subscribers.clear();
     }

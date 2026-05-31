@@ -52,7 +52,6 @@ public final class Seller extends User {
     /**
      * Tăng tổng sản phẩm đã đăng lên 1.
      *
-     * <p>Gọi khi Seller tạo thêm một sản phẩm mới (từ Tuần 5).
      */
     public void incrementItemsListed() {
         this.totalItemsListed++;

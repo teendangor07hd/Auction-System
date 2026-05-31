@@ -3,7 +3,6 @@ package com.bidhub.common.exception;
 /**
  * Ném khi tìm kiếm phiên đấu giá không tồn tại trong hệ thống.
  *
- * <p>Sử dụng từ Tuần 4 trong {@code RequestHandler}.
  */
 public class AuctionNotFoundException extends BidHubException {
 

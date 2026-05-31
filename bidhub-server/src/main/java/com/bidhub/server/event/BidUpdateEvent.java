@@ -3,10 +3,8 @@ package com.bidhub.server.event;
 import java.time.LocalDateTime;
 
 /**
- * Event thong bao bid moi — gui realtime den tat ca client subscribe auction.
+ * Event thông báo bid moi — gửi realtime đến tat ca client subscribe auction.
  *
- * <p>// 📌 [Tieu chi: Realtime update Observer/Socket — push event qua socket]
- * // 📌 [Tieu chi: Design Pattern Observer — event object cho notify]
  */
 public final class BidUpdateEvent {
 
@@ -17,11 +15,11 @@ public final class BidUpdateEvent {
     private final LocalDateTime timestamp;
 
     /**
-     * Tao BidUpdateEvent.
+     * Tạo BidUpdateEvent.
      *
      * @param auctionId id cua auction
-     * @param bidderId  id cua nguoi dat gia
-     * @param bidderName ten cua nguoi dat gia
+     * @param bidderId  id cua nguoi đặt giá
+     * @param bidderName ten cua nguoi đặt giá
      * @param bidAmount so tien dat
      */
     public BidUpdateEvent(String auctionId, String bidderId, String bidderName, double bidAmount) {
@@ -35,10 +33,10 @@ public final class BidUpdateEvent {
     /** @return id auction */
     public String getAuctionId() { return auctionId; }
 
-    /** @return id nguoi dat gia */
+    /** @return id nguoi đặt giá */
     public String getBidderId() { return bidderId; }
 
-    /** @return ten nguoi dat gia */
+    /** @return ten nguoi đặt giá */
     public String getBidderName() { return bidderName; }
 
     /** @return so tien dat */

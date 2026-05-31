@@ -20,10 +20,10 @@ public abstract class Item extends Entity implements Displayable {
 
     private static final Logger logger = LoggerFactory.getLogger(Item.class);
 
-    /** Ten san pham — bat buoc, khong rong. */
+    /** Ten sản phẩm — bắt buộc, không rong. */
     private String name;
 
-    /** Mô tả chi tiết sản phẩm. */
+    /** Mô tả chỉ tiết sản phẩm. */
     private String description;
 
     /**

@@ -7,12 +7,11 @@ import com.bidhub.server.model.UserRole;
 import java.util.Optional;
 
 /**
- * Utility kiem tra quyen truy cap — dung trong moi handler can auth/role guard.
+ * Utility kiem tra quyen truy cap — đúng trong moi handler cần auth/role guard.
  *
- * <p>Static method ném {@link AuthenticationException} neu khong dat dieu kien.
- * Exception nay duoc bat boi try-catch trong {@link RequestHandler#handle} va tra ve error response.
+ * <p>Static method ném {@link AuthenticationException} nếu không dat điều kiện.
+ * Exception này được bat boi try-catch trong {@link RequestHandler#handle} và trả về error response.
  *
- * <p>// 📌 [Tieu chi: Xu ly loi & ngoai le — AuthenticationException cho auth guard]
  */
 public final class SecurityContext {
 
@@ -21,11 +20,11 @@ public final class SecurityContext {
     private SecurityContext() {}
 
     /**
-     * Yeu cau nguoi dung da dang nhap — tra ve userId neu hop le.
+     * Yeu cau người dùng đã đăng nhập — trả về userId nếu hop le.
      *
      * @param session session hien tai
-     * @return userId cua nguoi dung da dang nhap
-     * @throws AuthenticationException neu chua dang nhap
+     * @return userId cua người dùng đã đăng nhập
+     * @throws AuthenticationException nếu chua đăng nhập
      */
     public static String requireAuthenticated(Session session) {
         if (session == null || !session.isAuthenticated()) {
@@ -35,14 +34,13 @@ public final class SecurityContext {
     }
 
     /**
-     * Yeu cau nguoi dung co dung role — tra ve userId neu hop le.
+     * Yeu cau người dùng có đúng role — trả về userId nếu hop le.
      *
-     * <p>// 📌 [Tieu chi: Quan ly nguoi dung — kiem tra role truoc khi thuc hien hanh dong]
      *
      * @param session  session hien tai
      * @param required role yeu cau
-     * @return userId cua nguoi dung co dung role
-     * @throws AuthenticationException neu chua dang nhap hoac sai role
+     * @return userId cua người dùng có đúng role
+     * @throws AuthenticationException nếu chua đăng nhập hoac sai role
      */
     public static String requireRole(Session session, UserRole required) {
         String userId = requireAuthenticated(session);

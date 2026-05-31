@@ -3,7 +3,6 @@ package com.bidhub.common.exception;
 /**
  * Ném khi tìm kiếm người dùng không tồn tại.
  *
- * <p>Sử dụng từ Tuần 5 trong {@code UserService}.
  */
 public class UserNotFoundException extends BidHubException {
 

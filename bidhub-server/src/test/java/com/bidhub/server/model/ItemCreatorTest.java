@@ -106,7 +106,6 @@ class ItemCreatorTest {
         @Test
         @DisplayName("List<Item> từ 3 creator khác nhau → getCategoryDetails() trả về 3 chuỗi khác nhau")
         void testPolymorphism_GetCategoryDetails_DifferentPerType() {
-            // Arrange — dùng forType() để tạo đúng creator lúc runtime (giống code tuần 5)
             List<Item> items = List.of(
                     ItemCreator.forType(ItemType.ELECTRONICS).createItem(
                             "Laptop", "", 20_000_000, SELLER_ID,

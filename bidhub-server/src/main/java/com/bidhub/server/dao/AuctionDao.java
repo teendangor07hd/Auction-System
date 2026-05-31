@@ -138,7 +138,6 @@ public class AuctionDao {
      * @param bidderId  ID ngườii đặt
      */
     public void updateHighestBid(String auctionId, double amount, String bidderId) {
-        // 📌 [Tiêu chí: MVC — DAO xử lý persistence cho Bidding Engine tuần 6]
         String sql = """
         UPDATE auctions
         SET current_highest_bid = ?, highest_bidder_id = ?, updated_at = ?
@@ -162,7 +161,6 @@ public class AuctionDao {
     }
 
     /**
-     * Cập nhật end_time (dùng cho Anti-Sniping tuần 8 — method này đã sẵn sàng).
      *
      * @param auctionId  ID phiên
      * @param newEndTime thờii điểm kết thúc mới (phải sau endTime hiện tại)
@@ -201,7 +199,7 @@ public class AuctionDao {
         String itemId = rs.getString("item_id");
         LocalDateTime startTime = LocalDateTime.parse(rs.getString("start_time"));
         LocalDateTime endTime = LocalDateTime.parse(rs.getString("end_time"));
-        // Lam tron so thap phan sang VND (so nguyen) de tranh sai lech float
+        // Lam tron so thap phan sang VND (so nguyen) để tranh sai lech float
         double startingPrice = Math.round(rs.getDouble("starting_price"));
         double currentHighestBid = Math.round(rs.getDouble("current_highest_bid"));
 
@@ -221,9 +219,9 @@ public class AuctionDao {
                 startingPrice, currentHighestBid, highestBidderId, status, minimumIncrement);
     }
     /**
-     * Lay tat ca auction — ORDER BY created_at DESC (moi nhat truoc).
+     * Lấy tat ca auction — ORDER BY created_at DESC (moi nhat truoc).
      *
-     * <p>Dung cho ReportService.exportAuctionReport().
+     * <p>Đúng cho ReportService.exportAuctionReport().
      *
      * @return danh sach tat ca auction
      */
@@ -262,9 +260,9 @@ public class AuctionDao {
   }
 
   /**
-   * Lay tat ca auction voi thong tin bid — dung cho DataIntegrityService.
+   * Lấy tat ca auction với thông tin bid — đúng cho DataIntegrityService.
    *
-   * @return danh sach chua thong tin auction
+   * @return danh sach chua thông tin auction
    */
   public List<AuctionBidDto> findAllWithBidInfo() {
     List<AuctionBidDto> result = new ArrayList<>();

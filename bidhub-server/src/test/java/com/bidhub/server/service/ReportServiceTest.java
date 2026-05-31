@@ -15,7 +15,7 @@ class ReportServiceTest {
 
   @BeforeEach
   void setUp() {
-    // --- START STUB: Mock DAO de pass test khi khong co database that (Phan cua Khoa them de thay cho DB) ---
+    // --- START STUB: Mock DAO để pass test khi không có database that (Phan cua Khoa thêm để thay cho DB) ---
     AuctionDao mockAuctionDao = new AuctionDao() {
         @Override public List<com.bidhub.server.model.Auction> findAll() {
             java.time.LocalDateTime start = java.time.LocalDateTime.now();
@@ -62,9 +62,9 @@ class ReportServiceTest {
   @DisplayName("exportAuctionReport() moi row co key auctionId va status")
   void exportAuctionReport_hasRequiredKeys() {
     List<Map<String, Object>> report = reportService.exportAuctionReport();
-    // Verify method signature va return type
+    // Verify method signature và return type
     assertNotNull(report);
-    // Actual data test can DB — verify structure
+    // Actual data test cần DB — verify structure
     for (Map<String, Object> row : report) {
       assertTrue(row.containsKey("auctionId"), "Row thieu key auctionId");
       assertTrue(row.containsKey("status"), "Row thieu key status");
@@ -89,8 +89,8 @@ class ReportServiceTest {
   @Test
   @DisplayName("exportAuditLog(0) co fallback ve 50")
   void exportAuditLog_zeroLimit_fallback() {
-    // Note: validation 0 < limit < 500 o handler, khong phai service
-    // Service chi goi auditLogDao.findRecent(limit) truc tiep
+    // Note: validation 0 < limit < 500 o handler, không phai service
+    // Service chỉ goi auditLogDao.findRecent(limit) truc tiep
     assertDoesNotThrow(() -> reportService.exportAuditLog(0));
   }
 

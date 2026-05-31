@@ -11,12 +11,10 @@ import static org.junit.jupiter.api.Assertions.*;
  * Integration test cho 3 admin handlers trong RequestHandler:
  * handleGetUserList, handleLockUser, handleUnlockUser.
  *
- * <p>Test qua method {@code handle()} — gui JSON request, nhan JSON response.
- * Cac test nay kiem tra auth guard va validation, KHONG can DB that
+ * <p>Test qua method {@code handle()} — gửi JSON request, nhan JSON response.
+ * Các test này kiem tra auth guard và validation, Không cần DB that
  * (vi se nhan error truoc khi truy cap DB).
  *
- * <p>// 📌 [Tieu chi: Quan ly nguoi dung — Admin handler integration test]
- * // 📌 [Tieu chi: Xu ly loi & ngoai le — auth guard + validation test]
  */
 class AdminHandlerTest {
 

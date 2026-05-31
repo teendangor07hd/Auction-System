@@ -10,20 +10,19 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Loi server TCP — lang nghe ket noi moi, submit moi ket noi vao thread pool.
+ * Loi server TCP — lắng nghe kết nối moi, submit moi kết nối vao thread pool.
  *
- * <p>Fixed pool 30: phuc vu tai concurrent Tuan 7 ma khong spawn thread khong gioi han.
- * Goi {@link #start(int)} cuoi {@code ServerApp.main()} — blocking cho den khi {@link #shutdown()}.
+ * <p>Fixed pool 30: phuc vu tai concurrent Tuan 7 ma không spawn thread không gioi han.
+ * Goi {@link #start(int)} cuối {@code ServerApp.main()} — blocking cho đến khi {@link #shutdown()}.
  */
 public final class SocketServerCore {
 
     private static final Logger logger = LoggerFactory.getLogger(SocketServerCore.class);
 
-    // 📌 [Tieu chi: Kien truc Client–Server — 0.5d] Fixed pool tranh OOM khi nhieu client dong thoi
     private final ExecutorService threadPool;
     private final RequestHandler requestHandler = new RequestHandler();
     private ServerSocket serverSocket;
-    private volatile boolean running = false; // volatile: shutdown() tu thread khac thay ngay
+    private volatile boolean running = false; // volatile: shutdown() từ thread khac thay ngay
 
     public SocketServerCore() {
         int poolSize = com.bidhub.server.config.ConfigLoader.getIntOrDefault("server.poolSize", 30);
@@ -32,10 +31,10 @@ public final class SocketServerCore {
     }
 
     /**
-     * Bat dau lang nghe — blocking. Goi tu main thread sau khi tat ca setup xong.
+     * Bắt đầu lắng nghe — blocking. Goi từ main thread sau khi tat ca setup xong.
      *
-     * @param port cong lang nghe, doc tu ConfigLoader
-     * @throws IOException neu khong bind duoc cong
+     * @param port cong lắng nghe, đọc từ ConfigLoader
+     * @throws IOException nếu không bind được cong
      */
     public void start(int port) throws IOException {
         serverSocket = new ServerSocket(port);
@@ -52,12 +51,12 @@ public final class SocketServerCore {
                 if (running) {
                     logger.error("Loi accept: {}", e.getMessage(), e);
                 }
-                // !running → ServerSocket da dong boi shutdown() → thoat vong lap binh thuong
+                // !running → ServerSocket da đóng boi shutdown() → thoat vòng lặp binh thuong
             }
         }
     }
 
-    /** Dung server — dong ServerSocket, shutdown pool, cho toi da 5 giay. */
+    /** Đúng server — đóng ServerSocket, shutdown pool, cho toi da 5 giay. */
     public void shutdown() {
         running = false;
         if (serverSocket != null && !serverSocket.isClosed()) {

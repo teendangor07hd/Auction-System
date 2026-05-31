@@ -20,7 +20,6 @@ public final class DbConnectionProvider {
 
     private static final Logger logger = LoggerFactory.getLogger(DbConnectionProvider.class);
 
-    // 📌 [Tiêu chí: Singleton Pattern — 1.0đ] volatile ngăn CPU reorder instruction khi khởi tạo
     private static volatile DbConnectionProvider instance;
 
     private final String jdbcUrl;

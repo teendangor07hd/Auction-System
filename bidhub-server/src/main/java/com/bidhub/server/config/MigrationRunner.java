@@ -37,8 +37,7 @@ public final class MigrationRunner {
                     }
                 }
             }
-            // 📌 [Tieu chi: Quan ly nguoi dung — migration is_locked cho DB cu]
-            // Migration: them cot is_locked vao bang users (cho DB da tao tu Tuan 3)
+            // Migration: thêm cot is_locked vao bang users (cho DB da tạo từ Tuan 3)
             String alterTableSql =
                     "ALTER TABLE users ADD COLUMN is_locked "
                             + "INTEGER NOT NULL DEFAULT 0";
@@ -46,7 +45,7 @@ public final class MigrationRunner {
                 stmt.execute(alterTableSql);
                 logger.info("Cot is_locked da san sang.");
             } catch (SQLException e) {
-                // Cot da ton tai hoac loi khac — khong block server startup
+                // Cot đã tồn tại hoac loi khac — không block server startup
                 logger.warn("Canh bao migration is_locked: {}", e.getMessage());
             }
 

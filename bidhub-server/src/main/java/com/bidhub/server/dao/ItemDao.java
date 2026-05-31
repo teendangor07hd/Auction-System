@@ -64,7 +64,6 @@ public class ItemDao {
                 ps.setDouble(4, item.getStartingPrice());
                 ps.setString(5, item.getItemType().name());
                 ps.setString(6, item.getSellerId());
-                // 📌 [Tiêu chí: MVC — tầng DAO xử lý persistence]
                 ps.setString(7, MAPPER.writeValueAsString(buildExtras(item)));
                 ps.setString(8, item.getCreatedAt().toString());
                 ps.setString(9, item.getUpdatedAt().toString());

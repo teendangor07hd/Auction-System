@@ -19,10 +19,9 @@ import org.junit.jupiter.api.Tag;
  * Integration test — end-to-end flow: register, login, create item (via SELLER),
  * create auction, subscribe, bid, receive events, wait lifecycle close.
  *
- * <p>Can server CHAY truoc khi chay test — annotate @Tag("integration").
+ * <p>Cần server CHAY truoc khi chay test — annotate @Tag("integration").
  * Skip trong CI: mvn test -pl bidhub-server -DexcludedGroups=integration
  *
- * <p>// 📌 [Tieu chi: Unit Test — IntegrationTest end-to-end]
  */
 @Tag("integration")
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
@@ -32,7 +31,7 @@ class IntegrationTest {
     private static final int PORT = 9090;
     private static final ObjectMapper mapper = new ObjectMapper();
 
-    // State chia se giua cac test step (luu static vi @TestMethodOrder)
+    // State chia se giua các test step (lưu static vi @TestMethodOrder)
     private static String sellerToken;
     private static String bidderToken;
     private static String auctionId;
@@ -44,7 +43,7 @@ class IntegrationTest {
     // ===== HELPER METHODS =====
 
     /**
-     * Gui 1 JSON request den server, tra ve response string.
+     * Gửi 1 JSON request đến server, trả về response string.
      * Mo socket moi cho moi request (stateless connection).
      */
     private String sendRequest(String json) throws Exception {
@@ -60,7 +59,7 @@ class IntegrationTest {
         }
     }
 
-    /** Tao JSON request voi token hien tai. */
+    /** Tạo JSON request với token hien tai. */
     private String buildRequest(String type, Map<String, Object> payload, String token)
             throws Exception {
         ObjectNode root = mapper.createObjectNode();
@@ -75,8 +74,7 @@ class IntegrationTest {
     // ===== TEST STEPS =====
 
     /**
-     * Step 1: Dang ky tai khoan SELLER de tao item.
-     * // 📌 [Tieu chi: Unit Test — verify register flow]
+     * Step 1: Đăng ký tài khoản SELLER để tạo item.
      */
     @Test
     @Order(1)
@@ -97,7 +95,7 @@ class IntegrationTest {
     }
 
     /**
-     * Step 2: Dang ky tai khoan BIDDER de dat gia.
+     * Step 2: Đăng ký tài khoản BIDDER để đặt giá.
      */
     @Test
     @Order(2)
@@ -117,7 +115,6 @@ class IntegrationTest {
 
     /**
      * Step 3: Login SELLER → nhan token.
-     * // 📌 [Tieu chi: Unit Test — verify login + token generation]
      */
     @Test
     @Order(3)
@@ -157,18 +154,17 @@ class IntegrationTest {
     }
 
     /**
-     * Step 5: SELLER tao item.
-     * // 📌 [Tieu chi: Unit Test — verify CREATE_ITEM flow]
+     * Step 5: SELLER tạo item.
      */
     @Test
     @Order(5)
     @DisplayName("Step 5: SELLER create item")
     void step5_createItem() throws Exception {
-        // Dung HashMap de warrantyMonths duoc giu nguyen kieu Integer khi serialize JSON
-        // Map.of() voi mixed types se infer Map<String,String>, khien warrantyMonths thanh String
+        // Đúng HashMap để warrantyMonths được giu nguyen kieu Integer khi serialize JSON
+        // Map.of() với mixed types se infer Map<String,String>, khien warrantyMonths thanh String
         java.util.Map<String, Object> extras = new java.util.HashMap<>();
         extras.put("brand", "TestBrand");
-        extras.put("warrantyMonths", 12); // phai la Integer, khong phai String
+        extras.put("warrantyMonths", 12); // phai là Integer, không phai String
 
         java.util.Map<String, Object> payload = new java.util.HashMap<>();
         payload.put("name", "Integration Test Laptop " + UNIQUE_SUFFIX);
@@ -189,8 +185,7 @@ class IntegrationTest {
     }
 
     /**
-     * Step 6: Tao auction tu item vua tao — duration 1 phut.
-     * // 📌 [Tieu chi: Unit Test — verify CREATE_AUCTION flow]
+     * Step 6: Tạo auction từ item vua tạo — duration 1 phut.
      */
     @Test
     @Order(6)
@@ -198,15 +193,15 @@ class IntegrationTest {
     void step6_createAuction() throws Exception {
         assertNotNull(itemId, "itemId phai duoc set truoc (step 5 failed)");
 
-        // Lay thoi gian hien tai + 1 phut
+        // Lấy thoi gian hien tai + 1 phut
         String startTime = java.time.LocalDateTime.now().toString();
         String endTime = java.time.LocalDateTime.now().plusMinutes(1).toString();
 
         String json = buildRequest("PLACE_BID", Map.of(
                 "auctionId", "dummy-will-fail"), sellerToken);
 
-        // Tao auction qua RequestHandler — goi API thuc
-        // Neu server khong co CRATE_AUCTION endpoint, dung INSERT truc tiep
+        // Tạo auction qua RequestHandler — goi API thuc
+        // Nếu server không có CRATE_AUCTION endpoint, đúng INSERT truc tiep
         // Kiem tra qua GET_AUCTION_LIST
         String listJson = buildRequest("GET_AUCTION_LIST", Map.of(), sellerToken);
         String listResponse = sendRequest(listJson);
@@ -214,14 +209,14 @@ class IntegrationTest {
         assertEquals("OK", listNode.path("status").asText(),
                 "GET_AUCTION_LIST that bai: " + listResponse);
 
-        // Lay auction ID tu danh sach (lay cai dau tien co trang thai RUNNING)
+        // Lấy auction ID từ danh sach (lấy cai dau tien có trạng thái RUNNING)
         JsonNode auctions = listNode.path("payload");
         if (auctions.isArray() && auctions.size() > 0) {
             auctionId = auctions.get(0).path("id").asText("");
         }
 
-        // Neu khong co auction nao RUNNING, skip step nay (server chua co auction)
-        // Test van PASS neu danh sach rong (server moi khoi dong)
+        // Nếu không có auction nao RUNNING, skip step này (server chua có auction)
+        // Test van PASS nếu danh sach rong (server moi khởi động)
         if (auctionId == null || auctionId.isBlank()) {
             auctionId = "test-auction-" + UNIQUE_SUFFIX;
         }
@@ -230,13 +225,12 @@ class IntegrationTest {
 
     /**
      * Step 7: BIDDER subscribe auction.
-     * // 📌 [Tieu chi: Unit Test — verify SUBSCRIBE_AUCTION + Observer Pattern]
      */
     @Test
     @Order(7)
     @DisplayName("Step 7: BIDDER subscribe auction")
     void step7_subscribeAuction() throws Exception {
-        // Lay auction ID tu danh sach RUNNING
+        // Lấy auction ID từ danh sach RUNNING
         String listJson = buildRequest("GET_AUCTION_LIST", Map.of(), bidderToken);
         String listResponse = sendRequest(listJson);
         JsonNode listNode = mapper.readTree(listResponse);
@@ -248,7 +242,7 @@ class IntegrationTest {
 
         if (auctionId == null || auctionId.isBlank()
                 || auctionId.startsWith("test-auction")) {
-            // Khong co auction RUNNING — skip (test van pass)
+            // Không có auction RUNNING — skip (test van pass)
             return;
         }
 
@@ -261,19 +255,18 @@ class IntegrationTest {
     }
 
     /**
-     * Step 8: BIDDER dat gia (PLACE_BID).
-     * // 📌 [Tieu chi: Unit Test — verify PLACE_BID flow]
+     * Step 8: BIDDER đặt giá (PLACE_BID).
      */
     @Test
     @Order(8)
     @DisplayName("Step 8: BIDDER place bid")
     void step8_placeBid() throws Exception {
         if (auctionId == null || auctionId.startsWith("test-auction")) {
-            // Khong co auction RUNNING — skip
+            // Không có auction RUNNING — skip
             return;
         }
 
-        // Lay gia hien tai de tinh buoc gia
+        // Lấy gia hien tai để tinh bước giá
         String detailJson = buildRequest("GET_AUCTION_DETAIL",
                 Map.of("auctionId", auctionId), bidderToken);
         String detailResponse = sendRequest(detailJson);
@@ -299,8 +292,7 @@ class IntegrationTest {
     }
 
     /**
-     * Step 9: Verify bid da duoc cap nhat trong GET_AUCTION_DETAIL.
-     * // 📌 [Tieu chi: Unit Test — verify auction detail phan anh bid moi nhat]
+     * Step 9: Verify bid đã được cập nhật trong GET_AUCTION_DETAIL.
      */
     @Test
     @Order(9)
@@ -317,7 +309,7 @@ class IntegrationTest {
         assertEquals("OK", node.path("status").asText(),
                 "GET_AUCTION_DETAIL that bai: " + response);
 
-        // Xac nhan highestBidderId la BIDDER
+        // Xác nhận highestBidderId là BIDDER
         String highestBidderId = node.path("payload")
                 .path("auction").path("highestBidderId").asText("");
         assertFalse(highestBidderId.isBlank(),
@@ -326,10 +318,8 @@ class IntegrationTest {
 
     /**
      * Step 10: Receive BID_UPDATE event qua long-lived socket.
-     * Mo 1 socket subscribe → mo socket khac dat gia → kiem tra nhan BID_UPDATE.
+     * Mo 1 socket subscribe → mo socket khac đặt giá → kiem tra nhan BID_UPDATE.
      *
-     * <p>// 📌 [Tieu chi: Unit Test — verify Observer Pattern notify()]
-     * // 📌 [Tieu chi: Realtime update — BID_UPDATE event]
      */
     @Test
     @Order(10)
@@ -342,7 +332,7 @@ class IntegrationTest {
         CountDownLatch eventLatch = new CountDownLatch(1);
         AtomicReference<String> receivedEventType = new AtomicReference<>("");
 
-        // Listener thread: mo socket, login, subscribe, lang nghe event
+        // Listener thread: mo socket, login, subscribe, lắng nghe event
         Thread listenerThread = new Thread(() -> {
             try (Socket listenSocket = new Socket(HOST, PORT);
                  PrintWriter out = new PrintWriter(listenSocket.getOutputStream(), true);
@@ -351,7 +341,7 @@ class IntegrationTest {
 
                 listenSocket.setSoTimeout(15_000);
 
-                // Login voi bidder account
+                // Login với bidder account
                 String loginJson = buildRequest("LOGIN", Map.of(
                         "username", BIDDER_USERNAME,
                         "password", "Test@123"), null);
@@ -368,7 +358,7 @@ class IntegrationTest {
                 out.println(mapper.writeValueAsString(subReq));
                 in.readLine(); // Subscribe response
 
-                // Doi event (BID_UPDATE se den sau khi bid tu thread khac)
+                // Doi event (BID_UPDATE se đến sau khi bid từ thread khac)
                 String eventLine = in.readLine();
                 if (eventLine != null) {
                     JsonNode eventNode = mapper.readTree(eventLine);
@@ -384,10 +374,10 @@ class IntegrationTest {
         listenerThread.setDaemon(true);
         listenerThread.start();
 
-        // Doi 1 giay de listener subscribe xong
+        // Doi 1 giay để listener subscribe xong
         Thread.sleep(1000);
 
-        // Dat gia tu socket khac de trigger BID_UPDATE event
+        // Đặt giá từ socket khac để trigger BID_UPDATE event
         try {
             String detailJson = buildRequest("GET_AUCTION_DETAIL",
                     Map.of("auctionId", auctionId), bidderToken);
@@ -398,32 +388,32 @@ class IntegrationTest {
             double minIncrement = detailNode.path("payload")
                     .path("auction").path("minimumIncrement").asDouble(1000);
 
-            // Dung seller account de dat gia (tranh "ban dang la nguoi dan dau")
-            // (hoac dung bidder neu seller chua dat)
+            // Đúng seller account để đặt giá (tranh "ban dang là nguoi dan dau")
+            // (hoac đúng bidder nếu seller chua dat)
             String bidJson = buildRequest("PLACE_BID", Map.of(
                     "auctionId", auctionId,
                     "bidAmount", currentBid + minIncrement + 5000), sellerToken);
-            sendRequest(bidJson); // Ket qua khong quan trong, chi can BID_UPDATE duoc publish
+            sendRequest(bidJson); // Kết quả không quan trong, chỉ cần BID_UPDATE được publish
         } catch (Exception ignored) {
-            // Neu bid that bai (vi seller la owner), thu voi bid khac — van ok
+            // Nếu bid that bai (vi seller là owner), thu với bid khac — van ok
         }
 
         // Doi event toi da 12 giay
         boolean received = eventLatch.await(12, TimeUnit.SECONDS);
 
-        // Neu server chua chay hoac auction da ket thuc, test van pass (skip)
-        // Chi fail neu nhan duoc event sai type
+        // Nếu server chua chay hoac auction đã kết thúc, test van pass (skip)
+        // Chỉ fail nếu nhận được event sai type
         if (received) {
             String evType = receivedEventType.get();
             assertTrue(
                     evType.contains("BID_UPDATE") || evType.contains("BID") || evType.contains("bid"),
                     "Event type sai — nhan: " + evType);
         }
-        // Neu khong nhan duoc event (timeout) — co the do auction da dong → acceptable
+        // Nếu không nhận được event (timeout) — có the do auction da đóng → acceptable
     }
 
     /**
-     * Step 11: Verify GET_ITEM_LIST tra ve danh sach co san pham vua tao.
+     * Step 11: Verify GET_ITEM_LIST trả về danh sach có sản phẩm vua tạo.
      */
     @Test
     @Order(11)
@@ -439,12 +429,12 @@ class IntegrationTest {
         assertEquals("OK", node.path("status").asText(),
                 "GET_ITEM_LIST that bai: " + response);
 
-        // Kiem tra co it nhat 1 item
+        // Kiem tra có it nhat 1 item
         JsonNode items = node.path("payload");
         assertTrue(items.isArray() && items.size() >= 1,
                 "Danh sach item phai co it nhat 1 san pham");
 
-        // Tim item vua tao
+        // Tìm item vua tạo
         boolean found = false;
         for (JsonNode item : items) {
             if (itemId.equals(item.path("id").asText(""))) {
@@ -456,8 +446,7 @@ class IntegrationTest {
     }
 
     /**
-     * Step 12: SELLER logout — token bi huy.
-     * // 📌 [Tieu chi: Unit Test — verify LOGOUT + token invalidation]
+     * Step 12: SELLER logout — token bi hủy.
      */
     @Test
     @Order(12)
@@ -473,14 +462,14 @@ class IntegrationTest {
         assertEquals("OK", node.path("status").asText(),
                 "Logout that bai: " + response);
 
-        // Sau logout, token khong con hop le
+        // Sau logout, token không con hop le
         String afterLogoutJson = buildRequest("CREATE_ITEM", Map.of(
                 "name", "Should Fail",
                 "startingPrice", "1000",
                 "itemType", "ELECTRONICS"), sellerToken);
         String afterResponse = sendRequest(afterLogoutJson);
         JsonNode afterNode = mapper.readTree(afterResponse);
-        // Nen nhan ERROR vi token da bi huy
+        // Nen nhan ERROR vi token da bi hủy
         assertNotEquals("OK", afterNode.path("status").asText(),
                 "Request sau logout phai bi tu choi");
     }

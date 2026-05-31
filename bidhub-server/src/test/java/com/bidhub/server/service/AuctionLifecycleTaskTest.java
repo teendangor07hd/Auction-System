@@ -73,10 +73,10 @@ class AuctionLifecycleTaskTest {
     @DisplayName("run() khong crash khi auction con han — khong dong phien")
     void run_futureAuction_noClose() {
         auctionManager.addAuction(createFutureAuction("auc-future"));
-        task.run(); // Khong crash, auction van trong RAM vi chua het han
-        // Khong kiem tra DB update vi test khong co DB — nhung logic kiem tra endTime se skip.
-        // Auction van con trong RAM (neu lifecycle task khong remove)
-        // Co the kiem tra activeCount = 1 (tuy vao cai dat remove hay khong)
+        task.run(); // Không crash, auction van trong RAM vi chua het han
+        // Không kiem tra DB update vi test không có DB — nhung logic kiem tra endTime se skip.
+        // Auction van con trong RAM (nếu lifecycle task không remove)
+        // Có the kiem tra activeCount = 1 (tuy vao cai dat remove hay không)
         assertEquals(1, auctionManager.activeCount(),
                 "Auction chua het han khong bi remove");
     }
@@ -84,9 +84,9 @@ class AuctionLifecycleTaskTest {
     @Test
     @DisplayName("run() voi auction het han — goi closeAuction (can DB, nen test logic co ban)")
     void run_expiredAuction_triggersCloseLogic() {
-        // Test nay kiem tra rang run() khong crash khi gap auction het han.
-        // Vi test khong co DB, closeAuction() se that bai, nhung AuctionLifecycleTask da
-        // duoc thiet ke de bat exception va van tiep tuc.
+        // Test này kiem tra rang run() không crash khi gap auction het han.
+        // Vi test không có DB, closeAuction() se that bai, nhung AuctionLifecycleTask da
+        // được thiet ke để bat exception và van tiep tuc.
         auctionManager.addAuction(createExpiredAuction("auc-expired"));
         assertDoesNotThrow(() -> task.run(),
                 "Task phai xu ly exception DB, khong lam crash toan bo");

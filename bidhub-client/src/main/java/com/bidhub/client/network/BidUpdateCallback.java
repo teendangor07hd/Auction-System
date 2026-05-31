@@ -1,21 +1,20 @@
 package com.bidhub.client.network;
 
 /**
- * Callback nhan event realtime tu server (Observer Pattern — client side).
+ * Callback nhan event realtime từ server (Observer Pattern — client side).
  *
- * <p>Controller implement interface nay de nhan BID_UPDATE, AUCTION_CLOSED event.
- * Callback chay tren background thread — phai dung {@code Platform.runLater()}
- * khi cap nhat JavaFX UI.
+ * <p>Controller implement interface này để nhan BID_UPDATE, AUCTION_CLOSED event.
+ * Callback chay tren background thread — phai đúng {@code Platform.runLater()}
+ * khi cập nhật JavaFX UI.
  *
- * <p>// 📌 [Tieu chi: Observer Pattern — Observer (client side)]
  */
 @FunctionalInterface
 public interface BidUpdateCallback {
 
     /**
-     * Xu ly event realtime tu server.
+     * Xử lý event realtime từ server.
      *
-     * <p>Chay tren background thread — dung {@code Platform.runLater()} cho UI update.
+     * <p>Chay tren background thread — đúng {@code Platform.runLater()} cho UI update.
      *
      * @param eventJson chuoi JSON chua event (BidUpdateEvent hoac AuctionClosedEvent)
      */

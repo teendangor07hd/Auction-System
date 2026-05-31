@@ -18,12 +18,10 @@ import org.junit.jupiter.api.*;
         import static org.junit.jupiter.api.Assertions.*;
 
 /**
- * Stress test: 50 thread dong thoi bid vao cung 1 auction.
+ * Stress test: 50 thread đóng thoi bid vao cung 1 auction.
  *
- * <p>Kiem tra: khong deadlock, khong NullPointerException, RAM va DB nhat quan.
+ * <p>Kiem tra: không deadlock, không NullPointerException, RAM và DB nhat quan.
  *
- * <p>// 📌 [Tieu chi: Ky thuat quan trọng — ReentrantLock chong lost update]
- * // 📌 [Tieu chi: Unit Test — stress test concurrent bidding]
  */
 class ConcurrentBidTest {
 
@@ -104,7 +102,7 @@ class ConcurrentBidTest {
             });
         }
 
-        // Start tat ca thread dong thoi
+        // Start tat ca thread đóng thoi
         startLatch.countDown();
         boolean allDone = doneLatch.await(30, TimeUnit.SECONDS);
 
@@ -175,7 +173,7 @@ class ConcurrentBidTest {
             finally { done.countDown(); }
         }).start();
 
-        // Thread 2 bid auction 2 — khong bi block boi thread 1
+        // Thread 2 bid auction 2 — không bi block boi thread 1
         new Thread(() -> {
             try {
                 latch.await();
@@ -203,7 +201,7 @@ class ConcurrentBidTest {
     @Test
     @DisplayName("AuctionDao.findAll() tra ve danh sach auction")
     void auctionDao_findAll_returnsList() {
-        // Test logic — verify method ton tai va signature dung
+        // Test logic — verify method ton tai và signature đúng
         assertNotNull(AuctionDao.class, "AuctionDao phai co method findAll()");
         try {
             var method = AuctionDao.class.getMethod("findAll");

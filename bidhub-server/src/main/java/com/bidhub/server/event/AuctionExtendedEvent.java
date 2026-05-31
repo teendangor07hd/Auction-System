@@ -3,13 +3,11 @@ package com.bidhub.server.event;
 import java.time.LocalDateTime;
 
 /**
- * Event thong bao auction duoc gia han — gui realtime den tat ca client subscribe.
+ * Event thông báo auction được gia hạn — gửi realtime đến tat ca client subscribe.
  *
  * <p>Khi {@link com.bidhub.server.service.AntiSnipingEngine} detect bid trong snipe window,
- * auction duoc gia han endTime va event nay duoc publish qua NotificationBroker.
+ * auction được gia hạn endTime và event này được publish qua NotificationBroker.
  *
- * <p>// 📌 [Tieu chi: Anti-Sniping — event gia han auction cho client]
- * // 📌 [Tieu chi: Realtime update — push AUCTION_EXTENDED event qua socket]
  */
 public final class AuctionExtendedEvent {
 
@@ -17,29 +15,27 @@ public final class AuctionExtendedEvent {
     private final LocalDateTime newEndTime;
 
     /**
-     * Tao AuctionExtendedEvent.
+     * Tạo AuctionExtendedEvent.
      *
-     * @param auctionId  id cua auction duoc gia han
-     * @param newEndTime thoi gian ket thuc moi sau gia han
+     * @param auctionId  id cua auction được gia hạn
+     * @param newEndTime thoi gian kết thúc moi sau gia hạn
      */
-    // 📌 [Tieu chi: Anti-Sniping — event object chua auctionId va newEndTime]
     public AuctionExtendedEvent(String auctionId, LocalDateTime newEndTime) {
         this.auctionId = auctionId;
         this.newEndTime = newEndTime;
     }
 
-    /** @return id cua auction duoc gia han */
+    /** @return id cua auction được gia hạn */
     public String getAuctionId() {
         return auctionId;
     }
 
-    /** @return thoi gian ket thuc moi */
+    /** @return thoi gian kết thúc moi */
     public LocalDateTime getNewEndTime() {
         return newEndTime;
     }
 
-    /** Event type cho client phan biet auction duoc gia han. */
-    // 📌 [Tieu chi: Realtime update — event type string cho client routing]
+    /** Event type cho client phan biet auction được gia hạn. */
     public String getEventType() {
         return "AUCTION_EXTENDED";
     }

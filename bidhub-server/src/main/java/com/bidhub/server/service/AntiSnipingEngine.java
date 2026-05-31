@@ -12,20 +12,18 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Engine kiem tra va gia han auction khi co bid dat trong snipe window (giay cuoi).
+ * Engine kiểm tra và gia hạn phiên đấu giá khi có lượt đặt giá trong snipe window (những giây cuối).
  *
- * <p>Khi mot bid duoc dat thanh cong, {@link #check(Auction)} so sanh thoi gian hien tai
- * voi snipe window ({@code endTime - thresholdSeconds}). Neu bid nam trong window
- * → gia han auction them {@code extensionSeconds} giay.
+ * <p>Khi một bid được đặt thành công, {@link #check(Auction)} so sánh thời gian hiện tại
+ * với snipe window ({@code endTime - thresholdSeconds}). Nếu bid nằm trong window
+ * → gia hạn auction thêm {@code extensionSeconds} giây.
  *
- * <p>Config lay tu {@link ConfigLoader}:
+ * <p>Config lấy từ {@link ConfigLoader}:
  * <ul>
- *   <li>{@code snipe.threshold} — so giay truoc endTime de bat dau gia han (default 60)</li>
- *   <li>{@code snipe.extension} — so giay gia han moi lan (default 60)</li>
+ *   <li>{@code snipe.threshold} — số giây trước endTime để bắt đầu gia hạn (default 60)</li>
+ *   <li>{@code snipe.extension} — số giây gia hạn mỗi lần (default 60)</li>
  * </ul>
  *
- * <p>// 📌 [Tieu chi: Anti-Sniping — gia han tu dong phien dau gia khi bid sat gio]
- * // 📌 [Tieu chi: Ky thuat quan trong — LocalDateTime arithmetic + ConfigLoader]
  */
 public final class AntiSnipingEngine {
 
@@ -37,9 +35,8 @@ public final class AntiSnipingEngine {
     private final AuditLogService auditLogService;
 
     /**
-     * Constructor production — doc config tu file properties.
+     * Constructor dùng trong môi trường thực tế — đọc cấu hình từ file properties.
      *
-     * <p>// 📌 [Tieu chi: Anti-Sniping — ConfigLoader doc threshold va extension]
      */
     public AntiSnipingEngine() {
         this.auctionDao = new AuctionDao();
@@ -49,13 +46,12 @@ public final class AntiSnipingEngine {
     }
 
     /**
-     * Constructor test — cho phep inject gia tri config de test.
+     * Constructor dùng cho test — cho phép inject giá trị cấu hình tùy ý.
      *
-     * @param auctionDao        AuctionDao (mock hoac real)
-     * @param thresholdSeconds  snipe threshold tinh bang giay
-     * @param extensionSeconds  snipe extension tinh bang giay
+     * @param auctionDao        AuctionDao (mock hoặc real)
+     * @param thresholdSeconds  snipe threshold tính bằng giây
+     * @param extensionSeconds  snipe extension tính bằng giây
      */
-    // 📌 [Tieu chi: Unit Test — constructor test cho inject dependency]
     public AntiSnipingEngine(AuctionDao auctionDao, int thresholdSeconds, int extensionSeconds) {
         this.auctionDao = auctionDao;
         this.auditLogService = new AuditLogService();
@@ -64,16 +60,14 @@ public final class AntiSnipingEngine {
     }
 
     /**
-     * Kiem tra xem bid vua dat co nam trong snipe window khong.
+     * Kiểm tra xem bid vừa đặt có nằm trong snipe window không.
      *
-     * <p>Neu bid dat trong {@code thresholdSeconds} giay cuoi → gia han auction them
-     * {@code extensionSeconds} giay. Cap nhat ca RAM va DB, publish
-     * {@link AuctionExtendedEvent} cho tat ca client subscribe.
+     * <p>Nếu bid được đặt trong {@code thresholdSeconds} giây cuối → gia hạn auction thêm
+     * {@code extensionSeconds} giây. Cập nhật cả RAM và DB, publish
+     * {@link AuctionExtendedEvent} cho tất cả client subscribe.
      *
-     * <p>// 📌 [Tieu chi: Anti-Sniping — logic detect va gia han auction]
-     * // 📌 [Tieu chi: Ky thuat quan trong — LocalDateTime.isAfter() / minusSeconds() / plusSeconds()]
      *
-     * @param auction auction can kiem tra (phai la RUNNING)
+     * @param auction auction cần kiểm tra (phải là RUNNING)
      */
     public void check(Auction auction) {
         if (auction == null || auction.getEndTime() == null) {
@@ -86,25 +80,21 @@ public final class AntiSnipingEngine {
         LocalDateTime now = LocalDateTime.now();
         LocalDateTime snipeWindow = auction.getEndTime().minusSeconds(thresholdSeconds);
 
-        // 📌 [Tieu chi: Anti-Sniping — isAfter() OR isEqual() de bao gom canh]
         if (now.isAfter(snipeWindow) || now.isEqual(snipeWindow)) {
-            // 📌 [Tieu chi: Anti-Sniping — luu endTime cu truoc khi gia han]
             LocalDateTime oldEndTime = auction.getEndTime();
             LocalDateTime newEndTime = oldEndTime.plusSeconds(extensionSeconds);
 
-            // Cap nhat RAM
+            // Cập nhật thời gian kết thúc trên RAM
             auction.extendEndTime(newEndTime);
 
-            // Cap nhat DB
+            // Cập nhật thời gian kết thúc xuống cơ sở dữ liệu
             auctionDao.updateEndTime(auction.getId(), newEndTime);
 
-            // 📌 [Tieu chi: Realtime update — publish AUCTION_EXTENDED event]
             NotificationBroker.getInstance().publish(
                     auction.getId(),
                     new AuctionExtendedEvent(auction.getId(), newEndTime));
 
-            // 📌 [Tieu chi: Audit Log — log AUCTION_EXTENDED sau gia han thanh cong]
-            // Chay trong handlePlaceBid lock block → thread-safe
+            // Chạy trong lock block của handlePlaceBid → thread-safe
             auditLogService.log("SYSTEM", AuditActions.AUCTION_EXTENDED,
                     "{\"auctionId\":\"" + auction.getId()
                             + "\",\"oldEndTime\":\"" + oldEndTime.toString()

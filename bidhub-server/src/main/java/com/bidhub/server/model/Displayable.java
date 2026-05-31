@@ -16,7 +16,7 @@ package com.bidhub.server.model;
 public interface Displayable {
 
     /**
-     * In thông tin chi tiết của đối tượng ra {@code System.out}.
+     * In thông tin chỉ tiết của đối tượng ra {@code System.out}.
      *
      * <p>Mỗi class implement theo cách riêng, thể hiện polymorphism qua interface.
      */

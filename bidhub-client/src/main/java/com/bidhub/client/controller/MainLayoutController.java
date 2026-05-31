@@ -16,6 +16,16 @@ import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.Priority;
 
+/**
+ * Controller cho màn hình layout chính của ứng dụng BidHub.
+ * <p>
+ * Chịu trách nhiệm:
+ * <ul>
+ *   <li>Khởi tạo thanh điều hướng (sidebar) và gán sự kiện cho các nút.</li>
+ *   <li>Kiểm soát hiển thị các nút theo vai trò người dùng (ADMIN, SELLER, BIDDER).</li>
+ *   <li>Xử lý đăng xuất và hiển thị thông tin tài khoản.</li>
+ * </ul>
+ */
 public class MainLayoutController {
 
     private static final String CMD_LOGOUT = "LOGOUT";
@@ -38,12 +48,23 @@ public class MainLayoutController {
     @FXML private Label lblSidebarUser;
     @FXML private Label lblSidebarRole;
 
+    /**
+     * Phương thức khởi tạo được JavaFX gọi tự động sau khi load FXML.
+     * Gọi thiết lập điều hướng, phân quyền và gán action handler.
+     */
     @FXML
     public void initialize() {
         setupNavigationAndSecurity();
         setupActionHandlers();
     }
 
+    /**
+     * Thiết lập điều hướng cho các nút sidebar và kiểm soát hiển thị
+     * theo trạng thái đăng nhập và vai trò của người dùng hiện tại.
+     * <p>
+     * Các nút dành riêng cho từng vai trò (ADMIN, SELLER, BIDDER) sẽ được
+     * ẩn/hiện phù hợp. Nhãn tên người dùng và vai trò cũng được cập nhật.
+     */
     private void setupNavigationAndSecurity() {
         btnCreateAuction.setOnAction(e -> ViewRouter.getInstance().navigateTo(Views.CREATE_AUCTION));
         btnCreateItem.setOnAction(e -> ViewRouter.getInstance().navigateTo(Views.CREATE_ITEM));
@@ -111,45 +132,84 @@ public class MainLayoutController {
         }
     }
 
+    /**
+     * Tiện ích ẩn/hiện một Button và cập nhật thuộc tính {@code managed}
+     * để tránh button chiếm không gian layout khi bị ẩn.
+     *
+     * @param btn     Button cần thay đổi trạng thái hiển thị.
+     * @param visible {@code true} để hiển thị, {@code false} để ẩn.
+     */
     private void setVisible(Button btn, boolean visible) {
         if (btn != null) { btn.setVisible(visible); btn.setManaged(visible); }
     }
 
+    /**
+     * Gán action handler cho nút tài khoản và nút đăng xuất.
+     * Được gọi một lần trong {@link #initialize()}.
+     */
     private void setupActionHandlers() {
         if (btnAccount != null) btnAccount.setOnAction(e -> showAccountPopup());
         if (btnLogout != null) btnLogout.setOnAction(e -> handleLogout());
     }
 
+    /**
+     * Điều hướng đến màn hình đăng nhập.
+     */
     @FXML
     public void handleLogin() {
         ViewRouter.getInstance().navigateTo(Views.LOGIN);
     }
 
+    /**
+     * Điều hướng đến màn hình quản trị (Admin Panel).
+     * Chỉ hiển thị với người dùng có vai trò ADMIN.
+     */
     @FXML
     public void handleAdminPanel() {
         ViewRouter.getInstance().navigateTo(Views.ADMIN_VIEW);
     }
 
+    /**
+     * Điều hướng đến màn hình thông báo.
+     */
     @FXML
     public void handleNotifications() {
         ViewRouter.getInstance().navigateTo(Views.NOTIFICATION_VIEW);
     }
 
+    /**
+     * Điều hướng đến màn hình danh mục sản phẩm.
+     */
     @FXML
     public void handleItemCatalog() {
         ViewRouter.getInstance().navigateTo(Views.ITEM_CATALOG);
     }
 
+    /**
+     * Điều hướng đến màn hình bảng điều khiển của người bán (Seller Dashboard).
+     */
     @FXML
     public void handleSellerDashboard() {
         ViewRouter.getInstance().navigateTo(Views.SELLER_DASHBOARD);
     }
 
+    /**
+     * Điều hướng đến màn hình danh sách sản phẩm của người đấu giá (Bidder Items).
+     */
     @FXML
     public void handleBidderItems() {
         ViewRouter.getInstance().navigateTo(Views.BIDDER_ITEMS);
     }
 
+    /**
+     * Xử lý luồng đăng xuất người dùng.
+     * <p>
+     * Gửi yêu cầu {@code LOGOUT} đến server trong một Thread riêng biệt
+     * (tên: {@code logout-thread}) để không chặn JavaFX Application Thread.
+     * Nếu server xác nhận thành công, xóa {@link ClientSession} và chuyển
+     * hướng về màn hình đăng nhập. Nếu thất bại hoặc mất kết nối, hiển thị
+     * thông báo lỗi cho người dùng.
+     */
     private void handleLogout() {
         NetworkTask<MessageResponse> task = new NetworkTask<>(() -> {
             MessageRequest req = new MessageRequest();
@@ -158,6 +218,7 @@ public class MainLayoutController {
             return ServerGateway.getInstance().sendRequest(req);
         });
 
+        // Xóa session cục bộ và điều hướng về trang đăng nhập
         Runnable forceLogout = () -> {
             ClientSession.getInstance().logout();
             ViewRouter.getInstance().navigateTo(Views.LOGIN);
@@ -179,6 +240,12 @@ public class MainLayoutController {
         new Thread(task, "logout-thread").start();
     }
 
+    /**
+     * Hiển thị popup thông tin tài khoản của người dùng đang đăng nhập.
+     * <p>
+     * Popup hiển thị tên đăng nhập và vai trò được dịch sang tiếng Việt
+     * (BIDDER → "Người Đấu Giá", SELLER → "Người Bán", ADMIN → "Quản Trị Viên").
+     */
     private void showAccountPopup() {
         ClientSession session = ClientSession.getInstance();
         String username = session.getCurrentUsername();
@@ -202,6 +269,7 @@ public class MainLayoutController {
         lblUsernameValue.setStyle("-fx-font-weight: bold;");
 
         Label lblRoleTitle = new Label("Vai trò:");
+        // Dịch mã vai trò sang tên hiển thị tiếng Việt
         String roleDisplay = (role != null) ? switch (role) {
             case "BIDDER" -> "Người Đấu Giá";
             case "SELLER" -> "Người Bán";

@@ -14,12 +14,38 @@ import javafx.stage.Stage;
 import java.io.IOException;
 import java.net.URL;
 
+/**
+ * Điểm khởi động chính của ứng dụng BidHub phía client.
+ *
+ * <p>Class này kế thừa {@link Application} của JavaFX và chịu trách nhiệm:
+ * <ul>
+ *   <li>Khởi tạo {@link ViewRouter} và nạp màn hình chính (HomeView).</li>
+ *   <li>Áp dụng stylesheet CSS toàn cục cho ứng dụng.</li>
+ *   <li>Kết nối đến {@link ServerGateway} trước khi cho phép người dùng thao tác.</li>
+ * </ul>
+ */
 public class BidHubApp extends Application {
 
     private static final int WINDOW_WIDTH = 1024;
     private static final int WINDOW_HEIGHT = 720;
     private static final String APP_TITLE = "BidHub — Hệ thống đấu giá trực tuyến";
 
+    /**
+     * Khởi tạo và hiển thị cửa sổ chính của ứng dụng.
+     *
+     * <p>Quy trình thực hiện:
+     * <ol>
+     *   <li>Khởi tạo {@link ViewRouter} với {@code primaryStage}.</li>
+     *   <li>Nạp giao diện từ {@code /fxml/HomeView.fxml}.</li>
+     *   <li>Vô hiệu hóa toàn bộ giao diện (UI Guard) cho đến khi kết nối Server thành công.</li>
+     *   <li>Áp dụng stylesheet CSS nếu tìm thấy {@code /css/styles.css}.</li>
+     *   <li>Gọi {@link #connectToServer(Parent)} để thiết lập kết nối bất đồng bộ.</li>
+     * </ol>
+     *
+     * @param primaryStage Stage chính do JavaFX runtime cung cấp.
+     * @throws IOException           nếu không thể nạp file FXML.
+     * @throws IllegalStateException nếu {@code /fxml/HomeView.fxml} không tồn tại trong resources.
+     */
     @Override
     public void start(Stage primaryStage) throws IOException {
         ViewRouter.getInstance().initialize(primaryStage);
@@ -31,8 +57,8 @@ public class BidHubApp extends Application {
 
         Parent root = FXMLLoader.load(fxmlUrl);
 
-        // [UI GUARD] - Khóa toàn bộ giao diện ngay từ đầu
-        // Người dùng sẽ thấy giao diện hơi mờ đi và không thể click được
+        // Vô hiệu hóa toàn bộ giao diện (UI Guard) ngay khi khởi động,
+        // tránh người dùng tương tác trước khi kết nối Server hoàn tất.
         root.setDisable(true);
 
         Scene scene = new Scene(root, WINDOW_WIDTH, WINDOW_HEIGHT);
@@ -50,6 +76,15 @@ public class BidHubApp extends Application {
         connectToServer(root);
     }
 
+    /**
+     * Kết nối bất đồng bộ đến Server và cập nhật trạng thái giao diện theo kết quả.
+     *
+     * <p>Tác vụ kết nối chạy trên một Thread riêng thông qua {@link NetworkTask}.
+     * Khi kết nối thành công, UI Guard được gỡ bỏ để người dùng có thể thao tác.
+     * Khi kết nối thất bại, hiển thị thông báo lỗi và thoát ứng dụng.
+     *
+     * @param root Node gốc của Scene; được dùng để bật/tắt UI Guard sau khi có kết quả kết nối.
+     */
     private void connectToServer(Parent root) {
         NetworkTask<Void> connectTask = new NetworkTask<>(() -> {
             ServerGateway gw = ServerGateway.getInstance();
@@ -57,14 +92,14 @@ public class BidHubApp extends Application {
             return null;
         });
 
-        // [THÀNH CÔNG] - Server đã kết nối
+        // Kết nối thành công: gỡ bỏ UI Guard, cho phép người dùng thao tác bình thường.
         connectTask.setOnSucceeded(e -> {
             // Gỡ bỏ UI Guard: Mở khóa giao diện cho người dùng thao tác
             root.setDisable(false);
             System.out.println("[Client] Đã kết nối thành công tới Server!");
         });
 
-        // [THẤT BẠI] - Không kết nối được
+        // Kết nối thất bại: hiển thị thông báo lỗi chỉ tiết rồi thoát ứng dụng.
         connectTask.setOnFailed(e -> {
             Alert alert = new Alert(Alert.AlertType.ERROR,
                     "Không kết nối được Server tại "

@@ -17,9 +17,8 @@ import org.junit.jupiter.api.*;
 import static org.junit.jupiter.api.Assertions.*;
 
 /**
- * Test suite cho AdminUserService — su dung in-memory SQLite.
+ * Test suite cho AdminUserService — su đúng in-memory SQLite.
  *
- * <p>// 📌 [Tieu chi: Testing — in-memory SQLite cho DAO test]
  */
 class AdminUserServiceTest {
 
@@ -32,7 +31,7 @@ class AdminUserServiceTest {
   @BeforeEach
   void setUp() throws Exception {
     conn = DriverManager.getConnection("jdbc:sqlite::memory:");
-    // Tao schema bang users
+    // Tạo schema bang users
     conn.createStatement().execute(
         "CREATE TABLE IF NOT EXISTS users ("
         + "id TEXT PRIMARY KEY, username TEXT UNIQUE NOT NULL, "
@@ -62,10 +61,10 @@ class AdminUserServiceTest {
   }
 
   /**
-   * Tao va luu user voi id, username va role chi dinh.
-   * Doc goc dung new Bidder(id, username, hash, email) nhung Bidder khong co
-   * constructor 4-arg. Adapt: tao Bidder/Admin binh thuong (auto-gen id),
-   * sau do dung id auto-gen de test.
+   * Tạo và lưu user với id, username và role chỉ dinh.
+   * Đọc goc đúng new Bidder(id, username, hash, email) nhung Bidder không có
+   * constructor 4-arg. Adapt: tạo Bidder/Admin binh thuong (auto-gen id),
+   * sau do đúng id auto-gen để test.
    */
   private User createAndSaveUser(String id, String username, UserRole role) {
     User user;
@@ -78,8 +77,8 @@ class AdminUserServiceTest {
           AuthService.hashPassword("password123"),
           username + "@email.com");
     }
-    // Doc goc dung id truyen vao, nhung constructor tu tao UUID.
-    // Test van dung vi ta dung user.getId() thay vi hardcode id.
+    // Đọc goc đúng id truyền vào, nhung constructor từ tạo UUID.
+    // Test van đúng vi ta đúng user.getId() thay vi hardcode id.
     userDao.save(user);
     return user;
   }
@@ -128,7 +127,7 @@ class AdminUserServiceTest {
   @Test
   @DisplayName("lockUser — khoa Admin nem ValidationException")
   void lockUser_lockAdmin_throwsValidationException() {
-    // Tao Admin user
+    // Tạo Admin user
     User admin = createAndSaveUser("admin-1", "adminUser", UserRole.ADMIN);
 
     assertThrows(ValidationException.class,

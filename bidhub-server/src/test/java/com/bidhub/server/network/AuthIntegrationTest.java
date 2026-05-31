@@ -25,9 +25,8 @@ import java.util.Optional;
 import static org.junit.jupiter.api.Assertions.*;
 
 /**
- * Integration test cho toan bo auth flow: register → login → logout + token + auth-guard.
+ * Integration test cho toàn bộ auth flow: register → login → logout + token + auth-guard.
  *
- * <p>// 📌 [Tieu chi: Unit Test JUnit — 0.5đ] ≥ 20 cases
  */
 class AuthIntegrationTest {
 
@@ -69,7 +68,7 @@ class AuthIntegrationTest {
         // Clear SessionManager
         SessionManager.getInstance().clearAll();
 
-        // Tao mock session
+        // Tạo mock session
         try (ServerSocket srv = new ServerSocket(0)) {
             Socket client = new Socket("localhost", srv.getLocalPort());
             mockSession = new Session(srv.accept());
@@ -220,7 +219,7 @@ class AuthIntegrationTest {
         String logoutJson = "{\"type\":\"LOGOUT\",\"token\":\"" + token + "\",\"payload\":{}}";
         handler.handle(logoutJson, mockSession);
 
-        // Token khong con hop le
+        // Token không con hop le
         assertTrue(SessionManager.getInstance().getUserIdByToken(token).isEmpty());
     }
 
@@ -271,9 +270,9 @@ class AuthIntegrationTest {
         handler.handle(buildRegisterJson("hash1", "mypassword", "h1@t.com", "BIDDER"), mockSession);
         Optional<User> userOpt = userDao.findByUsername("hash1");
         assertTrue(userOpt.isPresent());
-        // Password trong DB khong phai plaintext
+        // Password trong DB không phai plaintext
         assertNotEquals("mypassword", userOpt.get().getPasswordHash());
-        // Nhung verify duoc
+        // Nhung verify được
         assertTrue(AuthService.verifyPassword("mypassword", userOpt.get().getPasswordHash()));
     }
 

@@ -3,7 +3,6 @@ package com.bidhub.common.exception;
 /**
  * Ném khi đăng ký với username đã tồn tại trong hệ thống.
  *
- * <p>Sử dụng từ Tuần 5 trong {@code UserService.register()}.
  */
 public class DuplicateUsernameException extends BidHubException {
 

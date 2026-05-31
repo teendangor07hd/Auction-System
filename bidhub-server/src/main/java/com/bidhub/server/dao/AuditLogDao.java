@@ -10,7 +10,6 @@ import java.util.List;
 /**
  * CRUD cho bảng {@code audit_logs}.
  *
- * <p>Theo đúng pattern DAO Tuần 3: 2 constructor, acquireConnection/releaseConnection,
  * PreparedStatement cho mọi query.
  */
 public class AuditLogDao {

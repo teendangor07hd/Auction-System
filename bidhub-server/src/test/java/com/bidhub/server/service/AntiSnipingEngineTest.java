@@ -16,10 +16,8 @@ import org.junit.jupiter.api.*;
 import static org.junit.jupiter.api.Assertions.*;
 
 /**
- * Test suite cho AntiSnipingEngine — kiem tra logic detect va gia han auction.
+ * Test suite cho AntiSnipingEngine — kiem tra logic detect và gia hạn auction.
  *
- * <p>// 📌 [Tieu chi: Unit Test — anti-sniping test suite ≥ 5 cases]
- * // 📌 [Tieu chi: Anti-Sniping — verify gia han, khong gia han, null safe, finished auction]
  *
  * @author Đăng + Quốc Minh
  */
@@ -67,14 +65,13 @@ class AntiSnipingEngineTest {
 
     @Test
     @DisplayName("Bid trong snipe window → auction được gia hạn 60 giây")
-        // 📌 [Tieu chi: Anti-Sniping — verify endTime tang extensionSeconds khi bid trong window]
     void check_bidInSnipeWindow_extendsEndTime() {
         // endTime = now + 30 giay (trong snipe window 60 giay)
         LocalDateTime endTime = LocalDateTime.now().plusSeconds(30);
         Auction auction = createRunningAuction("auc-snip-001", endTime);
         LocalDateTime originalEndTime = auction.getEndTime();
 
-        // check() se thay endTime khong vi mockDao khong update DB — nhung RAM duoc cap nhat
+        // check() se thay endTime không vi mockDao không update DB — nhung RAM được cập nhật
         engine.check(auction);
 
         // Verify endTime trong RAM da tang 60 giay
@@ -84,7 +81,6 @@ class AntiSnipingEngineTest {
 
     @Test
     @DisplayName("Bid ngoài snipe window → auction KHÔNG được gia hạn")
-        // 📌 [Tieu chi: Anti-Sniping — verify khong gia han khi bid o ngoai window]
     void check_bidOutsideSnipeWindow_noExtension() {
         // endTime = now + 120 giay (ngoài snipe window 60 giay)
         LocalDateTime endTime = LocalDateTime.now().plusSeconds(120);
@@ -93,14 +89,13 @@ class AntiSnipingEngineTest {
 
         engine.check(auction);
 
-        // Verify endTime khong thay doi
+        // Verify endTime không thay doi
         assertEquals(originalEndTime, auction.getEndTime(),
                 "endTime KHONG duoc gia han khi bid nam ngoai snipe window");
     }
 
     @Test
     @DisplayName("Bid đúng tại boundary snipe window → auction được gia hạn (isEqual)")
-        // 📌 [Tieu chi: Anti-Sniping — verify boundary condition isEqual]
     void check_bidAtBoundary_extendsEndTime() {
         // endTime = now + 60 giay (đúng tại boundary)
         LocalDateTime endTime = LocalDateTime.now().plusSeconds(60);
@@ -108,14 +103,13 @@ class AntiSnipingEngineTest {
 
         engine.check(auction);
 
-        // Boundary (isEqual) → gia han
+        // Boundary (isEqual) → gia hạn
         assertEquals(endTime.plusSeconds(60), auction.getEndTime(),
                 "endTime phai duoc gia han khi bid dung tai boundary (isEqual)");
     }
 
     @Test
     @DisplayName("Auction null hoặc endTime null → không crash, không gia hạn")
-        // 📌 [Tieu chi: Anti-Sniping — null safety]
     void check_nullAuctionOrEndTime_noException() {
         assertDoesNotThrow(() -> engine.check(null));
 
@@ -125,7 +119,6 @@ class AntiSnipingEngineTest {
 
     @Test
     @DisplayName("Auction FINISHED → không gia hạn dù bid trong snipe window")
-        // 📌 [Tieu chi: Anti-Sniping — khong gia han auction da ket thuc]
     void check_finishedAuction_noExtension() {
         LocalDateTime endTime = LocalDateTime.now().plusSeconds(30);
         Auction auction = createRunningAuction("auc-snip-005", endTime);
