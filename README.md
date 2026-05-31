@@ -238,7 +238,7 @@ Giao diện theo dõi diễn biến phiên đấu giá với biểu đồ giá t
 
 | Tài liệu | Liên kết |
 |----------|----------|
-| 📄 Báo cáo PDF | *[Baocao.pdf](https://drive.google.com/file/d/13Ky7pArR6mi7Kjv8WdgR7uD3qJoJxzLh/view?usp=drive_link)* |
+| 📄 Báo cáo PDF | *[Baocao.pdf](https://drive.google.com/file/d/1VgsLbWa2l1R4gmKlrkO8-MMyZsxkeu_W/view?usp=drive_link)* |
 | 🎬 Video Demo | *[Demo BTL](https://drive.google.com/file/d/1UFDd9Il_HJoBrbjYhGh1_DdkiIVrB120/view?fbclid=IwY2xjawSH361leHRuA2FlbQIxMQBzcnRjBmFwcF9pZAEwAAEeegCEGOA8JLsRiCdrKYBEImRslikpAaT_DqruQG8Ka9Aj4GEH13O_bWaxxs0_aem_9Og4ALH-PtfVItoUcNUuuQ)* |
 | 📋 API Protocol | [docs/API_PROTOCOL.md](docs/API_PROTOCOL.md) |
 | 🎨 Style Guide | [docs/STYLE_GUIDE.md](docs/STYLE_GUIDE.md) |
