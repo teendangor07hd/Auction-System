@@ -28,7 +28,6 @@ import java.util.Objects;
  * Item laptop = creator.createItem("MacBook Pro", "Mạnh", 25_000_000.0, "seller-1",
  *     Map.of("brand", "Apple", "warrantyMonths", 12));
  *
- * // Cách 2: Quyết định runtime theo ItemType (dùng trong RequestHandler tuần 5)
  * ItemCreator creator = ItemCreator.forType(itemType);
  * Item item = creator.createItem(name, desc, price, sellerId, extras);
  * }</pre>

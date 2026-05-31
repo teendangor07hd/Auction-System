@@ -12,7 +12,6 @@ import java.util.Objects;
  * {@link List} các lỗi cụ thể — cho phép client hiển thị tất cả vấn đề
  * một lúc thay vì chỉ lỗi đầu tiên.
  *
- * <p>Ví dụ sử dụng (từ Tuần 5):
  * <pre>{@code
  * List<String> errors = new ArrayList<>();
  * if (username == null || username.isBlank()) {

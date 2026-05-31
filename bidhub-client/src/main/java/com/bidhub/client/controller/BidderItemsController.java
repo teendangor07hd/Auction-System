@@ -117,7 +117,7 @@ public class BidderItemsController {
                 + "-fx-border-color: rgba(255,255,255,0.05); -fx-border-radius: 12; "
                 + "-fx-padding: 15; -fx-cursor: hand;"));
 
-        // Click xem chi tiet
+        // Click xem chỉ tiet
         String auctionId = node.path("id").asText();
         card.setOnMouseClicked(e -> {
             ViewRouter.getInstance().navigateTo(Views.AUCTION_DETAIL, java.util.Map.of("auctionId", auctionId));

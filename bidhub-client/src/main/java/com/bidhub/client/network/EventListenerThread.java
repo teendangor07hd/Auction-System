@@ -6,13 +6,11 @@ import java.io.BufferedReader;
 import java.io.InputStreamReader;
 
 /**
- * Background thread doc event realtime tu server — Observer Pattern (client side).
+ * Background thread đọc event realtime từ server — Observer Pattern (client side).
  *
- * <p>Vong lap doc tung dong JSON tu socket input stream, phan loai event dua tren
- * truong {@code eventType}, dispatch den {@link BidUpdateCallback}.
+ * <p>Vòng lặp đọc tung đóng JSON từ socket input stream, phân loại event dua tren
+ * truong {@code eventType}, dispatch đến {@link BidUpdateCallback}.
  *
- * <p>// 📌 [Tieu chi: Realtime update — client nhan event qua socket]
- * // 📌 [Tieu chi: MVC — Observer pattern tren client]
  */
 public class EventListenerThread implements Runnable {
 
@@ -22,10 +20,10 @@ public class EventListenerThread implements Runnable {
     private volatile boolean stopRequested;
 
     /**
-     * Tao EventListenerThread.
+     * Tạo EventListenerThread.
      *
-     * @param reader   BufferedReader tu socket input stream
-     * @param callback callback xu ly event
+     * @param reader   BufferedReader từ socket input stream
+     * @param callback callback xử lý event
      */
     public EventListenerThread(BufferedReader reader, BidUpdateCallback callback) {
         this.reader = reader;
@@ -65,13 +63,13 @@ public class EventListenerThread implements Runnable {
     }
 
     /**
-     * Yeu cau dung thread — goi khi navigate roi khoi AuctionDetail.
+     * Yeu cau đúng thread — goi khi navigate roi khoi AuctionDetail.
      */
     public void stop() {
         this.stopRequested = true;
     }
 
-    /** Kiem tra thread dang chay khong. */
+    /** Kiem tra thread đang chạy không. */
     public boolean isRunning() {
         return !stopRequested;
     }

@@ -8,8 +8,6 @@ import java.util.UUID;
 /**
  * Đại diện 1 kết nối TCP đang sống. Mỗi client có đúng 1 Session suốt vòng đời kết nối.
  *
- * <p>{@link #sendMessage(String)} synchronized — Tuần 7 NotificationBroker gọi từ thread khác.
- * {@code authenticatedUserId} null khi chưa login, được set bởi AuthService Tuần 5.
  */
 public final class Session {
 

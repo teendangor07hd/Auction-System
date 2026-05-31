@@ -74,7 +74,7 @@ class SessionManagerTest {
         String oldToken = sessionManager.createSession("user-001");
         String newToken = sessionManager.createSession("user-001");
 
-        // Token cu khong con hop le
+        // Token cu không con hop le
         assertTrue(sessionManager.getUserIdByToken(oldToken).isEmpty());
         // Token moi hop le
         assertEquals("user-001", sessionManager.getUserIdByToken(newToken).orElse(null));

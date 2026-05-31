@@ -3,7 +3,6 @@ package com.bidhub.common.exception;
 /**
  * Ném khi bid không hợp lệ (thấp hơn giá hiện tại, không đủ increment, v.v.).
  *
- * <p>Sử dụng từ Tuần 6 trong {@code BidValidator}.
  */
 public class InvalidBidException extends BidHubException {
 

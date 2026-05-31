@@ -55,7 +55,6 @@ public final class Bidder extends User {
     /**
      * Tăng tổng số lần đặt giá lên 1.
      *
-     * <p>Gọi mỗi khi Bidder đặt giá thành công (từ Tuần 6).
      */
     public void incrementBidsPlaced() {
         this.totalBidsPlaced++;

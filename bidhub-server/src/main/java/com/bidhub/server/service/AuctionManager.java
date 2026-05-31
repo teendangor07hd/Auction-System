@@ -14,17 +14,14 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Singleton quan ly auction trong RAM — luu tru va lifecycle tu dong.
+ * Singleton quản lý auction trong RAM — lưu trữ và lifecycle từ đóng.
  *
- * <p>Dung {@link ConcurrentHashMap} de thread-safe khi nhieu handler (place bid)
- * va lifecycle task truy cap dong thoi. {@link ScheduledExecutorService} chay
- * {@link AuctionLifecycleTask} moi 5 giay de kiem tra va dong cac phien het han.
+ * <p>Đúng {@link ConcurrentHashMap} để thread-safe khi nhieu handler (place bid)
+ * và lifecycle task truy cap đóng thoi. {@link ScheduledExecutorService} chay
+ * {@link AuctionLifecycleTask} moi 5 giay để kiem tra và đóng các phien het han.
  *
- * <p>// 📌 [Tieu chi: Ky thuat quan trong & concurrency —
  *     ScheduledExecutorService + ConcurrentHashMap]
- * // 📌 [Tieu chi: Design Pattern Singleton —
  *     volatile + double-checked locking]
- * // 📌 [Tieu chi: Chuc nang dau gia — lifecycle tu dong dong phien]
  */
 public final class AuctionManager {
 
@@ -32,23 +29,21 @@ public final class AuctionManager {
 
     private static volatile AuctionManager instance;
 
-    // 📌 [Tieu chi: Ky thuat quan trong — ConcurrentHashMap cho concurrent access]
     private final ConcurrentHashMap<String, Auction> auctions;
 
-    // 📌 [Tieu chi: Ky thuat quan trong — ScheduledExecutorService cho periodic task]
     private final ScheduledExecutorService scheduler;
 
     private AuctionManager() {
         this.auctions = new ConcurrentHashMap<>();
         this.scheduler = Executors.newSingleThreadScheduledExecutor(r -> {
             Thread t = new Thread(r, "auction-lifecycle");
-            t.setDaemon(true); // daemon thread — khong block JVM shutdown
+            t.setDaemon(true); // daemon thread — không block JVM shutdown
             return t;
         });
     }
 
     /**
-     * Tra ve instance duy nhat (thread-safe, double-checked locking).
+     * Trả về instance duy nhat (thread-safe, double-checked locking).
      *
      * @return AuctionManager instance
      */
@@ -63,14 +58,12 @@ public final class AuctionManager {
         return instance;
     }
 
-    // 📌 [Tieu chi: Ky thuat quan trong — guard chong goi start() nhieu lan]
     private volatile boolean started = false;
 
     /**
-     * Khoi dong AuctionManager — load tat ca OPEN va RUNNING auction tu DB vao RAM,
+     * Khởi động AuctionManager — load tat ca OPEN và RUNNING auction từ DB vao RAM,
      * schedule {@link AuctionLifecycleTask} chay moi 5 giay.
      *
-     * <p>// 📌 [Tieu chi: Chuc nang dau gia — tu dong kiem tra va dong phien]
      */
     public void start() {
         // Chong goi start() nhieu lan → duplicate scheduled tasks
@@ -80,7 +73,7 @@ public final class AuctionManager {
         }
         started = true;
 
-        // Load tat ca OPEN + RUNNING auction tu DB
+        // Load tat ca OPEN + RUNNING auction từ DB
         AuctionDao auctionDao = new AuctionDao();
         List<Auction> activeAuctions = auctionDao.findActiveAuctions();
         for (Auction auction : activeAuctions) {
@@ -88,15 +81,14 @@ public final class AuctionManager {
         }
         logger.info("Da load {} RUNNING auctions vao RAM.", activeAuctions.size());
 
-        // 📌 [Tieu chi: Ky thuat quan trong — initialDelay = 0 de xu ly auction het han
-        //    ngay khi khoi dong, tranh gap 5s de auction expire trong khoang trong]
+        //    ngay khi khởi động, tranh gap 5s để auction expire trong khoang trong]
         AuctionLifecycleTask task = new AuctionLifecycleTask();
         scheduler.scheduleAtFixedRate(task, 0, 5, TimeUnit.SECONDS);
         logger.info("Lifecycle task scheduled (5s interval, chay ngay).");
     }
 
     /**
-     * Dung scheduler — goi khi server shutdown.
+     * Đúng scheduler — goi khi server shutdown.
      */
     public void stop() {
         scheduler.shutdown();
@@ -112,9 +104,9 @@ public final class AuctionManager {
     }
 
     /**
-     * Them auction vao RAM cache.
+     * Thêm auction vao RAM cache.
      *
-     * @param auction auction can them
+     * @param auction auction cần thêm
      */
     public void addAuction(Auction auction) {
         if (auction != null && auction.getId() != null) {
@@ -123,7 +115,7 @@ public final class AuctionManager {
     }
 
     /**
-     * Xoa auction khoi RAM cache (sau khi dong phien).
+     * Xóa auction khoi RAM cache (sau khi đóng phien).
      *
      * @param auctionId id cua auction
      */
@@ -132,29 +124,28 @@ public final class AuctionManager {
     }
 
     /**
-     * Lay auction tu RAM cache.
+     * Lấy auction từ RAM cache.
      *
      * @param auctionId id cua auction
-     * @return Optional chua auction neu ton tai trong RAM
+     * @return Optional chua auction nếu ton tai trong RAM
      */
     public Optional<Auction> getAuction(String auctionId) {
         return Optional.ofNullable(auctions.get(auctionId));
     }
 
     /**
-     * Tra ve danh sach tat ca auction dang active — tao copy de tranh
+     * Trả về danh sach tat ca auction dang active — tạo copy để tranh
      * ConcurrentModificationException khi iterate.
      *
-     * <p>// 📌 [Tieu chi: Ky thuat quan trong — tao copy ArrayList cho safe iteration]
      *
-     * @return danh sach auction dang hoat dong
+     * @return danh sach auction đang hoạt động
      */
     public List<Auction> getAllActive() {
         return new ArrayList<>(auctions.values());
     }
 
     /**
-     * Tra ve so luong auction dang quan ly trong RAM — chi dung cho test.
+     * Trả về so luong auction dang quản lý trong RAM — chỉ đúng cho test.
      *
      * @return so luong auction
      */
@@ -162,7 +153,7 @@ public final class AuctionManager {
         return auctions.size();
     }
 
-    /** Xoa toan bo auction tu RAM — chi dung cho test. */
+    /** Xóa toàn bộ auction từ RAM — chỉ đúng cho test. */
     public void clearAll() {
         auctions.clear();
     }

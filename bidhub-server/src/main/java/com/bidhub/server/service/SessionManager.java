@@ -4,20 +4,17 @@ import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * Singleton quan ly phien dang nhap: token ↔ userId.
+ * Singleton quản lý phiên đăng nhập: token ↔ userId.
  *
- * <p>Dung 2 {@link ConcurrentHashMap} de tra cuu ca 2 chieu:
- * token → userId va userId → token.
- * Dam bao 1 user chi co 1 token tai 1 thoi diem — login moi thay token cu.
+ * <p>Dùng 2 {@link ConcurrentHashMap} để tra cứu cả 2 chiều:
+ * token → userId và userId → token.
+ * Đảm bảo 1 user chỉ có 1 token tại 1 thời điểm — login mới thay token cũ.
  *
- * <p>// 📌 [Tieu chi: Ky thuat quan trong & concurrency — ConcurrentHashMap thread-safe]
- * // 📌 [Tieu chi: Design Pattern Singleton — volatile + double-checked locking]
  */
 public final class SessionManager {
 
     private static volatile SessionManager instance;
 
-    // 📌 [Tieu chi: Ky thuat quan trong — ConcurrentHashMap cho concurrent access]
     private final ConcurrentHashMap<String, String> tokenToUserId;
     private final ConcurrentHashMap<String, String> userIdToToken;
 
@@ -27,7 +24,7 @@ public final class SessionManager {
     }
 
     /**
-     * Tra ve instance duy nhat (thread-safe, double-checked locking).
+     * Trả về instance duy nhất (thread-safe, double-checked locking).
      *
      * @return SessionManager instance
      */
@@ -43,17 +40,15 @@ public final class SessionManager {
     }
 
     /**
-     * Tao phien dang nhap moi cho userId. Neu userId da co token cu → thay the.
+     * Tạo phiên đăng nhập mới cho userId. Nếu userId đã có token cũ → thay thế.
      *
-     * <p>// 📌 [Tieu chi: Quan ly nguoi dung — tao phien dang nhap]
-     *
-     * @param userId id nguoi dung
-     * @return token UUID moi
+     * @param userId ID người dùng
+     * @return token UUID mới
      */
     public synchronized  String createSession(String userId) {
         String token = AuthService.generateToken();
 
-        // Neu user da co token cu → xoa token cu khoi tokenToUserId
+        // Nếu user đã có token cũ → xóa token cũ khỏi tokenToUserId
         String oldToken = userIdToToken.put(userId, token);
         if (oldToken != null) {
             tokenToUserId.remove(oldToken);
@@ -64,9 +59,9 @@ public final class SessionManager {
     }
 
     /**
-     * Huy phien dang nhap — xoa token khoi ca 2 map.
+     * Hủy phiên đăng nhập — xóa token khỏi cả 2 map.
      *
-     * @param token token can huy
+     * @param token Token cần hủy
      */
     public synchronized void invalidateSession(String token) {
         if (token == null) {
@@ -79,13 +74,12 @@ public final class SessionManager {
     }
 
     /**
-     * Tra cuu userId tu token.
+     * Tra cứu userId từ token.
      *
-     * @param token token can tra cuu
-     * @return Optional chua userId neu token hop le, Optional.empty() neu khong
+     * @param token Token cần tra cứu
+     * @return Optional chứa userId nếu token hợp lệ, Optional.empty() nếu không
      */
-    // 📌 [Tieu chi: Ky thuat quan trong — synchronized read de dam bao nhat quan
-    //    voi write (createSession/invalidateSession cung dung synchronized)]
+    // synchronized đảm bảo nhất quán khi đọc song song với các write operation
     public synchronized Optional<String> getUserIdByToken(String token) {
         if (token == null || token.isBlank()) {
             return Optional.empty();
@@ -94,33 +88,32 @@ public final class SessionManager {
     }
 
     /**
-     * Kiem tra token co ton tai khong.
+     * Kiểm tra token có hợp lệ không.
      *
-     * @param token token can kiem tra
-     * @return true neu token hop le
+     * @param token Token cần kiểm tra
+     * @return true nếu token hợp lệ
      */
     public synchronized boolean isValidToken(String token) {
         return token != null && tokenToUserId.containsKey(token);
     }
 
     /**
-     * Lay token hien tai cua userId.
+     * Lấy token hiện tại của userId.
      *
-     * @param userId id nguoi dung
-     * @return Optional chua token neu user dang dang nhap
+     * @param userId ID người dùng
+     * @return Optional chứa token nếu user đang đăng nhập
      */
     public synchronized Optional<String> getTokenByUserId(String userId) {
         return Optional.ofNullable(userIdToToken.get(userId));
     }
 
-    /** Xoa toan bo session — chi dung cho test. */
-    // 📌 [Tieu chi: Ky thuat quan trong — synchronized de tranh race voi create/invalidate]
+    /** Xóa toàn bộ phiên — chỉ dùng cho mục đích test. */
     public synchronized void clearAll() {
         tokenToUserId.clear();
         userIdToToken.clear();
     }
 
-    /** Tra ve so phien dang nhap hien tai — chi dung cho test/monitor. */
+    /** Trả về số phiên đăng nhập hiện tại — dùng để test hoặc giám sát. */
     public synchronized int activeSessionCount() {
         return tokenToUserId.size();
     }

@@ -87,7 +87,7 @@ public final class RequestHandler {
     }
 
     /**
-     * Xu ly 1 request JSON tu client, tra ve JSON response string.
+     * Xử lý 1 request JSON từ client, trả về JSON response string.
      */
     public String handle(String jsonLine, Session session) {
         MessageRequest req;

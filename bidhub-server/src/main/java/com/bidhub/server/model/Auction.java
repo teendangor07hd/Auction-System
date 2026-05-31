@@ -158,7 +158,6 @@ public class Auction extends Entity {
         markUpdated();
     }
     /**
-     * Gia hạn thời gian kết thúc (Anti-Sniping — Tuần 8).
      *
      * @param newEndTime thời điểm kết thúc mới, phải sau endTime hiện tại
      * @throws IllegalArgumentException nếu newEndTime không sau endTime hiện tại
@@ -242,9 +241,8 @@ public class Auction extends Entity {
     }
 
     /**
-     * Cap nhat gia cao nhat hien tai — dung khi co bid moi.
+     * Cập nhật gia cao nhat hien tai — đúng khi có bid moi.
      *
-     * <p>// 📌 [Tieu chi: Chuc nang dau gia — cap nhat gia trong RAM]
      *
      * @param amount gia dau moi
      */
@@ -254,22 +252,20 @@ public class Auction extends Entity {
     }
 
     /**
-     * Cap nhat id nguoi dan dau — dung khi co bid moi.
+     * Cập nhật id nguoi dan dau — đúng khi có bid moi.
      *
-     * @param bidderId id cua nguoi dau gia moi
+     * @param bidderId id cua nguoi đấu giá moi
      */
     public void setHighestBidderId(String bidderId) {
         this.highestBidderId = bidderId;
         markUpdated();
     }
-    // 📌 [Tieu chi: Ky thuat quan trọng — ReentrantLock granular locking]
-    /** Lock cho tung auction — dam bao atomic khi bid hoac dong phien. */
+    /** Lock cho tung auction — dam bao atomic khi bid hoac đóng phien. */
     private final ReentrantLock lock = new ReentrantLock();
 
     /**
-     * Tra ve ReentrantLock cua auction — dung de lock trong handlePlaceBid.
+     * Trả về ReentrantLock cua auction — đúng để lock trong handlePlaceBid.
      *
-     * <p>// 📌 [Tieu chi: Ky thuat quan trọng — granular lock theo auction]
      *
      * @return ReentrantLock instance
      */

@@ -16,7 +16,6 @@ import static org.junit.jupiter.api.Assertions.*;
  * Test tích hợp domain: kết hợp User, Auction, Item, Exception.
  * Phiên bản cập nhật theo Factory Method Pattern (Quốc Minh Week 2.1).
  */
-@DisplayName("DomainIntegration — Test tích hợp domain Tuần 2")
 class DomainIntegrationTest {
 
     @Test

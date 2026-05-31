@@ -3,8 +3,6 @@ package com.bidhub.common.exception;
 /**
  * Ném khi xác thực thất bại (sai mật khẩu, token không hợp lệ, chưa đăng nhập).
  *
- * <p>Sử dụng từ Tuần 5 trong {@code AuthService.login()} và
- * từ Tuần 4 trong các handler yêu cầu token.
  */
 public class AuthenticationException extends BidHubException {
 

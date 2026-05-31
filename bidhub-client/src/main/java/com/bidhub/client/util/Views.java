@@ -20,7 +20,7 @@ public final class Views {
     /** Danh sách tất cả phiên đấu giá đang mở */
     public static final String AUCTION_LIST = "AuctionListView";
 
-    /** Chi tiết phiên đấu giá + realtime bidding */
+    /** Chỉ tiết phiên đấu giá + realtime bidding */
     public static final String AUCTION_DETAIL = "AuctionDetailView";
 
     /** Form tạo item mới — chỉ dành cho Seller */

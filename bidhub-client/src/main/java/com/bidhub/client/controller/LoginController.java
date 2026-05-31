@@ -15,6 +15,14 @@ import javafx.fxml.FXML;
 import javafx.scene.control.*;
 import java.util.Map;
 
+/**
+ * Controller xử lý màn hình đăng nhập của ứng dụng BidHub.
+ * <p>
+ * Chịu trách nhiệm thu thập thông tin đăng nhập từ người dùng,
+ * thực hiện xác thực với máy chủ qua {@link ServerGateway},
+ * và điều hướng đến màn hình phù hợp sau khi đăng nhập thành công.
+ * </p>
+ */
 public class LoginController {
 
     @FXML private TextField usernameField;
@@ -25,6 +33,7 @@ public class LoginController {
     @FXML private Button loginButton;
     @FXML private ProgressIndicator loadingSpinner;
 
+    /** Trạng thái hiển thị mật khẩu hiện tại (true = đang hiển thị rõ). */
     private boolean isPasswordVisible = false;
 
     @FXML
@@ -37,6 +46,14 @@ public class LoginController {
         }
     }
 
+    /**
+     * Xử lý sự kiện bật/tắt hiển thị mật khẩu khi người dùng nhấn nút toggle.
+     * <p>
+     * Chuyển đổi giữa {@link PasswordField} (ẩn ký tự) và {@link TextField} (hiển thị rõ).
+     * Hai trường được đồng bộ dữ liệu qua {@code bindBidirectional} nên nội đúng
+     * luôn nhất quán khi chuyển đổi.
+     * </p>
+     */
     @FXML
     private void handleTogglePassword() {
         isPasswordVisible = !isPasswordVisible;
@@ -59,13 +76,25 @@ public class LoginController {
         }
     }
 
+    /**
+     * Xử lý sự kiện đăng nhập khi người dùng nhấn nút "Đăng nhập".
+     * <p>
+     * Thực hiện theo thứ tự:
+     * <ol>
+     *   <li>Lấy và kiểm tra tính hợp lệ của username và password.</li>
+     *   <li>Hiển thị spinner loading và vô hiệu hoá nút đăng nhập.</li>
+     *   <li>Gửi yêu cầu {@code LOGIN} đến máy chủ qua {@link ServerGateway} trên một Thread riêng.</li>
+     *   <li>Xử lý kết quả: điều hướng thành công hoặc hiển thị thông báo lỗi.</li>
+     * </ol>
+     * </p>
+     */
     @FXML
     public void handleLogin() {
         // Lấy password (do đã bindBidirectional nên lấy từ passwordField luôn đúng)
         String password = passwordField.getText();
 
         String username = usernameField.getText().trim();
-        // 2. Gom lỗi chung vào ValidationException như yêu cầu
+        // Gom tất cả lỗi validation vào danh sách rồi ném ValidationException một lần
         try {
             java.util.List<String> errors = new java.util.ArrayList<>();
             if (username.isEmpty()) errors.add("Vui lòng nhập tên đăng nhập.");
@@ -120,6 +149,15 @@ public class LoginController {
         new Thread(task, "login-task").start();
     }
 
+    /**
+     * Xử lý kết quả đăng nhập thành công từ máy chủ.
+     * <p>
+     * Trích xuất thông tin Token, userId, username và role từ payload phản hồi,
+     * lưu vào {@link ClientSession}, sau đó điều hướng đến màn hình danh sách đấu giá.
+     * </p>
+     *
+     * @param response Phản hồi từ máy chủ chứa thông tin phiên đăng nhập.
+     */
     private void handleLoginSuccess(MessageResponse response) {
         Object payload = response.getPayload();
         if (payload instanceof Map<?, ?> map) {
@@ -133,11 +171,17 @@ public class LoginController {
         Platform.runLater(() -> ViewRouter.getInstance().navigateTo(Views.AUCTION_LIST));
     }
 
+    /**
+     * Điều hướng người dùng đến màn hình đăng ký tài khoản mới.
+     */
     @FXML
     public void handleRegister() {
         ViewRouter.getInstance().navigateTo(Views.REGISTER);
     }
 
+    /**
+     * Điều hướng người dùng quay về màn hình trang chủ.
+     */
     @FXML
     public void handleBackToHome() {
         ViewRouter.getInstance().navigateTo(Views.HOME);

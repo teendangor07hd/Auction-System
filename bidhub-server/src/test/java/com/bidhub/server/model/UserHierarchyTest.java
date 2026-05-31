@@ -138,7 +138,7 @@ class UserHierarchyTest {
             // Assert — mỗi info phải khác nhau
             assertNotEquals(infos.get(0), infos.get(1), "Bidder và Seller info phải khác nhau");
             assertNotEquals(infos.get(1), infos.get(2), "Seller và Admin info phải khác nhau");
-            // Kiểm tra nội dung có ý nghĩa
+            // Kiểm tra nội đúng có ý nghĩa
             assertTrue(infos.get(0).contains("Người đặt giá"), "Bidder getInfo phải đề cập vai trò");
             assertTrue(infos.get(1).contains("Người bán"), "Seller getInfo phải đề cập vai trò");
             assertTrue(infos.get(2).contains("Quản trị viên"), "Admin getInfo phải đề cập vai trò");

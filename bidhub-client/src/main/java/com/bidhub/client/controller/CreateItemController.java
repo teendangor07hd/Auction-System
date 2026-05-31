@@ -5,7 +5,7 @@ import com.bidhub.client.network.NetworkTask;
 import com.bidhub.client.network.ServerGateway;
 import com.bidhub.client.navigation.ViewRouter;
 import com.bidhub.client.util.Views;
-import com.bidhub.client.util.UiUtils; // THÊM IMPORT UiUtils
+import com.bidhub.client.util.UiUtils;
 import com.bidhub.common.network.MessageRequest;
 import com.bidhub.common.network.MessageResponse;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
@@ -19,7 +19,8 @@ import javafx.stage.FileChooser;
 import java.io.File;
 
 /**
- * Controller cho man hinh tao san pham — chi cho SELLER.
+ * Controller màn hình tạo sản phẩm — chỉ dành cho SELLER.
+ * Hỗ trợ 3 loại sản phẩm: ELECTRONICS, ART, VEHICLE.
  */
 public class CreateItemController {
 
@@ -53,11 +54,13 @@ public class CreateItemController {
     @FXML private TextField yearField;
     @FXML private TextField mileageKmField;
 
-    // 📌 [Tieu chi: UX — Loading state components]
     @FXML private Button btnSubmit;
     @FXML private Button btnCancel;
     @FXML private ProgressIndicator loadingSpinner;
 
+    /**
+     * Khởi tạo form, đăng ký lắng nghe sự kiện thay đổi loại sản phẩm.
+     */
     @FXML
     public void initialize() {
         itemTypeComboBox.setItems(
@@ -72,7 +75,7 @@ public class CreateItemController {
             vehicleFields.setManaged("VEHICLE".equals(newVal));
         });
 
-        // Mac dinh an tat ca form phu
+        // Mặc định ẩn tất cả form phụ
         electronicsFields.setVisible(false);
         electronicsFields.setManaged(false);
         artFields.setVisible(false);
@@ -83,7 +86,6 @@ public class CreateItemController {
         lblMessage.setVisible(false);
         lblMessage.getStyleClass().add("error-message");
 
-        // 📌 [Tieu chi: UX — TextField chi nhan so]
         // Chỉ apply numeric filter cho các trường số
         if (startingPriceField != null) UiUtils.applyNumericFilter(startingPriceField);
         UiUtils.applyNumericFilter(warrantyMonthsField);
@@ -91,14 +93,14 @@ public class CreateItemController {
         UiUtils.applyNumericFilter(yearField);
         UiUtils.applyNumericFilter(mileageKmField);
 
-        // Kiem tra role — chi SELLER duoc tao item
+        // Kiểm tra role — chỉ SELLER được tạo sản phẩm
         String role = ClientSession.getInstance().getCurrentRole();
         if (!"SELLER".equals(role)) {
             UiUtils.showError("Lỗi phân quyền", "Chỉ người bán (SELLER) mới được tạo sản phẩm.");
             if (btnSubmit != null) btnSubmit.setDisable(true);
         }
         
-        // Setup chon anh
+        // Cài đặt chọn ảnh sản phẩm
         if (btnSelectImage != null) {
             btnSelectImage.setOnAction(e -> {
                 FileChooser fileChooser = new FileChooser();
@@ -116,7 +118,7 @@ public class CreateItemController {
     }
 
     /**
-     * Xu ly tao san pham — gui request CREATE_ITEM.
+     * Xử lý tạo sản phẩm mới — gửi request CREATE_ITEM lên server.
      */
     @FXML
     public void handleSubmit() {
@@ -126,7 +128,6 @@ public class CreateItemController {
             return;
         }
 
-        // 📌 [Tieu chi: UX — Form validation client-side]
         if (!UiUtils.validateNotEmpty(nameField, "Tên sản phẩm")) return;
         // Giá dự kiến là tuỳ chọn, mặc định 0 = chưa định giá
 
@@ -168,7 +169,6 @@ public class CreateItemController {
             }
         }
 
-        // 📌 [Tieu chi: UX — Loading state]
         Runnable onComplete = (btnSubmit != null && loadingSpinner != null)
                 ? UiUtils.showLoading(btnSubmit, loadingSpinner)
                 : () -> { if (btnSubmit != null) btnSubmit.setDisable(false); };
@@ -212,6 +212,9 @@ public class CreateItemController {
         new Thread(task, "create-item").start();
     }
 
+    /**
+     * Hủy thao tác, quay về danh sách đấu giá.
+     */
     @FXML
     public void handleCancel() {
         ViewRouter.getInstance().navigateTo(Views.AUCTION_LIST);

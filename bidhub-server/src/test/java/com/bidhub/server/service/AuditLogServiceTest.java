@@ -17,7 +17,7 @@ class AuditLogServiceTest {
     @BeforeEach
     void setUp() throws Exception {
         testConn = DriverManager.getConnection("jdbc:sqlite::memory:");
-        // Tao bang audit_logs trong in-memory DB
+        // Tạo bang audit_logs trong in-memory DB
         testConn.createStatement().executeUpdate(
                 "CREATE TABLE audit_logs ("
                         + "id TEXT PRIMARY KEY, "
@@ -50,10 +50,10 @@ class AuditLogServiceTest {
     @Test
     @DisplayName("log() khi DAO nem exception → khong nem exception ra ngoai")
     void log_daoThrows_doesNotPropagate() throws Exception {
-        // Dong connection de buoc DAO nem SQLException
+        // Đóng connection để buoc DAO ném SQLException
         testConn.close();
 
-        // Khong nem exception ra ngoai
+        // Không ném exception ra ngoai
         assertDoesNotThrow(() ->
                 auditLogService.log("user-001", "USER_LOGIN", "{}"));
     }

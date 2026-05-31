@@ -8,7 +8,6 @@ import java.util.*;
 
 /**
  * CRUD cho bảng {@code bid_transactions}.
- * {@link #getHighestBid(String)} được BidService tuần 6 dùng để verify winner.
  */
 public class BidDao {
 
@@ -64,7 +63,6 @@ public class BidDao {
 
     /**
      * Trả về tất cả bid của 1 phiên, sắp xếp theo thờii gian tăng dần.
-     * Dùng để hiển thị lịch sử đặt giá và Price Chart tuần 8.
      *
      * @param auctionId ID phiên
      * @return danh sách BidTransaction theo thứ tự bid_time ASC

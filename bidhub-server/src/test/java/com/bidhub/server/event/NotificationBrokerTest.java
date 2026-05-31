@@ -33,16 +33,16 @@ class NotificationBrokerTest {
   @DisplayName("subscribe tang subscriber count")
   void subscribe_incrementsCount() {
     assertEquals(0, broker.getSubscriberCount("auc-001"));
-    broker.subscribe("auc-001", null); // null session — khong crash
+    broker.subscribe("auc-001", null); // null session — không crash
     assertEquals(0, broker.getSubscriberCount("auc-001"));
   }
 
   @Test
   @DisplayName("subscribe 2 lan cung session — khong duplicate")
   void subscribe_noDuplicate() {
-    // Note: khong the test khong mock Session — verify logic trong subscribe()
-    // subscribe() co check !list.contains(session) truoc khi add
-    assertTrue(true); // Logic da duoc verify trong code review
+    // Note: không thể test không mock Session — verify logic trong subscribe()
+    // subscribe() có check !list.contains(session) truoc khi add
+    assertTrue(true); // Logic đã được verify trong code review
   }
 
   @Test
@@ -87,6 +87,6 @@ class NotificationBrokerTest {
     broker.subscribe("auc-001", null);
     broker.subscribe("auc-002", null);
     broker.unsubscribeAll(null);
-    assertTrue(true); // Logic da duoc verify trong code review
+    assertTrue(true); // Logic đã được verify trong code review
   }
 }

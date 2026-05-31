@@ -81,7 +81,6 @@ class BidChartServiceTest {
     @Test
     @DisplayName("addDataPoint ném ra NullPointerException khi time là null")
     void addDataPoint_nullTime_throwsException() {
-        // 📌 [Kỹ thuật quan trọng: Exception Handling Testing]
         // Dùng assertThrows để đảm bảo chương trình ném ra đúng loại lỗi
         assertThrows(NullPointerException.class, () -> {
             service.addDataPoint(null, 1500.0);

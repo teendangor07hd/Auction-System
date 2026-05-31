@@ -9,7 +9,6 @@ package com.bidhub.common.exception;
  *   <li>Phân loại lỗi: mỗi subclass có {@code errorCode} riêng → client
  *       xử lý đúng case (ví dụ: "BID_INVALID" hiện "Giá đặt không hợp lệ")</li>
  *   <li>Tương thích JSON: {@code errorCode} sẽ được đưa vào response
- *       JSON từ Tuần 4 ({@code {"status":"ERROR","errorCode":"BID_INVALID"}})</li>
  * </ul>
  *
  * <p><b>Tại sao extends RuntimeException (unchecked)?</b>
@@ -17,7 +16,6 @@ package com.bidhub.common.exception;
  * RuntimeException không bắt buộc khai báo trong signature nhưng vẫn
  * có thể catch khi cần xử lý cụ thể.
  *
- * <p>Ví dụ sử dụng (từ Tuần 5):
  * <pre>{@code
  * // Ném exception khi bid không hợp lệ
  * if (!auction.isValidBid(amount)) {
@@ -55,7 +53,7 @@ public class BidHubException extends RuntimeException {
 
     protected BidHubException(String message) {
         super(message);
-        this.errorCode = "UNKNOWN_ERROR"; //gan loi mac dinh (final errorCode)
+        this.errorCode = "UNKNOWN_ERROR"; //gan loi mặc định (final errorCode)
     }
 
     /**

@@ -34,7 +34,7 @@ public class UserDao {
                 : DbConnectionProvider.getInstance().getConnection();
     }
 
-    /** Đóng connection CHỈ KHI không phải injected (tránh đóng shared test connection). */
+    /** Đóng connection CHỈ Khi không phải injected (tránh đóng shared test connection). */
     private void releaseConnection(Connection conn) {
         if (injectedConn == null) {
             DbConnectionProvider.getInstance().closeConnection(conn);
@@ -217,12 +217,11 @@ public class UserDao {
     }
 
     /**
-     * Cap nhat trang thai khoa/mo khoa tai khoan.
+     * Cập nhật trạng thái khoa/mo khoa tài khoản.
      *
-     * <p>// 📌 [Tieu chi: Quan ly nguoi dung — Admin khoa/mo tai khoan]
      *
-     * @param userId id nguoi dung
-     * @param locked true de khoa, false de mo
+     * @param userId id người dùng
+     * @param locked true để khoa, false để mo
      */
     public void updateLocked(String userId, boolean locked) {
         String sql = "UPDATE users SET is_locked = ?, updated_at = ? WHERE id = ?";

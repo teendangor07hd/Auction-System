@@ -33,7 +33,7 @@ import java.time.LocalDateTime;
 import java.util.Map;
 
 /**
- * Controller chi tiết phiên đấu giá.
+ * Controller chỉ tiết phiên đấu giá.
  * Hỗ trợ Real-time updates qua Observer Pattern và Countdown Timer.
  */
 public class AuctionDetailController implements ContextAware {
@@ -53,7 +53,6 @@ public class AuctionDetailController implements ContextAware {
     @FXML private Button btnPlaceBid;
     @FXML private Button btnBack;
 
-    // 📌 [Tieu chi: UX — Loading state]
     @FXML private ProgressIndicator loadingSpinner;
     @FXML private ScrollPane chartScrollPane;
 
@@ -62,7 +61,6 @@ public class AuctionDetailController implements ContextAware {
     @FXML private Button btnZoomOut;
     @FXML private Button btnZoomReset;
 
-    // 📌 [Tieu chi: Price Chart — FXML inject LineChart]
     @FXML
     private LineChart<String, Number> bidChart;
 
@@ -85,7 +83,6 @@ public class AuctionDetailController implements ContextAware {
     private EventListenerThread eventListener;
     private boolean isSubscribed = false;
 
-    // 📌 [Tieu chi: Price Chart — BidChartService quan ly du lieu chart]
     private BidChartService bidChartService;
 
     @Override
@@ -127,10 +124,8 @@ public class AuctionDetailController implements ContextAware {
         });
         bidTable.setItems(bidData);
 
-        // 📌 [Tieu chi: UX — TextField chi nhan so]
         UiUtils.applyNumericFilter(tfBidAmount);
 
-        // 📌 [Tieu chi: Price Chart — khoi tao BidChartService va bind vao LineChart]
         bidChartService = new BidChartService();
         if (bidChart != null) {
             bidChart.getData().clear();
@@ -161,7 +156,7 @@ public class AuctionDetailController implements ContextAware {
     }
 
     /**
-     * Tải thông tin chi tiết phiên đấu giá từ Server.
+     * Tải thông tin chỉ tiết phiên đấu giá từ Server.
      */
     private void loadAuctionDetail() {
         MessageRequest req = new MessageRequest();
@@ -220,7 +215,6 @@ public class AuctionDetailController implements ContextAware {
         lblCurrentPrice.setText(String.format("%,.0f VND", auction.path("currentHighestBid").asDouble(0)));
         lblHighestBidder.setText(auction.path("highestBidderName").asText(auction.path("highestBidderId").asText("Chưa có")));
 
-        // 📌 [Tieu chi: Price Chart — load history data tu server de ve bieu do]
         JsonNode bidHistoryNode = payload.path("bidHistory");
         bidChartService.clearData();
         bidData.clear();
@@ -302,7 +296,7 @@ public class AuctionDetailController implements ContextAware {
         if (isSubscribed) return;
 
         try {
-            // 1. Tao ket noi Socket doc lap cho realtime events
+            // 1. Tạo kết nối Socket độc lập cho realtime events (tránh tranh chấp InputStream với ServerGateway)
             String host = ServerGateway.getInstance().getServerHost();
             int port = ServerGateway.getInstance().getServerPort();
             eventSocket = new java.net.Socket(host, port);
@@ -310,14 +304,14 @@ public class AuctionDetailController implements ContextAware {
             java.io.PrintWriter writer = new java.io.PrintWriter(eventSocket.getOutputStream(), true);
             BufferedReader reader = new BufferedReader(new InputStreamReader(eventSocket.getInputStream()));
 
-            // 2. Gửi lệnh SUBSCRIBE lên server qua socket moi
+            // 2. Gửi lệnh SUBSCRIBE lên server qua socket mới
             MessageRequest subReq = new MessageRequest();
             subReq.setType("SUBSCRIBE_AUCTION");
             subReq.setToken(ClientSession.getInstance().getToken());
             subReq.setPayload(mapper.createObjectNode().put("auctionId", auctionId));
             writer.println(MessageMapper.toJson(subReq));
 
-            // Doc response cho lenh SUBSCRIBE
+            // Đọc response xác nhận lệnh SUBSCRIBE
             String responseLine = reader.readLine();
             MessageResponse subResp = MessageMapper.fromJson(responseLine, MessageResponse.class);
             if (!"OK".equals(subResp.getStatus())) {
@@ -326,7 +320,7 @@ public class AuctionDetailController implements ContextAware {
                 return;
             }
 
-            // 3. Thiết lập Listener Thread để đọc stream từ Socket nay
+            // 3. Thiết lập Listener Thread để đọc stream từ Socket mới
             BidUpdateCallback callback = eventJson -> {
                 try {
                     JsonNode eventNode = mapper.readTree(eventJson);
@@ -352,22 +346,19 @@ public class AuctionDetailController implements ContextAware {
                                 objNode.put("bidTime", ts);
                             }
 
-                            // 📌 [Tieu chi: Price Chart — realtime addDataPoint khi nhan BID_UPDATE]
                             bidChartService.addDataPoint(LocalDateTime.now(), newPrice, bidder);
 
                             // Cập nhật kích thước biểu đồ khi có điểm mới
                             updateChartWidth();
 
-                            // Them vao bang xep hang va sap xep
+                            // Thêm vào bảng xếp hạng và sắp xếp lại theo giá giảm dần
                             bidData.add(eventNode);
                             FXCollections.sort(bidData, (b1, b2) -> Double.compare(b2.path("bidAmount").asDouble(0), b1.path("bidAmount").asDouble(0)));
 
                         } else if ("AUCTION_CLOSED".equals(eventType)) {
-                            // 📌 [Tieu chi: UX — countdown dung khi auction dong]
                             disableBiddingUI();
 
                         } else if ("AUCTION_EXTENDED".equals(eventType)) {
-                            // 📌 [Tieu chi: Anti-Sniping — reset countdown khi nhan AUCTION_EXTENDED]
                             String newEndTimeStr = eventNode.path("newEndTime").asText("");
                             if (!newEndTimeStr.isEmpty()) {
                                 endTime = LocalDateTime.parse(newEndTimeStr);
@@ -393,7 +384,8 @@ public class AuctionDetailController implements ContextAware {
     }
 
     /**
-     * Xử lý gửi yêu cầu đặt giá lên Server.
+     * Xử lý gửi yêu cầu đặt giá lên server.
+     * Bắt buộc phải đăng nhập và nhập số tiền hợp lệ trước khi gửi.
      */
     private void placeBid() {
         if (!ClientSession.getInstance().isLoggedIn()) {
@@ -411,7 +403,7 @@ public class AuctionDetailController implements ContextAware {
 
         double bidAmount = Double.parseDouble(tfBidAmount.getText().trim());
 
-        // Loading state
+        // Hiển thị trạng thái loading: vô hiệu hóa nút và bật spinner
         Runnable onComplete = (loadingSpinner != null)
                 ? UiUtils.showLoading(btnPlaceBid, loadingSpinner)
                 : () -> btnPlaceBid.setDisable(false);
@@ -435,7 +427,6 @@ public class AuctionDetailController implements ContextAware {
                 // 🎉 Hiệu ứng pháo hoa khi đặt giá thành công
                 Platform.runLater(this::launchFireworks);
             } else {
-                // 📌 [Tieu chi: UX — hien Alert khi bid that bai]
                 String errorMsg = response.getMessage();
                 String userMsg = mapErrorMessage(errorMsg);
                 UiUtils.showError("Đặt giá thất bại", userMsg);
@@ -452,7 +443,10 @@ public class AuctionDetailController implements ContextAware {
     }
 
     /**
-     * Map server error code sang message thông thân thiện cho user.
+     * Chuyển mã lỗi từ server thành thông báo thân thiện cho người dùng.
+     *
+     * @param errorCode mã lỗi trả về từ server
+     * @return chuỗi thông báo dễ hiểu bằng tiếng Việt
      */
     private String mapErrorMessage(String errorCode) {
         if (errorCode == null) {
@@ -482,6 +476,10 @@ public class AuctionDetailController implements ContextAware {
         return errorCode;
     }
 
+    /**
+     * Khởi động bộ đếm ngược thời gian, tự động cập nhật mỗi giây.
+     * Hủy bộ đếm cũ trước khi tạo bộ đếm mới (dùng khi auction được gia hạn).
+     */
     private void startCountdown() {
         stopCountdown();
         if (endTime == null) return;
@@ -491,6 +489,9 @@ public class AuctionDetailController implements ContextAware {
         countdownTimeline.play();
     }
 
+    /**
+     * Cập nhật nhãn đếm ngược mỗi giây: hiển thị thời gian chờ/còn lại/đã kết thúc.
+     */
     private void updateCountdown() {
         LocalDateTime now = LocalDateTime.now();
 
@@ -547,6 +548,7 @@ public class AuctionDetailController implements ContextAware {
         stopEventListener();
     }
 
+    /** Dừng bộ đếm ngược và giải phóng Timeline. */
     private void stopCountdown() {
         if (countdownTimeline != null) {
             countdownTimeline.stop();
@@ -591,6 +593,7 @@ public class AuctionDetailController implements ContextAware {
         }
     }
 
+    /** Đặt lại kích thước đồ thị về mặc định (chiều cao 290px). */
     private void resetChartZoom() {
         if (bidChart != null) {
             bidChart.setPrefHeight(290.0);
@@ -602,7 +605,7 @@ public class AuctionDetailController implements ContextAware {
 
     /**
      * Gắn Tooltip cho cột bảng xếp hạng.
-     * Khi nội dung bị cắt bớt sẽ hiện tooltip đầy đủ khi hover.
+     * Khi nội đúng bị cắt bớt sẽ hiện tooltip đầy đủ khi hover.
      */
     private void setupLeaderboardTooltips() {
         if (colBidderName != null) {
@@ -641,6 +644,7 @@ public class AuctionDetailController implements ContextAware {
         }
     }
 
+    /** Dừng Listener Thread và đánh dấu chưa subscribe. */
     private void stopEventListener() {
         if (eventListener != null) {
             eventListener.stop();
@@ -654,7 +658,7 @@ public class AuctionDetailController implements ContextAware {
         stopCountdown();
         stopEventListener();
 
-        // Dong dedicated socket cho realtime events
+        // Đóng Socket độc lập dành riêng cho realtime events
         if (eventSocket != null && !eventSocket.isClosed()) {
             try {
                 eventSocket.close();
@@ -714,6 +718,10 @@ public class AuctionDetailController implements ContextAware {
         }
     }
 
+    /**
+     * Cập nhật độ rộng đồ thị theo số điểm dữ liệu — mỗi điểm cách nhau 80px.
+     * Tự động cuốn sang phải để hiển thị bid mới nhất.
+     */
     private void updateChartWidth() {
         if (bidChart != null && bidChartService != null) {
             int numPoints = bidChartService.getSeries().getData().size();

@@ -7,14 +7,12 @@ import com.bidhub.server.dao.UserDao;
 import java.util.*;
 
 /**
- * Dich vu kiem tra toan ven du lieu — cross-validation giua cac bang.
+ * Dich vu kiem tra toan ven du lieu — cross-validation giua các bang.
  *
- * <p>Phat hien inconsistency do bug, race condition, hoac partial failure.
+ * <p>Phát hiện inconsistency do bug, race condition, hoac partial failure.
  * 4 method chinh: checkBidConsistency, checkAuctionWinners, checkOrphanedItems,
  * runFullCheck.
  *
- * <p>// 📌 [Tieu chi: Clean Code — verify data consistency]
- * // 📌 [Tieu chi: Unit Test — DataIntegrityService tests]
  */
 public final class DataIntegrityService {
 
@@ -23,7 +21,7 @@ public final class DataIntegrityService {
   private final ItemDao itemDao;
   private final UserDao userDao;
 
-  /** Constructor production — tao DAO moi. */
+  /** Constructor production — tạo DAO moi. */
   public DataIntegrityService() {
     this.auctionDao = new AuctionDao();
     this.bidDao = new BidDao();
@@ -32,7 +30,7 @@ public final class DataIntegrityService {
   }
 
   /**
-   * Constructor test — inject cac DAO.
+   * Constructor test — inject các DAO.
    *
    * @param auctionDao AuctionDao inject
    * @param bidDao     BidDao inject
@@ -48,13 +46,13 @@ public final class DataIntegrityService {
   }
 
   /**
-   * Kiem tra tinh nhat quan giua currentHighestBid trong auctions va
+   * Kiem tra tinh nhat quan giua currentHighestBid trong auctions và
    * MAX(bid_amount) trong bid_transactions.
    *
-   * <p>Cho tung auction: lay currentHighestBid tu auctions table, so sanh voi
-   * MAX(bid_amount) tu bid_transactions. Neu khac nhau → inconsistent.
+   * <p>Cho tung auction: lấy currentHighestBid từ auctions table, so sánh với
+   * MAX(bid_amount) từ bid_transactions. Nếu khac nhau → inconsistent.
    *
-   * @return danh sach mo ta loi (rong neu OK)
+   * @return danh sach mô tả loi (rong nếu OK)
    */
   public List<String> checkBidConsistency() {
     List<String> errors = new ArrayList<>();
@@ -76,14 +74,14 @@ public final class DataIntegrityService {
             errors.add("Sản phẩm '" + itemName + "' (Auction " + auctionId + "): Giá cao nhất ghi nhận là "
                 + String.format("%,.0f VND", dbHighestBid) + " nhưng lịch sử Bid cao nhất trong DB chỉ có " + String.format("%,.0f VND", actualMaxBid));
           }
-          // Kiem tra highestBidderId co khop voi MAX bidder
+          // Kiem tra highestBidderId có khop với MAX bidder
           if (dbHighestBidder != null && !dbHighestBidder.isEmpty()
               && !dbHighestBidder.equals(maxBid.get().getBidderId())) {
             errors.add("Sản phẩm '" + itemName + "' (Auction " + auctionId + "): Người thắng ghi nhận là "
                 + dbHighestBidder + " nhưng người đặt giá cao nhất thực tế là " + maxBid.get().getBidderId());
           }
         } else {
-          // Khong co bid nao — currentHighestBid phai = startingPrice hoac 0
+          // Không có bid nao — currentHighestBid phai = startingPrice hoac 0
           if (dbHighestBid > 0 && dbHighestBidder != null) {
             errors.add("Sản phẩm '" + itemName + "' (Auction " + auctionId + "): Ghi nhận có người thắng với giá "
                 + String.format("%,.0f VND", dbHighestBid) + " nhưng không tồn tại bất kỳ lượt Bid nào trong DB");
@@ -97,9 +95,9 @@ public final class DataIntegrityService {
   }
 
   /**
-   * Kiem tra FINISHED auctions co bids nhung chua xac dinh winner.
+   * Kiem tra FINISHED auctions có bids nhung chua xác định winner.
    *
-   * @return danh sach mo ta loi (rong neu OK)
+   * @return danh sach mô tả loi (rong nếu OK)
    */
   public List<String> checkAuctionWinners() {
     List<String> errors = new ArrayList<>();
@@ -123,9 +121,9 @@ public final class DataIntegrityService {
   }
 
   /**
-   * Kiem tra items co sellerId khong ton tai trong bang users.
+   * Kiem tra items có sellerId không tồn tại trong bang users.
    *
-   * @return danh sach mo ta loi (rong neu OK)
+   * @return danh sach mô tả loi (rong nếu OK)
    */
   public List<String> checkOrphanedItems() {
     List<String> errors = new ArrayList<>();
@@ -147,11 +145,11 @@ public final class DataIntegrityService {
   }
 
   /**
-   * Chay toan bo kiem tra — tong hop ket qua.
+   * Chay toàn bộ kiem tra — tong hop kết quả.
    *
-   * <p>Tra ve Map chua ket qua 3 check + tong errors + status.
+   * <p>Trả về Map chua kết quả 3 check + tong errors + status.
    *
-   * @return Map voi key: bidConsistencyErrors, auctionWinnerErrors,
+   * @return Map với key: bidConsistencyErrors, auctionWinnerErrors,
    *         orphanedItemErrors, totalErrors, status
    */
   public Map<String, Object> runFullCheck() {

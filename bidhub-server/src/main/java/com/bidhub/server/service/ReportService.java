@@ -12,12 +12,11 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Dich vu xuat bao cao — chuyen du lieu tu DAO sang dang flat cho client/serializer.
+ * Dich vu xuat bao cao — chuyen du lieu từ DAO sang dang flat cho client/serializer.
  *
- * <p>Tra ve {@code List<Map<String, Object>>} — linh hoat, de serialize JSON.
- * 2 constructor: production (tao DAO moi) va test (inject DAO).
+ * <p>Trả về {@code List<Map<String, Object>>} — linh hoat, để serialize JSON.
+ * 2 constructor: production (tạo DAO moi) và test (inject DAO).
  *
- * <p>// 📌 [Tieu chi: MVC — Service layer chuyen du lieu cho Controller]
  */
 public class ReportService {
 
@@ -37,7 +36,7 @@ public class ReportService {
   }
 
   /**
-   * Constructor test — inject cac DAO.
+   * Constructor test — inject các DAO.
    *
    * @param auctionDao  AuctionDao inject
    * @param bidDao      BidDao inject
@@ -55,18 +54,16 @@ public class ReportService {
   /**
    * Xuat bao cao tat ca auction — moi auction là 1 Map flat.
    *
-   * <p>// 📌 [Tieu chi: MVC — ReportService lay du lieu tu DAO layer]
-   * <p>// 📌 [Tieu chi: Ky thuat quan trong — batch fetch items + users thay vi N+1 query.
-   *    Truoc day moi auction goi itemDao.findById() va userDao.findById() rieng
-   *    → O(n) DB round-trip. Nay load 1 lan, lookup tu Map → O(1)]
+   *    Truoc day moi auction goi itemDao.findById() và userDao.findById() rieng
+   *    → O(n) DB round-trip. Này load 1 lan, lookup từ Map → O(1)]
    *
-   * @return danh sach map chua thong tin auction
+   * @return danh sach map chua thông tin auction
    */
   public List<Map<String, Object>> exportAuctionReport() {
     List<Map<String, Object>> result = new ArrayList<>();
     List<Auction> auctions = auctionDao.findAll();
 
-    // Batch fetch items va users de tranh N+1 query
+    // Batch fetch items và users để tranh N+1 query
     Map<String, String> itemNameCache = buildItemNameCache();
     Map<String, String> userNameCache = buildUserNameCache();
 
@@ -93,10 +90,9 @@ public class ReportService {
   /**
    * Xuat lich su bid cua auction — sorted ASC theo bidTime.
    *
-   * <p>// 📌 [Tieu chi: Ky thuat quan trong — batch fetch thay N+1 query cho items, users]
    *
    * @param auctionId id auction
-   * @return danh sach map chua thong tin bid
+   * @return danh sach map chua thông tin bid
    */
   public List<Map<String, Object>> exportBidHistory(String auctionId) {
     List<Map<String, Object>> result = new ArrayList<>();
@@ -131,10 +127,9 @@ public class ReportService {
   /**
    * Xuat audit log gan day — goi auditLogDao.findRecent(limit).
    *
-   * <p>// 📌 [Tieu chi: Ky thuat quan trong — batch fetch user names thay N+1 query]
    *
    * @param limit so ban ghi toi da (default 50)
-   * @return danh sach map chua thong tin audit log
+   * @return danh sach map chua thông tin audit log
    */
   public List<Map<String, Object>> exportAuditLog(int limit) {
     List<Map<String, Object>> result = new ArrayList<>();
@@ -171,14 +166,13 @@ public class ReportService {
   /**
    * Load tat ca items vao Map(itemId → itemName) — 1 query duy nhat.
    *
-   * <p>// 📌 [Tieu chi: Ky thuat quan trong — thay the N+1 findById() bang 1 findAll()]
    */
   private Map<String, String> buildItemNameCache() {
       Map<String, String> cache = new HashMap<>();
       if (itemDao != null) {
           try {
               itemDao.findAll().forEach(item -> cache.put(item.getId(), item.getName()));
-          } catch (Exception e) { /* DAO co the null trong test */ }
+          } catch (Exception e) { /* DAO có the null trong test */ }
       }
       return cache;
   }
@@ -191,7 +185,7 @@ public class ReportService {
       if (userDao != null) {
           try {
               userDao.findAll().forEach(user -> cache.put(user.getId(), user.getUsername()));
-          } catch (Exception e) { /* DAO co the null trong test */ }
+          } catch (Exception e) { /* DAO có the null trong test */ }
       }
       return cache;
   }
@@ -207,7 +201,7 @@ public class ReportService {
               auctionDao.findAll().forEach(auction ->
                   cache.put(auction.getId(),
                       itemNameCache.getOrDefault(auction.getItemId(), "Sản phẩm " + auction.getItemId())));
-          } catch (Exception e) { /* DAO co the null trong test */ }
+          } catch (Exception e) { /* DAO có the null trong test */ }
       }
       return cache;
   }

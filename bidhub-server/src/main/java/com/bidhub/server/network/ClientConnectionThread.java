@@ -9,9 +9,9 @@ import org.slf4j.LoggerFactory;
 
 
 /**
- * Runnable xu ly 1 client: doc JSON → RequestHandler → sendMessage.
+ * Runnable xử lý 1 client: đọc JSON → RequestHandler → sendMessage.
  *
- * <p>Cleanup session trong finally — socket luon duoc dong du co exception.
+ * <p>Cleanup session trong finally — socket luon được đóng du có exception.
  */
 public final class ClientConnectionThread implements Runnable {
 
@@ -32,14 +32,14 @@ public final class ClientConnectionThread implements Runnable {
                 new InputStreamReader(session.getSocket().getInputStream()))) {
 
             String line;
-            // readLine() → null khi client dong connection (EOF) → thoat vong lap sach
+            // readLine() → null khi client đóng connection (EOF) → thoat vòng lặp sach
             while ((line = reader.readLine()) != null) {
                 String response = handler.handle(line, session);
                 session.sendMessage(response);
             }
 
         } catch (IOException e) {
-            // Client ngat dot ngot (Ctrl+C, kill process...) — khong phai loi server
+            // Client ngat dot ngot (Ctrl+C, kill process...) — không phai loi server
             logger.info("Client ngat: {}", session.getSessionId());
         } finally {
             session.disconnect();

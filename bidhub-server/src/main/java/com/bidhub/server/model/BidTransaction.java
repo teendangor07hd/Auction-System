@@ -32,7 +32,6 @@ public final class BidTransaction extends Entity {
         private final double bidAmount;
 
         /**
-         * Thời điểm đặt giá — ghi lại chính xác để phân tích Anti-Sniping (Tuần 8).
          */
         private final LocalDateTime bidTime;
 

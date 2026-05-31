@@ -20,7 +20,6 @@ import javafx.scene.control.TextField;
 /**
  * Controller cho màn hình đăng ký.
  *
- * <p>// 📌 [Tieu chi: MVC — Controller điều phối form validation + network]
  * Validation realtime: password confirmation bind, email check.
  * Submit → NetworkTask → REGISTER → thành công → navigate về LoginView.
  */
@@ -80,7 +79,6 @@ public class RegisterController {
             confirmPasswordTextField.textProperty().bindBidirectional(confirmPasswordField.textProperty());
         }
 
-        // 📌 [Tieu chi: MVC — bind realtime password confirmation]
         passwordMatchLabel.visibleProperty().bind(
                 Bindings.createBooleanBinding(
                         () -> {
@@ -201,7 +199,6 @@ public class RegisterController {
         hideError();
         isRegistering.set(true);
 
-        // 📌 [Tieu chi: MVC — tạo REGISTER request payload]
         ObjectNode payload = JsonNodeFactory.instance.objectNode();
         payload.put("username", username);
         payload.put("password", password);

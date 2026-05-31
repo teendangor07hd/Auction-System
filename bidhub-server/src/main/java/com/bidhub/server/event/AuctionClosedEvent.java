@@ -3,9 +3,8 @@ package com.bidhub.server.event;
 import java.time.LocalDateTime;
 
 /**
- * Event thong bao auction da dong — gui realtime den tat ca client subscribe.
+ * Event thông báo auction da đóng — gửi realtime đến tat ca client subscribe.
  *
- * <p>// 📌 [Tieu chi: Realtime update — push AUCTION_CLOSED event]
  */
 public final class AuctionClosedEvent {
 
@@ -15,10 +14,10 @@ public final class AuctionClosedEvent {
     private final LocalDateTime timestamp;
 
     /**
-     * Tao AuctionClosedEvent.
+     * Tạo AuctionClosedEvent.
      *
-     * @param auctionId  id auction da dong
-     * @param winnerId   id nguoi thang (null neu khong co)
+     * @param auctionId  id auction da đóng
+     * @param winnerId   id nguoi thang (null nếu không có)
      * @param winningBid gia thang
      */
     public AuctionClosedEvent(String auctionId, String winnerId, double winningBid) {
@@ -31,13 +30,13 @@ public final class AuctionClosedEvent {
     /** @return id auction */
     public String getAuctionId() { return auctionId; }
 
-    /** @return id nguoi thang (null neu khong co bid) */
+    /** @return id nguoi thang (null nếu không có bid) */
     public String getWinnerId() { return winnerId; }
 
     /** @return gia thang */
     public double getWinningBid() { return winningBid; }
 
-    /** @return thoi gian dong */
+    /** @return thoi gian đóng */
     public LocalDateTime getTimestamp() { return timestamp; }
 
     /** Event type cho client phan biet. */

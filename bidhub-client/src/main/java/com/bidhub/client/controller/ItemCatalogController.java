@@ -190,7 +190,7 @@ public class ItemCatalogController {
         card.setOnMouseEntered(e -> card.setStyle(styleHover));
         card.setOnMouseExited(e -> card.setStyle(styleNormal));
 
-        // Khi click → mở dialog chi tiết
+        // Khi click → mở dialog chỉ tiết
         final String fName = name, fDesc = desc, fSeller = seller, fType = type, fAStatus = aStatus, fImageUrl = imageUrl;
         final double fPrice = price;
         card.setOnMouseClicked(e -> showItemDetail(itemId, fName, fDesc, fSeller, fType, fAStatus, fImageUrl, fPrice));
@@ -255,7 +255,7 @@ public class ItemCatalogController {
         return card;
     }
 
-    /** Dialog chi tiết sản phẩm khi click vào card */
+    /** Dialog chỉ tiết sản phẩm khi click vào card */
     private void showItemDetail(String id, String fallbackName, String fallbackDesc, String fallbackSeller,
                                 String fallbackType, String fallbackAStatus, String fallbackImageUrl, double fallbackPrice) {
         MessageRequest req = new MessageRequest("GET_ITEM_DETAIL", null, mapper.createObjectNode().put("itemId", id));
@@ -313,7 +313,7 @@ public class ItemCatalogController {
         loadImageSafely(bigIv, imageUrl, 600, 260);
         imgPane.getChildren().add(bigIv);
 
-        // Chi tiết bên dưới
+        // Chỉ tiết bên dưới
         VBox detail = new VBox(14);
         detail.setPadding(new Insets(22, 28, 28, 28));
 

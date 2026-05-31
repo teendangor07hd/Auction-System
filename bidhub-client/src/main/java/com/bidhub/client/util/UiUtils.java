@@ -8,22 +8,21 @@ import javafx.scene.control.TextField;
 import javafx.scene.control.TextFormatter;
 
 /**
- * Cac helper method cho JavaFX UI — loading state, validation, numeric filter.
+ * Các helper method cho JavaFX UI — loading state, validation, numeric filter.
  *
- * <p>// 📌 [Tieu chi: MVC — JavaFX UX helper]
  */
 public final class UiUtils {
 
     private UiUtils() {
-        // Utility class — khong instance
+        // Utility class — không instance
     }
 
     /**
      * Bind loading state: disable button + hien ProgressIndicator khi task chay.
      *
-     * @param button button can disable
+     * @param button button cần disable
      * @param spinner ProgressIndicator
-     * @return Runnable de goi khi task hoan thanh (re-enable button)
+     * @return Runnable để goi khi task hoan thanh (re-enable button)
      */
     public static Runnable showLoading(Button button, ProgressIndicator spinner) {
         button.setDisable(true);
@@ -37,8 +36,8 @@ public final class UiUtils {
     /**
      * Hien Alert loi.
      *
-     * @param title   tieu de
-     * @param message noi dung loi
+     * @param title   tieu để
+     * @param message nội đúng loi
      */
     public static void showError(String title, String message) {
         Platform.runLater(() -> {
@@ -53,8 +52,8 @@ public final class UiUtils {
     /**
      * Hien Alert thanh cong.
      *
-     * @param title   tieu de
-     * @param message noi dung
+     * @param title   tieu để
+     * @param message nội đúng
      */
     public static void showInfo(String title, String message) {
         Platform.runLater(() -> {
@@ -69,9 +68,9 @@ public final class UiUtils {
     /**
      * Ap numeric-only filter cho TextField.
      *
-     * <p>Chi cho phep so + dau cham thap phan.
+     * <p>Chỉ cho phép so + dau cham thap phan.
      *
-     * @param textField TextField can filter
+     * @param textField TextField cần filter
      */
     public static void applyNumericFilter(TextField textField) {
         TextFormatter<String> formatter = new TextFormatter<>(change -> {
@@ -79,26 +78,26 @@ public final class UiUtils {
             if (text.isEmpty()) {
                 return change;
             }
-            // Chi cho phep so va dau cham
+            // Chỉ cho phép so và dau cham
             if (text.matches("[0-9.]*")) {
-                // Chi cho phep 1 dau cham
+                // Chỉ cho phép 1 dau cham
                 String currentText = ((TextField) change.getControl()).getText();
                 if (".".equals(text) && currentText.contains(".")) {
-                    return null; // Block — da co dau cham
+                    return null; // Block — đã có dau cham
                 }
                 return change;
             }
-            return null; // Block — khong phai so
+            return null; // Block — không phai so
         });
         textField.setTextFormatter(formatter);
     }
 
     /**
-     * Validate TextField khong rong.
+     * Validate TextField không rong.
      *
-     * @param textField TextField can check
+     * @param textField TextField cần check
      * @param fieldName ten truong (cho error message)
-     * @return true neu hop le
+     * @return true nếu hop le
      */
     public static boolean validateNotEmpty(TextField textField, String fieldName) {
         if (textField.getText() == null || textField.getText().isBlank()) {
@@ -110,11 +109,11 @@ public final class UiUtils {
     }
 
     /**
-     * Validate TextField la so duong.
+     * Validate TextField là so duong.
      *
-     * @param textField TextField can check
+     * @param textField TextField cần check
      * @param fieldName ten truong (cho error message)
-     * @return true neu hop le
+     * @return true nếu hop le
      */
     public static boolean validatePositiveNumber(TextField textField,
                                                  String fieldName) {

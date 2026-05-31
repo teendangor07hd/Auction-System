@@ -16,13 +16,11 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Task chay dinh ky — kiem tra va dong cac phien dau gia het han.
+ * Task chay dinh ky — kiem tra và đóng các phien đấu giá het han.
  *
- * <p>Moi lan chay, lay danh sach auction active tu {@link AuctionManager#getAllActive()},
- * kiem tra tung auction: neu {@code endTime} da qua → goi {@link #closeAuction(Auction)}.
+ * <p>Moi lan chay, lấy danh sach auction active từ {@link AuctionManager#getAllActive()},
+ * kiem tra tung auction: nếu {@code endTime} da qua → goi {@link #closeAuction(Auction)}.
  *
- * <p>// 📌 [Tieu chi: Chuc nang dau gia — lifecycle tu dong dong phien]
- * // 📌 [Tieu chi: Ky thuat quan trong — Runnable duoc ScheduledExecutorService goi dinh ky]
  */
 public final class AuctionLifecycleTask implements Runnable {
 
@@ -40,21 +38,18 @@ public final class AuctionLifecycleTask implements Runnable {
                 try {
                     LocalDateTime now = LocalDateTime.now();
 
-                    // 📌 [Tieu chi: Chuc nang dau gia — tu dong chuyen OPEN → RUNNING khi den startTime]
                     if (auction.getStatus() == AuctionStatus.OPEN
                             && auction.getStartTime() != null
                             && !auction.getStartTime().isAfter(now)) {
                         activateAuction(auction);
                     }
 
-                    // 📌 [Tieu chi: Chuc nang dau gia — tu dong dong phien RUNNING khi het han]
                     if (auction.getEndTime() != null
                             && auction.getEndTime().isBefore(now)
                             && auction.getStatus() == AuctionStatus.RUNNING) {
                         closeAuction(auction);
                     }
                 } catch (Exception e) {
-                    // 📌 [Tieu chi: Xu ly loi — khong de 1 auction loi block cac auction khac]
                     logger.error("Loi xu ly auction {}: {}", auction.getId(), e.getMessage(), e);
                 }
             }
@@ -64,11 +59,10 @@ public final class AuctionLifecycleTask implements Runnable {
     }
 
     /**
-     * Kich hoat phien dau gia — chuyen status OPEN → RUNNING khi den startTime.
+     * Kich hoat phien đấu giá — chuyen status OPEN → RUNNING khi đến startTime.
      *
-     * <p>// 📌 [Tieu chi: Chuc nang dau gia — tu dong kich hoat phien khi den gio]
      *
-     * @param auction auction can kich hoat
+     * @param auction auction cần kich hoat
      */
     private void activateAuction(Auction auction) {
         String auctionId = auction.getId();
@@ -76,10 +70,10 @@ public final class AuctionLifecycleTask implements Runnable {
 
         auction.getLock().lock();
         try {
-            // Chuyen trang thai OPEN → RUNNING
+            // Chuyen trạng thái OPEN → RUNNING
             auction.transitionTo(AuctionStatus.RUNNING);
 
-            // Cap nhat status trong DB
+            // Cập nhật status trong DB
             auctionDao.updateStatus(auctionId, AuctionStatus.RUNNING);
 
             logger.info("[LifecycleTask] Da kich hoat phien: {}", auctionId);
@@ -95,16 +89,15 @@ public final class AuctionLifecycleTask implements Runnable {
         String winnerId = null;
         double winningBid = 0.0;
 
-        // 📌 [Tieu chi: Ky thuat quan trong — lock khi dong phien de chong race voi bid]
         auction.getLock().lock();
         try {
-            // 1. Chuyen trang thai
+            // 1. Chuyen trạng thái
             auction.transitionTo(AuctionStatus.FINISHED);
 
-            // 2. Cap nhat status trong DB
+            // 2. Cập nhật status trong DB
             auctionDao.updateStatus(auctionId, AuctionStatus.FINISHED);
 
-            // 3. Tim winner
+            // 3. Tìm winner
             Optional<BidTransaction> highestBidOpt = bidDao.getHighestBid(auctionId);
 
             if (highestBidOpt.isPresent()) {
@@ -116,11 +109,10 @@ public final class AuctionLifecycleTask implements Runnable {
                 logger.info("Khong co bid nao — phien {} ket thuc khong co nguoi thang.", auctionId);
             }
 
-            // 4. Xoa khoi RAM
+            // 4. Xóa khoi RAM
             AuctionManager.getInstance().removeAuction(auctionId);
 
-            // 📌 [Tieu chi: Audit Log — log AUCTION_CLOSED sau FINISHED transition]
-            // Log trong lock → dam bao khong race voi bid handler
+            // Log trong lock → dam bao không race với bid handler
             auditLogService.log("SYSTEM", AuditActions.AUCTION_CLOSED,
                     "{\"auctionId\":\"" + auctionId
                             + "\",\"winnerId\":\"" + (winnerId != null ? winnerId : "none")
@@ -129,8 +121,7 @@ public final class AuctionLifecycleTask implements Runnable {
             auction.getLock().unlock();
         }
 
-        // 📌 [Tieu chi: Realtime update — publish AUCTION_CLOSED sau unlock]
-        // Goi ngoai khoi lock block de tranh block thread khi gui socket
+        // Goi ngoai khoi lock block để tranh block thread khi gửi socket
         NotificationBroker.getInstance().publish(auctionId,
                 new AuctionClosedEvent(auctionId, winnerId, winningBid));
 
